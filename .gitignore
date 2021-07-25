@@ -1,0 +1,9 @@
+src/.vs/
+bin/
+obj/
+*.fits
+*.fit
+src/.idea/
+src/*/Resources
+launchSettings.json
+src/WatneyAstrometry.SolverApp/watney-solve-config.yml

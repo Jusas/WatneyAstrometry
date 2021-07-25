@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Authors>Jussi Saarivirta</Authors>
+    <Company />
+    <Product>Watney Astrometric Solver</Product>
+    <Version>1.0.0</Version>
+    <PackageId>WatneyAstrometrySolver</PackageId>
+    <AssemblyName>watney-solve</AssemblyName>
+    <RootNamespace>WatneyAstrometry.SolverApp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="CommandLineParser" Version="2.8.0" />
+    <PackageReference Include="YamlDotNet" Version="11.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WatneyAstrometry.Core\WatneyAstrometry.Core.csproj" />
+    <ProjectReference Include="..\WatneyAstrometry.ImageReaders\WatneyAstrometry.ImageReaders.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="watney-solve-config.template.yml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="watney-solve-config.yml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

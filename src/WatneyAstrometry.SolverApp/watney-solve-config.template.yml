@@ -1,0 +1,11 @@
+﻿# This is the configuration file for watney-solve program.
+# The format of this file is YAML.
+
+# The path to the quad database. If using relative directory, start with './'
+# Examples: 
+#   quadDbPath: ./db
+#   quadDbPath: /opt/watney-astrometry/db
+#   quadDbPath: 'C:\Program Files\watney-astrometry\db'
+#
+quadDbPath: './db'
+
