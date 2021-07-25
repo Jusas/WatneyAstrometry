@@ -1,4 +1,7 @@
-﻿namespace WatneyAstrometry.Core.Types
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+namespace WatneyAstrometry.Core.Types
 {
     /// <summary>
     /// Class representing a single cell in the grid that covers the sky sphere.

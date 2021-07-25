@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Generic;
 using System.Linq;
 
 namespace WatneyAstrometry.Core.Types

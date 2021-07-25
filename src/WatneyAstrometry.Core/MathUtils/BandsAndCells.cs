@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.MathUtils
