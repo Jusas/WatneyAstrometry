@@ -3,6 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Platforms>AnyCPU;x64</Platforms>
+    <Version>0.9.0</Version>
+    <Authors>Jussi Saarivirta</Authors>
+    <Product>WatneyAstrometry.Core</Product>
+    <Description>Watney astrometric solver core library.</Description>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
