@@ -30,13 +30,12 @@ namespace WatneyAstrometry.Core
         /// </summary>
         public int[] DensityOffsets;
 
-        // For debugging, to more easily visualize the SearchRun parameters.
-        #if DEBUG
+        // For debugging and logging, to more easily visualize the SearchRun parameters.
         public override string ToString()
         {
             return $"[{Center.Ra}, {Center.Dec}] ({RadiusDegrees:F})";
         }
-        #endif
+        
     }
 
     /// <summary>

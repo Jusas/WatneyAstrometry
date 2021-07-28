@@ -36,9 +36,12 @@ namespace WatneyAstrometry.Core
         
         private int _tentativeMatches = 0;
         private int _iterations = 0;
+
+        private IVerboseLogger _logger;
         
-        public Solver()
+        public Solver(IVerboseLogger logger = null)
         {
+            _logger = logger ?? new NullVerboseLogger();
             UseImageReader<DefaultFitsReader>(() => new DefaultFitsReader(), "fit", "fits");
         }
 
@@ -104,6 +107,7 @@ namespace WatneyAstrometry.Core
         /// <returns>The result of the solver operation</returns>
         public async Task<SolveResult> SolveFieldAsync(string filename, ISearchStrategy strategy, CancellationToken cancellationToken)
         {
+            _logger.Write($"Solving field from file {filename}, with strategy {strategy.GetType().Name}");
             var filenameExtension = Path.GetExtension(filename);
             if(string.IsNullOrEmpty(filenameExtension))
                 throw new Exception("File does not have extension, unable to determine file type");
@@ -133,6 +137,7 @@ namespace WatneyAstrometry.Core
 
             SolveResult result = null;
 
+            _logger.Write("Image parsed, starting the solve");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -147,6 +152,7 @@ namespace WatneyAstrometry.Core
 
             var detectedStars = starDetector.DetectStars(image);
 
+            _logger.Write($"Detected {detectedStars.Count} from the image");
             if (detectedStars.Count < 10)
                 return new SolveResult(); // todo: description?
             
@@ -154,6 +160,7 @@ namespace WatneyAstrometry.Core
                 .Take(maxStars)
                 .ToList();
 
+            _logger.Write($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
             IQuadDatabase quadDb;
             if (_quadDatabaseFactoryAsync != null)
                 quadDb = await _quadDatabaseFactoryAsync.Invoke();
@@ -166,6 +173,7 @@ namespace WatneyAstrometry.Core
             
             // Form quads from image stars
             var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
+            _logger.Write($"Formed {imageStarQuads.Length} quads from the chosen stars");
 
             var completionCts = new CancellationTokenSource();
             var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(completionCts.Token, cancellationToken);
@@ -175,6 +183,7 @@ namespace WatneyAstrometry.Core
             {
                 Task<SolveResult[]> whenAllResult = null;
 
+                _logger.Write("Starting search tasks in parallel");
                 var searchTasks = strategy.GetSearchQueue().Select(searchRun => Task.Run(async () =>
                     await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, imageStarQuads,
                         completionCts)));
@@ -187,6 +196,7 @@ namespace WatneyAstrometry.Core
                 finally
                 {
                     stopwatch.Stop();
+                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) ?? new SolveResult();
                     result.DetectedStars = detectedStars;
                     result.DetectedQuadDensity = countInFirstPass;
@@ -198,6 +208,7 @@ namespace WatneyAstrometry.Core
             }
             else
             {
+                _logger.Write("Starting search tasks in serial mode");
                 foreach (var searchRun in strategy.GetSearchQueue())
                 {
                     if (cancellationToken.IsCancellationRequested)
@@ -210,6 +221,7 @@ namespace WatneyAstrometry.Core
                     if (taskResult != null && taskResult.Success)
                     {
                         stopwatch.Stop();
+                        _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                         result = taskResult;
                         result.DetectedStars = detectedStars;
                         result.DetectedQuadDensity = countInFirstPass;
@@ -223,6 +235,7 @@ namespace WatneyAstrometry.Core
                 if (result == null)
                 {
                     stopwatch.Stop();
+                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = new SolveResult();
                     result.DetectedStars = detectedStars;
                     result.DetectedQuadDensity = countInFirstPass;
@@ -250,8 +263,10 @@ namespace WatneyAstrometry.Core
                 Success = false
             };
 
-
+            
             Interlocked.Increment(ref _iterations);
+            var iteration = _iterations;
+            var logPrefix = $"Iteration {iteration} {searchRun}:";
 
             // Quads per degree
             var searchFieldSize = searchRun.RadiusDegrees * 2;
@@ -272,18 +287,26 @@ namespace WatneyAstrometry.Core
 
             var databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
                 searchRun.DensityOffsets, imageStarQuads);
+
+            _logger.Write($"{logPrefix} {databaseQuads.Count} potential database matches");
             if (databaseQuads.Count < minMatches)
+            {
                 return null;
+            }
 
             matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.01, minMatches);
 
 
             if (matchingQuads.Count >= minMatches)
             {
+                _logger.Write($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
                 var preliminarySolution = CalculateSolution(image, matchingQuads, searchRun.Center);
 
                 if (!IsValidSolution(preliminarySolution))
+                {
+                    _logger.Write($"{logPrefix} not a valid solution");
                     return null;
+                }
 
                 Interlocked.Increment(ref _tentativeMatches);
 
@@ -293,6 +316,8 @@ namespace WatneyAstrometry.Core
 
                 pixelAngularSearchFieldSizeRatio = imageDiameterInPixels / preliminarySolution.Radius * 2;
 
+
+                _logger.Write($"{logPrefix} valid solution, calculating an improved solution");
                 // Calculate a second time; we may be quite a bit off if we're detecting the quads at an edge,
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
@@ -300,8 +325,12 @@ namespace WatneyAstrometry.Core
                     pixelAngularSearchFieldSizeRatio, quadDb, imageStarQuads, (int) quadsPerSqDeg, minMatches);
 
                 if (!IsValidSolution(improvedSolution.solution))
+                {
+                    _logger.Write($"{logPrefix} solution improve failed");
                     return null;
+                }
 
+                _logger.Write($"{logPrefix} valid solution was found");
                 taskResult.Success = true;
                 taskResult.Canceled = false;
                 taskResult.SearchRun = searchRun;

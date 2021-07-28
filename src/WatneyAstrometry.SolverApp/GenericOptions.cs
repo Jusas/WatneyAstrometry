@@ -29,5 +29,16 @@ namespace WatneyAstrometry.SolverApp
         [Option("extended", Required = false, Default = false,
             HelpText = "Produce extended output. This will print out a lot of additional detail about the solve.")]
         public bool ExtendedOutput { get; set; }
+        
+        [Option("log-stdout", Required = false, Default = false,
+            HelpText = "Verbose logging. If true, will log a lot of additional lines to stdout.")]
+        public bool LogToStdout { get; set; }
+
+        [Option("log-file", Required = false, Default = "",
+            HelpText = "Verbose logging. Give a filename to print verbose log lines into a file.")]
+        public string LogToFile { get; set; }
+
+
+
     }
 }

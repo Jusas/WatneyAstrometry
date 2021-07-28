@@ -60,6 +60,23 @@ namespace WatneyAstrometry.SolverApp
             _configuration = Configuration.Load(configFile);
         }
 
+        private static IVerboseLogger GetLogger(GenericOptions options)
+        {
+            IVerboseLogger logger = null;
+            if (options.LogToStdout || !string.IsNullOrEmpty(options.LogToFile))
+            {
+                logger = new DefaultVerboseLogger(new DefaultVerboseLogger.Options
+                {
+                    Enabled = true,
+                    WriteToFile = !string.IsNullOrEmpty(options.LogToFile),
+                    LogFile = options.LogToFile,
+                    WriteToStdout = options.LogToStdout
+                });
+            }
+
+            return logger;
+        }
+
         private static void RunBlindSolve(BlindOptions options)
         {
             Validate(options);
@@ -67,7 +84,8 @@ namespace WatneyAstrometry.SolverApp
 
             var strategy = ParseStrategy(options);
             var quadDatabase = new CompactQuadDatabase();
-            var solver = new Solver()
+            
+            var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
 
@@ -90,7 +108,7 @@ namespace WatneyAstrometry.SolverApp
             var strategy = ParseStrategy(options);
 
             var quadDatabase = new CompactQuadDatabase();
-            var solver = new Solver()
+            var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
 
