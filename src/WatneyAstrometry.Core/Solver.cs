@@ -158,7 +158,7 @@ namespace WatneyAstrometry.Core
             if (_quadDatabaseFactoryAsync != null)
                 quadDb = await _quadDatabaseFactoryAsync.Invoke();
             else
-                quadDb = _quadDatabaseFactory.Invoke(); // todo: what's the lifetime, it's likely that the db will live through multiple solves (might even be singleton), but disposal must be done at some point an dispose pattern implemented
+                quadDb = _quadDatabaseFactory.Invoke(); 
             
 
             _tentativeMatches = 0;
