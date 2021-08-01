@@ -1,6 +1,6 @@
 # Watney Astrometry Engine
 
-## ***Note: Work in progress***
+## ***Note: Work in progress, pre-release version is available for download***
 
 ![Logo](docs/images/logo-front.png)
 
