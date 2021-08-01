@@ -138,7 +138,7 @@ namespace WatneyAstrometry.ImageReaders
                 }
 
                 throw new NotImplementedException(
-                    "PNG support is limited to 8-bit and 16-bit grayscale and RGB images without transparency.");
+                    "PNG support is limited to 8-bit and 16-bit grayscale and RGB images.");
             }
         }
 
