@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:java="http://www.yworks.com/xml/yfiles-common/1.0/java" xmlns:sys="http://www.yworks.com/xml/yfiles-common/markup/primitives/2.0" xmlns:x="http://www.yworks.com/xml/yfiles-common/markup/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:y="http://www.yworks.com/xml/graphml" xmlns:yed="http://www.yworks.com/xml/yed/3" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd">
+  <!--Created by yEd 3.21.1-->
+  <key attr.name="Description" attr.type="string" for="graph" id="d0"/>
+  <key for="port" id="d1" yfiles.type="portgraphics"/>
+  <key for="port" id="d2" yfiles.type="portgeometry"/>
+  <key for="port" id="d3" yfiles.type="portuserdata"/>
+  <key attr.name="url" attr.type="string" for="node" id="d4"/>
+  <key attr.name="description" attr.type="string" for="node" id="d5"/>
+  <key for="node" id="d6" yfiles.type="nodegraphics"/>
+  <key for="graphml" id="d7" yfiles.type="resources"/>
+  <key attr.name="url" attr.type="string" for="edge" id="d8"/>
+  <key attr.name="description" attr.type="string" for="edge" id="d9"/>
+  <key for="edge" id="d10" yfiles.type="edgegraphics"/>
+  <graph edgedefault="directed" id="G">
+    <data key="d0"/>
+    <node id="n0">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="576.8727999999998" width="1405.7329333333332" x="124.13353333333339" y="77.43860000000012"/>
+          <y:Fill hasColor="false" transparent="false"/>
+          <y:BorderStyle color="#949494" type="dashed" width="2.0"/>
+          <y:NodeLabel alignment="left" autoSizePolicy="node_width" borderDistance="20.0" bottomInset="8" fontFamily="Dialog" fontSize="16" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="35.6015625" horizontalTextPosition="center" iconTextGap="4" leftInset="18" modelName="internal" modelPosition="b" rightInset="8" textColor="#000000" topInset="8" verticalTextPosition="top" visible="true" width="1405.7329333333332" x="0.0" xml:space="preserve" y="521.2712374999996">WatneyAstrometry.Core</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="1376.0183065040649" y="294.39326620689644">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="left" autoSizePolicy="node_width" bottomInset="8" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="29.47607421875" horizontalTextPosition="center" iconTextGap="4" leftInset="18" modelName="internal" modelPosition="b" rightInset="8" textColor="#000000" topInset="8" verticalTextPosition="bottom" visible="true" width="1405.7329333333332" x="0.0" xml:space="preserve" y="543.3967257812496">[Container]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n1">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="119.87279999999996" width="245.98293333333334" x="959.5085333333334" y="100.31360000000001"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="-1.4210854715202004E-14">DefaultFitsReader</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="237.48324552845526" y="59.58981793103446">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="41.21875" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="71.13133244387524">Image reader that can read simple monochrome FITS files</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="44.999999999999986">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n2">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="119.87279999999996" width="245.98293333333334" x="1243.7585333333338" y="291.56359999999995"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="-1.4210854715202004E-14">DefaultStarDetector</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="237.48324552845526" y="59.58981793103446">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="41.21875" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="71.13133244387524">The default implementation of a star detector</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="44.999999999999986">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n3">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="269.74559999999997" width="716.9658666666664" x="204.27560000000017" y="291.56359999999995"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="716.9658666666664" x="0.0" xml:space="preserve" y="0.0">Solver</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="699.8506373983737" y="136.5934289655172">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="58.828125" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="716.9658666666664" x="0.0" xml:space="preserve" y="71.13133244387524">Attemps to solve the image field using the given strategy.
+Uses the provided star detector to find stars and form quads from them, and a quad database for finding matching catalog star quads.</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="716.9658666666664" x="0.0" xml:space="preserve" y="45.0">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n4">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="137.87279999999998" width="343.48293333333334" x="204.2756000000001" y="100.31360000000001"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="-1.4210854715202004E-14">NearbySearchStrategy</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="333.19970894308943" y="68.83809379310343">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="41.21875" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="71.13133244387524">A solve strategy that provides search segments in range of given radius from a given center coordinate</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="44.999999999999986">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n5">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="137.87279999999998" width="343.4829333333332" x="577.7585333333334" y="100.31360000000001"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="343.4829333333332" x="0.0" xml:space="preserve" y="0.0">BlindSearchStrategy</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="333.19970894308926" y="68.83809379310344">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="41.21875" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="343.4829333333332" x="0.0" xml:space="preserve" y="71.13133244387524">A solve strategy that assumes no location information is available, and provides a full search grid</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="343.4829333333332" x="0.0" xml:space="preserve" y="45.0">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n6">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="119.87279999999996" width="245.98293333333334" x="1243.7585333333338" y="441.43639999999994"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="255.615234375" x="-4.816150520833389" xml:space="preserve" y="-1.4210854715202004E-14">CompactQuadDatabase</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="237.4832455284552" y="59.58981793103446">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="41.21875" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="71.1313324438753">A catalog star quad database implementation</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="44.999999999999986">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n7">
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.flowchart.dataBase">
+          <y:Geometry height="137.87279999999998" width="245.98293333333336" x="1243.7585333333338" y="678.0613999999998"/>
+          <y:Fill color="#438DD5" transparent="false"/>
+          <y:BorderStyle color="#3C7FC0" type="line" width="1.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="33.0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="28.501953125" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="245.98293333333336" x="0.0" xml:space="preserve" y="33.0">Quad Database</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" borderDistance="58.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="85.29150390625" x="80.34571471354161" xml:space="preserve" y="58.0">[Filesystem files]</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="23.609375" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="245.98293333333336" x="0.0" xml:space="preserve" y="86.65222350637532">The database files</y:NodeLabel>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n8">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="119.87279999999996" width="245.98293333333334" x="1243.7585333333338" y="100.31360000000002"/>
+          <y:Fill color="#85BBF0" transparent="false"/>
+          <y:BorderStyle color="#78A8D8" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#000000" topInset="25" verticalTextPosition="top" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="-1.4210854715202004E-14">IImageReader</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="237.4832455284552" y="59.58981793103446">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="23.609375" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="71.13133244387522">Any other image reader</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="44.999999999999986">[Component]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n9">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="119.87279999999996" width="343.48293333333334" x="204.2756000000001" y="-96.73639999999992"/>
+          <y:Fill color="#1168BD" transparent="false"/>
+          <y:BorderStyle color="#0F5EAA" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#FFFFFF" topInset="25" verticalTextPosition="top" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="0.0">.NET Application</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="333.19970894308943" y="59.58981793103446">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="23.609375" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="71.13133244387522">Description</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="343.48293333333334" x="0.0" xml:space="preserve" y="45.0">[Software System]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <node id="n10">
+      <data key="d4" xml:space="preserve"/>
+      <data key="d6">
+        <y:GenericNode configuration="com.yworks.entityRelationship.small_entity">
+          <y:Geometry height="107.37279999999996" width="245.98293333333334" x="1101.1585333333335" y="-90.48639999999992"/>
+          <y:Fill color="#999999" transparent="false"/>
+          <y:BorderStyle color="#949494" type="line" width="2.0"/>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="0.0" bottomInset="0" fontFamily="Dialog" fontSize="20" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="49.501953125" horizontalTextPosition="center" iconTextGap="4" leftInset="15" modelName="internal" modelPosition="t" rightInset="15" textColor="#FFFFFF" topInset="25" verticalTextPosition="top" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="0.0">Image file</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" horizontalTextPosition="center" iconTextGap="4" modelName="custom" textColor="#000000" verticalTextPosition="bottom" visible="true" width="4.0" x="237.4832455284552" y="53.167404137931015">
+            <y:LabelModel>
+              <y:SmartNodeLabelModel distance="4.0"/>
+            </y:LabelModel>
+            <y:ModelParameter>
+              <y:SmartNodeLabelModelParameter labelRatioX="0.5" labelRatioY="0.0" nodeRatioX="0.4817073170731707" nodeRatioY="0.01379310344827589" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
+            </y:ModelParameter>
+          </y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" configuration="CroppingLabel" fontFamily="Dialog" fontSize="14" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="23.609375" horizontalTextPosition="center" iconTextGap="4" modelName="free" modelPosition="anywhere" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="69.78840744387526">Description</y:NodeLabel>
+          <y:NodeLabel alignment="center" autoSizePolicy="node_width" borderDistance="45.0" fontFamily="Dialog" fontSize="11" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.47607421875" horizontalTextPosition="center" iconTextGap="4" modelName="internal" modelPosition="t" textColor="#FFFFFF" verticalTextPosition="bottom" visible="true" width="245.98293333333334" x="0.0" xml:space="preserve" y="45.0">[Input]</y:NodeLabel>
+          <y:StyleProperties>
+            <y:Property class="java.lang.Boolean" name="y.view.ShadowNodePainter.SHADOW_PAINTING" value="true"/>
+          </y:StyleProperties>
+        </y:GenericNode>
+      </data>
+    </node>
+    <edge id="e0" source="n9" target="n4">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="148.7265625" x="-156.36327390950504" xml:space="preserve" y="22.721076232709066">Chooses a solve strategy<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="81.99999999999994" distanceToCenter="true" position="right" ratio="0.3656094255267267" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e1" source="n9" target="n5">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="148.7265625" x="106.03453149744394" xml:space="preserve" y="22.55597300275737">Chooses a solve strategy<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="15.096839112766316" distanceToCenter="false" position="left" ratio="13.578104077084562" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e2" source="n3" target="n2">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="33.40234375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="137.37109375" x="91.63040370978138" xml:space="preserve" y="-9.548134374538108">Uses for star detection 
+from image<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="21.99999999999992" distanceToCenter="true" position="right" ratio="0.49453913040856623" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e3" source="n3" target="n6">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="33.40234375" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="149.3828125" x="86.58099365234398" xml:space="preserve" y="20.425640611102722">Reads catalog star quads
+from<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="21.99999999999992" distanceToCenter="true" position="right" ratio="0.5" segment="0"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e4" source="n6" target="n0">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="35.341796875" x="-2.4853709560916286" xml:space="preserve" y="17.144187582767017">Label<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="21.99999999999992" distanceToCenter="true" position="right" ratio="0.49453913040856623" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e5" source="n6" target="n7">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="108.689453125" x="-121.34472656249955" xml:space="preserve" y="14.030152964711306">Reads quads from<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="66.99999999999997" distanceToCenter="true" position="right" ratio="0.1025635775674555" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e6" source="n3" target="n9">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="-94.59999999999991" y="380.18639999999994"/>
+            <y:Point x="-94.59999999999991" y="-11.799999999999955"/>
+          </y:Path>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="119.37109375" x="-281.2823256138916" xml:space="preserve" y="-9.397481732765755">Returns solve result<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="0.0" distance="1.9892313535237576" distanceToCenter="false" position="left" ratio="0.6669471771970237" segment="0"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e7" source="n9" target="n10">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="138.044921875" x="207.68552307942718" xml:space="preserve" y="12.649413299560525">Produces a file to solve<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="21.99999999999992" distanceToCenter="true" position="right" ratio="0.5" segment="0"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e8" source="n3" target="n1">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="928.6812500000001" y="267.08124999999995"/>
+          </y:Path>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="132.02734375" x="-122.94272510942983" xml:space="preserve" y="-36.4912408096219">Reads FITS files using<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="0.0" distance="12.683310431209646" distanceToCenter="false" position="left" ratio="-41.37901139510442" segment="0"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e9" source="n3" target="n8">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="1137.9" y="290.04999999999995"/>
+          </y:Path>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="169.3515625" x="44.19512005486217" xml:space="preserve" y="-77.90740890120031">Reads png, jpg, ... files using<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="0.0" distance="8.335601247803172" distanceToCenter="false" position="left" ratio="0.3311705343403897" segment="0"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e10" source="n2" target="n0">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="18.701171875" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="35.341796875" x="3.4716771187536324" xml:space="preserve" y="12.094131108564852">Label<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="6.283185307179586" distance="21.99999999999992" distanceToCenter="true" position="right" ratio="0.49453913040856623" segment="-1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+    <edge id="e11" source="n9" target="n3">
+      <data key="d10">
+        <y:PolyLineEdge>
+          <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
+            <y:Point x="80.40000000000009" y="7.5499999999999545"/>
+            <y:Point x="80.40000000000009" y="347.54999999999995"/>
+          </y:Path>
+          <y:LineStyle color="#999999" type="dashed" width="2.0"/>
+          <y:Arrows source="none" target="delta"/>
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="bold" hasBackgroundColor="false" hasLineColor="false" height="48.103515625" horizontalTextPosition="center" iconTextGap="4" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#999999" verticalTextPosition="bottom" visible="true" width="126.033203125" x="-251.97301776473918" xml:space="preserve" y="164.53388099670406">Request solve with a 
+strategy, image and 
+parameters<y:LabelModel><y:SmartEdgeLabelModel autoRotationEnabled="false" defaultAngle="0.0" defaultDistance="10.0"/></y:LabelModel><y:ModelParameter><y:SmartEdgeLabelModelParameter angle="0.0" distance="2.056336856536104" distanceToCenter="false" position="right" ratio="0.5" segment="1"/></y:ModelParameter><y:PreferredPlacementDescriptor angle="0.0" angleOffsetOnRightSide="0" angleReference="absolute" angleRotationOnRightSide="co" distance="-1.0" frozen="true" placement="anywhere" side="anywhere" sideReference="relative_to_edge_flow"/></y:EdgeLabel>
+          <y:BendStyle smoothed="false"/>
+        </y:PolyLineEdge>
+      </data>
+    </edge>
+  </graph>
+  <data key="d7">
+    <y:Resources/>
+  </data>
+</graphml>
