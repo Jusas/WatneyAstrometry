@@ -10,7 +10,13 @@ The Watney Astrometry Engine (hereafter Watney or WatneyAstrometry) is an astrom
 
 The solver was designed from the beginning as a library with no dependencies. It is implemented as a .NET Standard 2.0 library. This provides compatibility with both .NET Framework and .NET Core 2.0 and later as well as .NET 5. This way if anyone wants to embed Watney to their .NET based apps, very little effort is required. _The library will be published as a NuGet package in the near future_.
 
-Alongside the solver library a CLI app is provided for basic plate solving via command line. The CLI app will run on Windows, Linux and Mac and binaries will be provided for x86, x64 and arm64 architectures.
+Alongside the solver library a CLI app (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64 and arm64 and Mac OSX x64.
+
+# Downloads
+
+- watney-solve (CLI solver): [See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)
+- WatneyAstrometry.Core: _to be published in NuGet.org_
+- WatneyAstrometry.ImageReaders: _to be published in NuGet.org_
 
 # The Sources
 
