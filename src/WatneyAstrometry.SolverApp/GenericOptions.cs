@@ -4,7 +4,7 @@ namespace WatneyAstrometry.SolverApp
 {
     public abstract class GenericOptions
     {
-        [Option("use-config", Required = false, HelpText = "Path to configuration file. By default tries to load watney-solve.cfg in the same directory where the solver is.")]
+        [Option("use-config", Required = false, HelpText = "Path to configuration file. By default tries to load watney-solve-config.yml in the same directory where the solver is.")]
         public string ConfigPath { get; set; }
 
         [Option('i', "image", Required = true,

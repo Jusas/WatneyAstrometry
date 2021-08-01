@@ -29,7 +29,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             [Option('p', "passes", Required = false, HelpText = "Passes, the number of times to gather the quads, each pass decreasing the number of stars included", Default = 7)]
             public int Passes { get; set; } = 10;
 
-            [Option('x', "passfactor", Required = false, HelpText = "Factor to use when decreasing number of stars per pass", Default = 1.4142135623730950488016887242097f)]
+            [Option('x', "passfactor", Required = false, HelpText = "Base factor to use when increasing number of stars per pass. This number gets raised to the power [pass], i.e. passfactor^passNumber. Defaults to sqrt(2).", Default = 1.4142135623730950488016887242097f)]
             public float PassFactor { get; set; } = (float)Math.Sqrt(2);
 
             [Option('c', "cell", Required = false, HelpText = "Only generate a single cell, e.g. 'b00c00'", Default = "")]
