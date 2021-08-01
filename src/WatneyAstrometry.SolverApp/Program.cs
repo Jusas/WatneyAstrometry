@@ -180,7 +180,9 @@ namespace WatneyAstrometry.SolverApp
                 Console.WriteLine(outputText);
             else
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(options.OutFile));
+                var directory = Path.GetDirectoryName(options.OutFile);
+                if(!string.IsNullOrEmpty(directory))
+                    Directory.CreateDirectory(Path.GetDirectoryName(options.OutFile));
                 File.WriteAllText(options.OutFile, outputText, Encoding.ASCII);
             }
         }
