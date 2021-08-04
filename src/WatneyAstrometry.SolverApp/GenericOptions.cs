@@ -11,6 +11,11 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "The image file to solve.")]
         public string ImageFilename { get; set; }
 
+        [Option("max-stars", Required = false, Default = 0, HelpText = "Maximum number of stars to use from the image. When not given, the solver decides itself. " +
+            "When given, the solver uses this number. In cases of very high star count present in the image (wide-field images), the solve may fail if this number is not set high enough. " +
+            "A high number (> 1000) will however also affect performance due to the high number of calculations, especially noticeable with blind solves.")]
+        public int MaxStars { get; set; }
+
         [Option("out-format", Required = false, HelpText = "Output format. Valid values are 'json', 'tsv'.", Default = "json")]
         public string OutFormat { get; set; }
 

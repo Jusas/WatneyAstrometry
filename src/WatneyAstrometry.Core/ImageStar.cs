@@ -27,15 +27,21 @@ namespace WatneyAstrometry.Core
         /// </summary>
         public long Brightness { get; set; }
 
+        /// <summary>
+        /// The star size, or diameter of the star's bounds.
+        /// </summary>
+        public double StarSize { get; set; }
+
         public ImageStar()
         {
         }
 
-        public ImageStar(double x, double y, long brightness)
+        public ImageStar(double x, double y, long brightness, double starSize)
         {
             X = x;
             Y = y;
             Brightness = brightness;
+            StarSize = starSize;
         }
 
         /// <summary>

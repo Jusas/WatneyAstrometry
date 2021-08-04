@@ -77,6 +77,15 @@ namespace WatneyAstrometry.SolverApp
             return logger;
         }
 
+        private static SolverOptions ParseSolverOptions(GenericOptions options)
+        {
+            var solverOpts = new SolverOptions();
+            if (options.MaxStars > 0)
+                solverOpts.UseMaxStars = options.MaxStars;
+
+            return solverOpts;
+        }
+
         private static void RunBlindSolve(BlindOptions options)
         {
             Validate(options);
@@ -89,7 +98,8 @@ namespace WatneyAstrometry.SolverApp
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
 
-            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, CancellationToken.None));
+            var solverOptions = ParseSolverOptions(options);
+            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
             solveTask.Wait();
             
             quadDatabase.Dispose();
@@ -112,7 +122,8 @@ namespace WatneyAstrometry.SolverApp
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
 
-            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, CancellationToken.None));
+            var solverOptions = ParseSolverOptions(options);
+            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
             solveTask.Wait();
 
             quadDatabase.Dispose();

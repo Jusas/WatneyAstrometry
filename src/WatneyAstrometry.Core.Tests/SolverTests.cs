@@ -67,7 +67,8 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
             
             var token = CancellationToken.None;
-            var solveResult = await solver.SolveFieldAsync(img, blindStrategy, token);
+            var options = new SolverOptions();
+            var solveResult = await solver.SolveFieldAsync(img, blindStrategy, options, token);
 
             if (solveResult.Success)
             {
@@ -106,7 +107,8 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
             
             var token = CancellationToken.None;
-            var solveResult = await solver.SolveFieldAsync(img, nearbyStrategy, token);
+            var options = new SolverOptions();
+            var solveResult = await solver.SolveFieldAsync(img, nearbyStrategy, options, token);
 
             if (solveResult.Success)
             {
@@ -146,7 +148,8 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
 
             var token = CancellationToken.None;
-            var solveResult = await solver.SolveFieldAsync(img, pointStrategy, token);
+            var options = new SolverOptions();
+            var solveResult = await solver.SolveFieldAsync(img, pointStrategy, options, token);
 
             solveResult.Success.Should().BeTrue();
             
@@ -177,7 +180,8 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
 
             var token = CancellationToken.None;
-            var solveResult = await solver.SolveFieldAsync(img, pointStrategy, token);
+            var options = new SolverOptions();
+            var solveResult = await solver.SolveFieldAsync(img, pointStrategy, options, token);
 
             solveResult.Success.Should().BeTrue();
 

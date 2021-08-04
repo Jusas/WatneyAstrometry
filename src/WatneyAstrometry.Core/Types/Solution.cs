@@ -13,6 +13,13 @@ namespace WatneyAstrometry.Core.Types
     {
         public class FitsHeaderFields
         {
+            /// <summary>
+            /// Empty constructor, for (de)serialization.
+            /// </summary>
+            public FitsHeaderFields()
+            {
+            }
+
             public FitsHeaderFields(double cdelt1, double cdelt2, 
                 double crota1, double crota2, 
                 double cd1_1, double cd2_1, double cd1_2, double cd2_2, 
@@ -33,62 +40,69 @@ namespace WatneyAstrometry.Core.Types
                 CRPIX2 = crpix2;
             }
 
-            public double CDELT1 { get; }
-            public double CDELT2 { get; }
-            public double CROTA1 { get; }
-            public double CROTA2 { get; }
+            public double CDELT1 { get; internal set; }
+            public double CDELT2 { get; internal set; }
+            public double CROTA1 { get; internal set; }
+            public double CROTA2 { get; internal set; }
 
-            public double CD1_1 { get; }
-            public double CD2_1 { get; }
-            public double CD1_2 { get; }
-            public double CD2_2 { get; }
+            public double CD1_1 { get; internal set; }
+            public double CD2_1 { get; internal set; }
+            public double CD1_2 { get; internal set; }
+            public double CD2_2 { get; internal set; }
             
-            public double CRVAL1 { get; }
-            public double CRVAL2 { get; }
-            public double CRPIX1 { get; }
-            public double CRPIX2 { get; }
+            public double CRVAL1 { get; internal set; }
+            public double CRVAL2 { get; internal set; }
+            public double CRPIX1 { get; internal set; }
+            public double CRPIX2 { get; internal set; }
         }
         /// <summary>
         /// Returns the FITS solution headers.
         /// </summary>
-        public FitsHeaderFields FitsHeaders { get; }
+        public FitsHeaderFields FitsHeaders { get; internal set; }
         /// <summary>
         /// Orientation of the image, in degrees.
         /// </summary>
-        public double Orientation { get; }
+        public double Orientation { get; internal set; }
         /// <summary>
         /// Arc seconds per pixel.
         /// </summary>
-        public double PixelScale { get; }
+        public double PixelScale { get; internal set; }
         /// <summary>
         /// The equatorial coords of the center of the image.
         /// </summary>
-        public EquatorialCoords PlateCenter { get; }
+        public EquatorialCoords PlateCenter { get; internal set; }
         /// <summary>
         /// Scope or reference center point (the input expected center point, or
         /// computer chosen reference point).
         /// </summary>
-        public EquatorialCoords InputCoordinates { get; }
+        public EquatorialCoords InputCoordinates { get; internal set; }
         /// <summary>
         /// The field width, in degrees.
         /// </summary>
-        public double FieldWidth { get; }
+        public double FieldWidth { get; internal set; }
         /// <summary>
         /// The field height, in degrees.
         /// </summary>
-        public double FieldHeight { get; }
+        public double FieldHeight { get; internal set; }
         /// <summary>
         /// The field radius, in degrees.
         /// </summary>
-        public double Radius { get; }
+        public double Radius { get; internal set; }
         /// <summary>
         /// The calculated plate constants A-F.
         /// These are used for conversions between standard, pixel and equatorial coordinates.
         /// </summary>
-        public PlateConstants PlateConstants { get; }
+        public PlateConstants PlateConstants { get; internal set; }
 
         private readonly int _imageW;
         private readonly int _imageH;
+
+        /// <summary>
+        /// Empty constructor, for (de)serialization.
+        /// </summary>
+        public Solution()
+        {
+        }
 
         /// <summary>
         /// A successful solution.

@@ -100,7 +100,7 @@ namespace WatneyAstrometry.Core.StarDetection
             return _starBins.Select(x =>
             {
                 var starProps = x.GetCenterPixelPosAndRelativeBrightness();
-                return new ImageStar(starProps.PixelPosX, starProps.PixelPosY, starProps.BrightnessValue);
+                return new ImageStar(starProps.PixelPosX, starProps.PixelPosY, starProps.BrightnessValue, starProps.starSize);
             }).ToList();
 
 

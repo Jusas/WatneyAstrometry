@@ -51,7 +51,7 @@ namespace WatneyAstrometry.Core.StarDetection
         }
 
         //https://www.gaia.ac.uk/sites/default/files/resources/Calculating_Magnitudes.pdf
-        public (double PixelPosX, double PixelPosY, long BrightnessValue) GetCenterPixelPosAndRelativeBrightness()
+        public (double PixelPosX, double PixelPosY, long BrightnessValue, double starSize) GetCenterPixelPosAndRelativeBrightness() // todo: also return size, and in sorting sort by size and brightness combined
         {
             // Center coordinate in small stars is generally the brightest pixel in the bin.
             // When there are more pixels of the same or almost the same brightness, we will calculate
@@ -68,13 +68,16 @@ namespace WatneyAstrometry.Core.StarDetection
             }
 
             sortedPixels.Sort((p1, p2) => p1.PixelValue < p2.PixelValue ? -1 : p1.PixelValue > p2.PixelValue ? 1 : 0);
-
+            var starPixelHeight = Bottom - Top;
+            var starPixelWidth = Right - Left;
+            double starSize = Math.Sqrt(starPixelHeight * starPixelHeight + starPixelWidth * starPixelWidth);
+            
             // With small stars just settle with the center of the canvas.
             if (pCount <= 9)
             {
                 starPosY = Top + 0.5 * (Bottom - Top);
                 starPosX = Left + 0.5 * (Right - Left);
-                return (starPosX, starPosY, sortedPixels[sortedPixels.Count-1].PixelValue);
+                return (starPosX, starPosY, sortedPixels[sortedPixels.Count-1].PixelValue, starSize);
             }
 
             var l = int.MaxValue;
@@ -98,7 +101,7 @@ namespace WatneyAstrometry.Core.StarDetection
 
             starPosY = t + 0.5 * (b - t);
             starPosX = l + 0.5 * (r - l);
-            return (starPosX, starPosY, sortedPixels[sortedPixels.Count-1].PixelValue);
+            return (starPosX, starPosY, sortedPixels[sortedPixels.Count-1].PixelValue, starSize);
         }
 
         public (int Width, int Height) Dimensions => (Right - Left + 1, PixelRows.Count);

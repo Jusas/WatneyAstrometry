@@ -103,9 +103,10 @@ namespace WatneyAstrometry.Core
         /// </summary>
         /// <param name="filename">The image file to solve.</param>
         /// <param name="strategy">The search strategy.</param>
+        /// <param name="options">Additional options for the solver.</param>
         /// <param name="cancellationToken">A token for cancelling the solving process.</param>
         /// <returns>The result of the solver operation</returns>
-        public async Task<SolveResult> SolveFieldAsync(string filename, ISearchStrategy strategy, CancellationToken cancellationToken)
+        public async Task<SolveResult> SolveFieldAsync(string filename, ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
             _logger.Write($"Solving field from file {filename}, with strategy {strategy.GetType().Name}");
             var filenameExtension = Path.GetExtension(filename);
@@ -119,7 +120,22 @@ namespace WatneyAstrometry.Core
             var reader = _imageReaderFactories[filenameExtension].factory.Invoke();
             var image = reader.FromFile(filename);
 
-            return await SolveFieldAsync(image, strategy, cancellationToken);
+            return await SolveFieldAsync(image, strategy, options, cancellationToken);
+        }
+
+        private static List<ImageStar> TakeBrightest(IList<ImageStar> detectedStars, int numStars)
+        {
+            var starSizes = detectedStars.Select(x => x.StarSize).ToArray();
+            Array.Sort(starSizes);
+            var midIndex = starSizes.Length / 2;
+            var medianSize = starSizes.Length % 2 != 0
+                ? starSizes[midIndex]
+                : (starSizes[midIndex] + starSizes[midIndex + 1]) / 2;
+            return detectedStars.OrderByDescending(star => star.StarSize <= medianSize
+                ? star.Brightness
+                : star.Brightness + (star.StarSize / medianSize) * 10)
+                .Take(numStars)
+                .ToList();
         }
 
         /// <summary>
@@ -128,9 +144,10 @@ namespace WatneyAstrometry.Core
         /// </summary>
         /// <param name="image">The image to solve.</param>
         /// <param name="strategy">The search strategy.</param>
+        /// <param name="options">Additional options for the solver.</param>
         /// <param name="cancellationToken">A token for cancelling the solving process.</param>
         /// <returns>The result of the solver operation</returns>
-        public async Task<SolveResult> SolveFieldAsync(IImage image, ISearchStrategy strategy, CancellationToken cancellationToken)
+        public async Task<SolveResult> SolveFieldAsync(IImage image, ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
             if (strategy == null)
                 throw new SolverException("Must define a search strategy");
@@ -142,8 +159,9 @@ namespace WatneyAstrometry.Core
             stopwatch.Start();
 
             // Hardcoded for now.
-            int maxStars = 300;
-
+            // Todo: parameterize this. For images with a lot of stars, a low number will likely not produce a solve.
+            //int maxStars = 500;
+            
             IStarDetector starDetector;
             if (_starDetectorFactoryAsync != null)
                 starDetector = await _starDetectorFactoryAsync.Invoke();
@@ -153,12 +171,29 @@ namespace WatneyAstrometry.Core
             var detectedStars = starDetector.DetectStars(image);
 
             _logger.Write($"Detected {detectedStars.Count} from the image");
+            
             if (detectedStars.Count < 10)
                 return new SolveResult(); // todo: description?
-            
-            var chosenDetectedStars = detectedStars.OrderByDescending(x => x.Brightness)
-                .Take(maxStars)
-                .ToList();
+
+            // Max stars:
+            // Take minimum of 300 stars.
+            // Take maximum of 1200 stars.
+            // If 0.33 * detected stars > 300, take that many.
+
+            int maxStars;
+            if (options?.UseMaxStars != null)
+                maxStars = options.UseMaxStars.Value;
+            else
+                maxStars = 0.33 * detectedStars.Count <= 300
+                    ? 300
+                    : (int)Math.Min(0.33 * detectedStars.Count, 1200);
+
+
+            //var chosenDetectedStars = detectedStars.OrderByDescending(x => x.Brightness)
+            //    .Take(maxStars)
+            //    .ToList();
+
+            var chosenDetectedStars = TakeBrightest(detectedStars, maxStars);
 
             _logger.Write($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
             IQuadDatabase quadDb;
