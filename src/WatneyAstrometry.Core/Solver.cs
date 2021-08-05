@@ -455,6 +455,12 @@ namespace WatneyAstrometry.Core
                 //return null;
             }
 
+            // Found enough matches; a likely hit. If this was a sampled run, spend the time to retrieve the full quad set without sampling
+            // as we're going to try for a solution.
+            if(sampling > 1)
+                databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
+                    searchRun.DensityOffsets, 1, imageStarQuads);
+
             matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.01, minMatches);
 
             if (matchingQuads.Count >= minMatches)
