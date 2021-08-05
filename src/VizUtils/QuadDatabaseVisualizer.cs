@@ -57,7 +57,7 @@ namespace VizUtils
             var pixelsPerRadW = image.Width / imageWidthRad;
             var pixelsPerRadH = image.Height / imageHeightRad;
 
-            var quads = await db.GetQuadsAsync(center, Math.Max(degW, degH), quadsPerSqDeg, null, null);
+            var quads = await db.GetQuadsAsync(center, Math.Max(degW, degH), quadsPerSqDeg, null, 1, null);
 
             foreach (var quad in quads)
             {

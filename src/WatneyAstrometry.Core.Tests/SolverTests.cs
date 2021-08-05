@@ -50,7 +50,7 @@ namespace WatneyAstrometry.Core.Tests
         public async Task Should_successfully_blind_solve()
         {
             DefaultFitsReader r = new DefaultFitsReader();
-            var img = r.FromFile("Resources/fits/m31.fits"); 
+            var img = r.FromFile("Resources/fits/ngc1491.fits"); 
             
             var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategy.Options()
             {
@@ -67,7 +67,10 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
             
             var token = CancellationToken.None;
-            var options = new SolverOptions();
+            var options = new SolverOptions()
+            {
+                UseSampling = 4
+            };
             var solveResult = await solver.SolveFieldAsync(img, blindStrategy, options, token);
 
             if (solveResult.Success)
@@ -107,7 +110,10 @@ namespace WatneyAstrometry.Core.Tests
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
             
             var token = CancellationToken.None;
-            var options = new SolverOptions();
+            var options = new SolverOptions()
+            {
+                UseSampling = 4
+            };
             var solveResult = await solver.SolveFieldAsync(img, nearbyStrategy, options, token);
 
             if (solveResult.Success)

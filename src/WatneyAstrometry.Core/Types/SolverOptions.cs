@@ -14,5 +14,15 @@ namespace WatneyAstrometry.Core.Types
         /// </summary>
         public int? UseMaxStars { get; set; } = null;
 
+        /// <summary>
+        /// Uses sampling to reduce the number of database quads tested against image quads.
+        /// Example: with sampling value 4, only 25% of the quads available in the database are tested, the rest are skipped and ignored.
+        /// In most cases this speeds up blind solves significantly.
+        /// <para>
+        /// Recommended to use values 2..10. Best values are probably 4..8.
+        /// </para>
+        /// </summary>
+        public int? UseSampling { get; set; } = null;
+
     }
 }

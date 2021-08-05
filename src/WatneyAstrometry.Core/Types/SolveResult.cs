@@ -46,6 +46,14 @@ namespace WatneyAstrometry.Core.Types
         internal int DetectedQuadDensity { get; set; }
         
         /// <summary>
+        /// For sampling; we will want to know those runs that had potential for a match.
+        /// Sampling may not get a full match (enough quads), and we will repeat the search
+        /// without sampling for promising candidates first, and if still no full match is
+        /// found we will repeat the search for all areas without sampling.
+        /// </summary>
+        internal bool HadPotentialMatches { get; set; }
+
+        /// <summary>
         /// The search run that produced the solution.
         /// </summary>
         public SearchRun SearchRun { get; internal set; }

@@ -16,6 +16,12 @@ namespace WatneyAstrometry.SolverApp
             "A high number (> 1000) will however also affect performance due to the high number of calculations, especially noticeable with blind solves.")]
         public int MaxStars { get; set; }
 
+        [Option("sampling", Required = false, Default = 1, HelpText = "Use a preliminary search run with sampled quads. With sampling, we will not get all the potential quads from the " +
+            "database, we only get 1/<sampling> quads for which we run the first search round. This means less quads to compare to, which means less time spent in comparisons. If no solution is " +
+            "found with sampling, then all best candidate areas with any quads found will get searched without sampling. Finally if the best candidates give no solutions, we search the rest of " +
+            "the areas without sampling. In best case scenario, this can significantly shorten the blind solve times. In worst case scenario, it will extend it by a margin.")]
+        public int Sampling { get; set; }
+
         [Option("out-format", Required = false, HelpText = "Output format. Valid values are 'json', 'tsv'.", Default = "json")]
         public string OutFormat { get; set; }
 

@@ -151,17 +151,19 @@ namespace WatneyAstrometry.Core.QuadDb
 
             return descriptor;
         }
-        
+
         /// <summary>
         /// Get the quads within range that are potential matches for the image quads.
         /// </summary>
         /// <param name="center"></param>
         /// <param name="angularDistance"></param>
         /// <param name="passIndex"></param>
+        /// <param name="sampling"></param>
         /// <param name="imageQuads"></param>
         /// <returns></returns>
-        public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, ImageStarQuad[] imageQuads)
+        public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, int sampling, ImageStarQuad[] imageQuads)
         {
+            sampling = sampling <= 0 ? 1 : sampling;
             var foundQuads = new List<StarQuad>();
             var subCellsInRange = new List<SubCellInfo>();
 
@@ -194,7 +196,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 fileStream.Read(dataBuf, 0, dataBuf.Length);
 
                 int advance = 0;
-                var quadCount = dataBuf.Length / QuadDataLen;
+                var quadCount = dataBuf.Length / QuadDataLen / sampling;
                 for (var q = 0; q < quadCount; q++)
                 {
                     var quad = BytesToQuad(dataBuf, advance, imageQuadsCopy);

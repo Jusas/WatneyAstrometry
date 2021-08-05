@@ -65,9 +65,10 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="radiusDegrees">The radius around the center.</param>
         /// <param name="quadsPerSqDegree">The quads per square degree, calculated from the image and assumed field size.</param>
         /// <param name="quadDensityOffsets">Offsets used to include passes with lower or higher quad density. Example: [-1, 0, 1]. Can be null, which will equal to [0].</param>
+        /// <param name="sampling">If > 0, taken into account. Reduces the number of quads taken. Speeds up the process.</param>
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
         /// <returns></returns>
-        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, ImageStarQuad[] imageQuads)
+        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int sampling, ImageStarQuad[] imageQuads)
         {
             var cells = SkySegmentSphere.Cells;
             var cellsToInclude = new string[cells.Count];
@@ -116,7 +117,7 @@ namespace WatneyAstrometry.Core.QuadDb
                     var idx = i;
                     tasks.Add(Task.Run(() =>
                     {
-                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(center, radiusDegrees, quadsPerSqDegree, offset, imageQuads);
+                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(center, radiusDegrees, quadsPerSqDegree, offset, sampling, imageQuads);
                     }));
 
                 }

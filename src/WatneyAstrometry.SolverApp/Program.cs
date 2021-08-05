@@ -83,6 +83,9 @@ namespace WatneyAstrometry.SolverApp
             if (options.MaxStars > 0)
                 solverOpts.UseMaxStars = options.MaxStars;
 
+            if (options.Sampling > 1)
+                solverOpts.UseSampling = options.Sampling;
+
             return solverOpts;
         }
 

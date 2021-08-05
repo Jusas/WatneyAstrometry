@@ -145,9 +145,11 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadsPerSqDegree">Image quad density</param>
         /// <param name="passOffset">If negative, use this offset to return quads from a more sparse quad density pass. If positive, return quads from a more dense quad density pass.
         /// Returns null if there are no more sparse/dense passes available.</param>
+        /// <param name="sampling">If > 1, used to limit taken quads to 1/[sampling], so less quads taken.</param>
+        /// <param name="imageQuads">The quads detected from the image.</param>
         /// <returns>StarQuad list, or null if passOffset was too big/small</returns>
         public StarQuad[] GetQuadsWithinRange(EquatorialCoords center, double angularDistance, int quadsPerSqDegree,
-            int passOffset = 0, ImageStarQuad[] imageQuads = null)
+            int passOffset = 0, int sampling = 0, ImageStarQuad[] imageQuads = null)
         {
 
             if (passOffset > _cellFilePassDensities.Length || passOffset < -_cellFilePassDensities.Length)
@@ -179,7 +181,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var chosenPassDensity = _cellFilePassDensities[chosenIndex];
             return _sourceFiles[chosenPassDensity.FileIndex]
-                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, imageQuads);
+                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, sampling, imageQuads);
             
 
         }
