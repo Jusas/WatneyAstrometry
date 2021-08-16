@@ -14,27 +14,27 @@ namespace WatneyAstrometry.Core.Types
         /// <summary>
         /// The calculated solution, if it was successfully calculated.
         /// </summary>
-        public Solution Solution { get; internal set; } = null;
+        public Solution Solution { get; set; } = null;
         /// <summary>
         /// Was the solve successful or not.
         /// </summary>
-        public bool Success { get; internal set; } = false;
+        public bool Success { get; set; } = false;
         /// <summary>
         /// Was the solve operation canceled.
         /// </summary>
-        public bool Canceled { get; internal set; } = false;
+        public bool Canceled { get; set; } = false;
         /// <summary>
         /// The time spent on solving the field.
         /// </summary>
-        public TimeSpan TimeSpent { get; internal set; }
+        public TimeSpan TimeSpent { get; set; }
         /// <summary>
         /// Areas (segments of sky) searched in the solving process.
         /// </summary>
-        public int AreasSearched { get; internal set; } = 0;
+        public int AreasSearched { get; set; } = 0;
         /// <summary>
         /// How many star quad matches were successfully identified.
         /// </summary>
-        public int MatchedQuads { get; internal set; } = 0;
+        public int MatchedQuads { get; set; } = 0;
         
         // Get the actual matches.
         internal List<StarQuadMatch> MatchInstances { get; set; }
@@ -56,6 +56,6 @@ namespace WatneyAstrometry.Core.Types
         /// <summary>
         /// The search run that produced the solution.
         /// </summary>
-        public SearchRun SearchRun { get; internal set; }
+        public SearchRun SearchRun { get; set; }
     }
 }

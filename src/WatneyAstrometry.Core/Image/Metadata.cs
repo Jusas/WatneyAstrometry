@@ -9,7 +9,7 @@ namespace WatneyAstrometry.Core.Image
     /// <summary>
     /// Metadata of an image that is to be star detected and plate solved.
     /// </summary>
-    public class Metadata
+    public class Metadata : IImageDimensions
     {
         /// <summary>
         /// How many bits per each pixel.

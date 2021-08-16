@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.Types;
 
@@ -129,6 +130,41 @@ namespace WatneyAstrometry.Core
             _densityOffsets = new int[_options.MaxNegativeDensityOffset + _options.MaxPositiveDensityOffset + 1];
             for (int i = -(int)_options.MaxNegativeDensityOffset, n = 0; i <= _options.MaxPositiveDensityOffset; i++, n++)
                 _densityOffsets[n] = i;
+        }
+
+        /// <summary>
+        /// Slices the <see cref="BlindSearchStrategy"/> into multiple <see cref="PartialBlindSearchStrategy"/> instances, slicing the sky sphere by RA coordinate.
+        /// </summary>
+        /// <returns></returns>
+        public List<PartialBlindSearchStrategy> Slice(int slices)
+        {
+            if (slices < 2)
+                throw new SolverException("Must have at least 2 slices, otherwise splitting doesn't make sense.");
+
+            var sliceStrategies = new List<PartialBlindSearchStrategy>(
+                Enumerable.Range(0, slices).Select(i => new PartialBlindSearchStrategy()
+                {
+                    UseParallelism = UseParallelism
+                }));
+
+            // Collect the SearchRuns into RA slices
+            var raSliceWidth = 360.0f / slices;
+            foreach (var searchRun in GetSearchQueue())
+            {
+                for (var i = 0; i < slices; i++)
+                {
+                    var sectorStart = i * raSliceWidth;
+                    var sectorEnd = (i + 1) * raSliceWidth;
+                    if (searchRun.Center.Ra >= sectorStart && searchRun.Center.Ra <= sectorEnd)
+                    {
+                        sliceStrategies[i].SearchRuns.Add(searchRun);
+                        break;
+                    }
+                }
+            }
+
+            return sliceStrategies;
+
         }
 
         /// <inheritdoc />

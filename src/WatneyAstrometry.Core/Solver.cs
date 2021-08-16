@@ -99,6 +99,7 @@ namespace WatneyAstrometry.Core
 
         /// <summary>
         /// Solves the field (image) using the specified search strategy.
+        /// Uses the registered <see cref="IStarDetector"/> to detect stars.
         /// If sufficient matches are found, a solution is then calculated and returned.
         /// </summary>
         /// <param name="filename">The image file to solve.</param>
@@ -119,8 +120,24 @@ namespace WatneyAstrometry.Core
 
             var reader = _imageReaderFactories[filenameExtension].factory.Invoke();
             var image = reader.FromFile(filename);
-
+            
             return await SolveFieldAsync(image, strategy, options, cancellationToken);
+        }
+
+        public async Task<SolveResult> SolveFieldAsync(IImage image, ISearchStrategy strategy, SolverOptions options,
+            CancellationToken cancellationToken)
+        {
+            // Use the registered star detector.
+            IStarDetector starDetector;
+            if (_starDetectorFactoryAsync != null)
+                starDetector = await _starDetectorFactoryAsync.Invoke();
+            else
+                starDetector = _starDetectorFactory.Invoke();
+
+            var detectedStars = starDetector.DetectStars(image);
+            _logger.Write($"Detected {detectedStars.Count} from the image");
+
+            return await SolveFieldAsync(image.Metadata, detectedStars, strategy, options, cancellationToken);
         }
 
         private static List<ImageStar> TakeBrightest(IList<ImageStar> detectedStars, int numStars)
@@ -140,15 +157,24 @@ namespace WatneyAstrometry.Core
 
         /// <summary>
         /// Solves the field (image) using the specified search strategy.
+        /// Requires an already resolved list of stars in the image, and also known image dimensions.
         /// If sufficient matches are found, a solution is then calculated and returned.
         /// </summary>
-        /// <param name="image">The image to solve.</param>
         /// <param name="strategy">The search strategy.</param>
         /// <param name="options">Additional options for the solver.</param>
         /// <param name="cancellationToken">A token for cancelling the solving process.</param>
         /// <returns>The result of the solver operation</returns>
-        public async Task<SolveResult> SolveFieldAsync(IImage image, ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
+        public async Task<SolveResult> SolveFieldAsync(IImageDimensions imageDimensions, IList<ImageStar> stars, 
+            ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
+            // TODO: some refactoring: do star detecting as a separate step, and introduce a PartialBlindSearchStrategy that is a single part of the blind solve.
+            // A "manager" then produces us PartialBlindSearchStrategies which is basically BlindSearchStrategy split into multiple parts.
+            // This would allow us to distribute the processing to multiple nodes using an outside construct for the orchestration.
+            // An orchestrator would perform the star detection once, generate partial strategies and then spawn multiple solvers (on multiple nodes)
+            // to perform parallel processing. This would allow use to use lower tier computing power to perform otherwise slow blind solves.
+            // Nothing else really needs changing, the orchestrator would do the hard work.
+
+
             if (strategy == null)
                 throw new SolverException("Must define a search strategy");
 
@@ -157,24 +183,7 @@ namespace WatneyAstrometry.Core
             _logger.Write("Image parsed, starting the solve");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-
-            // Hardcoded for now.
-            // Todo: parameterize this. For images with a lot of stars, a low number will likely not produce a solve.
-            //int maxStars = 500;
             
-            IStarDetector starDetector;
-            if (_starDetectorFactoryAsync != null)
-                starDetector = await _starDetectorFactoryAsync.Invoke();
-            else
-                starDetector = _starDetectorFactory.Invoke();
-
-            var detectedStars = starDetector.DetectStars(image);
-
-            _logger.Write($"Detected {detectedStars.Count} from the image");
-            
-            if (detectedStars.Count < 10)
-                return new SolveResult(); // todo: description?
-
             // Max stars:
             // Take minimum of 300 stars.
             // Take maximum of 1200 stars.
@@ -184,16 +193,16 @@ namespace WatneyAstrometry.Core
             if (options?.UseMaxStars != null)
                 maxStars = options.UseMaxStars.Value;
             else
-                maxStars = 0.33 * detectedStars.Count <= 300
+                maxStars = 0.33 * stars.Count <= 300
                     ? 300
-                    : (int)Math.Min(0.33 * detectedStars.Count, 1200);
+                    : (int)Math.Min(0.33 * stars.Count, 1200);
 
+            // TODO depending on how many stars we have, the more effective sampling seems to be.
+            // at least in the extreme cases where we have thousands if not tens of thousands of stars.
+            // Perhaps figure out an algorithm that would perform 'auto sampling'.
+            
 
-            //var chosenDetectedStars = detectedStars.OrderByDescending(x => x.Brightness)
-            //    .Take(maxStars)
-            //    .ToList();
-
-            var chosenDetectedStars = TakeBrightest(detectedStars, maxStars);
+            var chosenDetectedStars = TakeBrightest(stars, maxStars);
 
             _logger.Write($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
             IQuadDatabase quadDb;
@@ -223,7 +232,7 @@ namespace WatneyAstrometry.Core
                     _logger.Write($"Using sampling, 1/{options.UseSampling} quads will be used for the first search round");
 
                 var searchTasks = strategy.GetSearchQueue().Select(searchRun => Task.Run(async () =>
-                    await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, options.UseSampling ?? 1, imageStarQuads,
+                    await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, options.UseSampling ?? 1, imageStarQuads,
                         completionCts)));
 
                 try
@@ -234,25 +243,25 @@ namespace WatneyAstrometry.Core
                     if (options.UseSampling != null && options.UseSampling > 1)
                     {
                         var resultSet = GetMatchedAndUnmatchedSearchRuns(whenAllResult.Result);
-                        if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null)
+                        if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null && !combinedCts.Token.IsCancellationRequested)
                         {
                             // No result: run again, first on those that had potential matches, then if still no full result, on those that did not.
                             _logger.Write("Sampling: no result from the first search round, executing a second round without sampling on areas that had potential matches with sampling on");
                             var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
 
                             var potentialMatchSearchTasks = potentialMatchQueue.Select(searchRun => Task.Run(async () =>
-                                await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, 1, imageStarQuads,
+                                await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, 1, imageStarQuads,
                                     completionCts)));
 
                             whenAllResult = Task.WhenAll(potentialMatchSearchTasks);
                             await whenAllResult;
 
-                            if (whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) == null)
+                            if (whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) == null && !combinedCts.Token.IsCancellationRequested)
                             {
                                 _logger.Write("Sampling: no result from the second search round, executing a third round without sampling on areas that had no matches with sampling on");
                                 var lastDitchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
                                 var lastDitchSearchTasks = lastDitchQueue.Select(searchRun => Task.Run(async () =>
-                                    await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, 1, imageStarQuads,
+                                    await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, 1, imageStarQuads,
                                         completionCts)));
 
                                 whenAllResult = Task.WhenAll(lastDitchSearchTasks);
@@ -267,7 +276,7 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) ?? new SolveResult();
-                    result.DetectedStars = detectedStars;
+                    result.DetectedStars = stars;
                     result.DetectedQuadDensity = countInFirstPass;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
@@ -285,7 +294,7 @@ namespace WatneyAstrometry.Core
                 void MakeSuccessResult(SolveResult r)
                 {
                     result = r;
-                    result.DetectedStars = detectedStars;
+                    result.DetectedStars = stars;
                     result.DetectedQuadDensity = countInFirstPass;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
@@ -296,7 +305,7 @@ namespace WatneyAstrometry.Core
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
-                    var taskResult = await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, options.UseSampling ?? 1,
+                    var taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, options.UseSampling ?? 1,
                         imageStarQuads,
                         completionCts);
 
@@ -316,7 +325,7 @@ namespace WatneyAstrometry.Core
                 if (options.UseSampling != null && options.UseSampling > 1)
                 {
                     var resultSet = GetMatchedAndUnmatchedSearchRuns(serialSearches.ToArray());
-                    if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null)
+                    if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null && !combinedCts.Token.IsCancellationRequested)
                     {
                         // No result: run again, first on those that had potential matches, then if still no full result, on those that did not.
                         _logger.Write("Sampling: no result from the first search round, executing a second round without sampling on areas that had potential matches with sampling on");
@@ -327,7 +336,7 @@ namespace WatneyAstrometry.Core
                             if (cancellationToken.IsCancellationRequested)
                                 break;
 
-                            var taskResult = await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, 1,
+                            var taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, 1,
                                 imageStarQuads,
                                 completionCts);
 
@@ -341,7 +350,7 @@ namespace WatneyAstrometry.Core
                             }
                         }
                         
-                        if (result == null)
+                        if (result == null && !combinedCts.Token.IsCancellationRequested)
                         {
                             _logger.Write("Sampling: no result from the second search round, executing a third round without sampling on areas that had no matches with sampling on");
                             var lastDitchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
@@ -350,7 +359,7 @@ namespace WatneyAstrometry.Core
                                 if (cancellationToken.IsCancellationRequested)
                                     break;
 
-                                var taskResult = await TrySolveSingle(image, combinedCts, searchRun, countInFirstPass, quadDb, 1,
+                                var taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, 1,
                                     imageStarQuads,
                                     completionCts);
 
@@ -373,7 +382,7 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = new SolveResult();
-                    result.DetectedStars = detectedStars;
+                    result.DetectedStars = stars;
                     result.DetectedQuadDensity = countInFirstPass;
                     result.AreasSearched = _iterations;
                     result.TimeSpent = stopwatch.Elapsed;
@@ -395,7 +404,7 @@ namespace WatneyAstrometry.Core
             var withoutMatches = new List<SolveResult>(results.Length);
             for (var i = 0; i < results.Length; i++)
             {
-                if(results[i] == null) // is this ever going to happen?
+                if(results[i] == null)
                     continue;
                 
                 if(results[i].HadPotentialMatches)
@@ -407,7 +416,7 @@ namespace WatneyAstrometry.Core
             return (withMatches.ToArray(), withoutMatches.ToArray());
         }
 
-        private async Task<SolveResult> TrySolveSingle(IImage image, CancellationTokenSource cancellationCts, SearchRun searchRun,
+        private async Task<SolveResult> TrySolveSingle(IImageDimensions imageDimensions, CancellationTokenSource cancellationCts, SearchRun searchRun,
             int countInFirstPass, IQuadDatabase quadDb, int sampling, ImageStarQuad[] imageStarQuads, CancellationTokenSource completionCts)
         {
             if (cancellationCts.IsCancellationRequested)
@@ -426,14 +435,14 @@ namespace WatneyAstrometry.Core
 
             // Quads per degree
             var searchFieldSize = searchRun.RadiusDegrees * 2;
-            var a = Math.Atan((double) image.Metadata.ImageHeight / image.Metadata.ImageWidth);
+            var a = Math.Atan((double) imageDimensions.ImageHeight / imageDimensions.ImageWidth);
             var s1 = searchFieldSize * Math.Sin(a);
             var s2 = searchFieldSize * Math.Cos(a);
             var area = s1 * s2;
             var quadsPerSqDeg = countInFirstPass / area; 
 
-            double imageDiameterInPixels = Math.Sqrt(image.Metadata.ImageHeight * image.Metadata.ImageHeight +
-                                                     image.Metadata.ImageWidth * image.Metadata.ImageWidth);
+            double imageDiameterInPixels = Math.Sqrt(imageDimensions.ImageHeight * imageDimensions.ImageHeight +
+                                                     imageDimensions.ImageWidth * imageDimensions.ImageWidth);
             var pixelAngularSearchFieldSizeRatio = imageDiameterInPixels / searchFieldSize;
 
             
@@ -466,7 +475,7 @@ namespace WatneyAstrometry.Core
             if (matchingQuads.Count >= minMatches)
             {
                 _logger.Write($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
-                var preliminarySolution = CalculateSolution(image, matchingQuads, searchRun.Center);
+                var preliminarySolution = CalculateSolution(imageDimensions, matchingQuads, searchRun.Center);
 
                 if (!IsValidSolution(preliminarySolution))
                 {
@@ -491,7 +500,7 @@ namespace WatneyAstrometry.Core
                 // Calculate a second time; we may be quite a bit off if we're detecting the quads at an edge,
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
-                var improvedSolution = await PerformAccuracyImprovementForSolution(image, preliminarySolution,
+                var improvedSolution = await PerformAccuracyImprovementForSolution(imageDimensions, preliminarySolution,
                     pixelAngularSearchFieldSizeRatio, quadDb, imageStarQuads, (int) quadsPerSqDeg, minMatches);
 
                 if (!IsValidSolution(improvedSolution.solution))
@@ -534,7 +543,7 @@ namespace WatneyAstrometry.Core
             return true;
         }
 
-        private async Task<(Solution solution, List<StarQuadMatch> matches)> PerformAccuracyImprovementForSolution(IImage image, Solution solution,
+        private async Task<(Solution solution, List<StarQuadMatch> matches)> PerformAccuracyImprovementForSolution(IImageDimensions imageDimensions, Solution solution,
             double pixelAngularSearchFieldSizeRatio,
             IQuadDatabase quadDatabase, ImageStarQuad[] imageStarQuads, int quadsPerSqDeg, int minMatches)
         {
@@ -543,22 +552,22 @@ namespace WatneyAstrometry.Core
             var databaseQuads = await quadDatabase.GetQuadsAsync(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, imageStarQuads);
             var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.01, minMatches);
             if (matchingQuads.Count >= minMatches)
-                return (CalculateSolution(image, matchingQuads, resolvedCenter), matchingQuads);
+                return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter), matchingQuads);
             return (null, null);
         }
 
-        private Solution CalculateSolution(IImage image, List<StarQuadMatch> matches, EquatorialCoords scopeCoords)
+        private Solution CalculateSolution(IImageDimensions imageDimensions, List<StarQuadMatch> matches, EquatorialCoords scopeCoords)
         {
-            var imgW = image.Metadata.ImageWidth;
-            var imgH = image.Metadata.ImageHeight;
+            var imgW = imageDimensions.ImageWidth;
+            var imgH = imageDimensions.ImageHeight;
             var pc = SolvePlateConstants(matches, scopeCoords);
 
             var pixelsPerDeg = CalculatePixelsPerDegree(matches);
             var fieldPixelDiameter = Math.Sqrt(imgW * imgW + imgH * imgH);
             var fieldPixelRadius = 0.5 * fieldPixelDiameter;
             var fieldRadiusDeg = 0.5 * fieldPixelDiameter / pixelsPerDeg;
-            var fieldWidthDeg = image.Metadata.ImageWidth / pixelsPerDeg;
-            var fieldHeightDeg = image.Metadata.ImageHeight / pixelsPerDeg;
+            var fieldWidthDeg = imageDimensions.ImageWidth / pixelsPerDeg;
+            var fieldHeightDeg = imageDimensions.ImageHeight / pixelsPerDeg;
 
             // Arcseconds per pixel
             var pixScale = 3600 * fieldRadiusDeg / fieldPixelRadius;
