@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -161,8 +162,8 @@ namespace WatneyAstrometry.Core.Tests
             
             using (var visualization = TestImageUtils.FitsImagePixelBufferToRgbaImage(img as FitsImage))
             {
-                visualization.VisualizeStars(solveResult.DetectedStars);
-                visualization.DrawImageQuadsFromMatches(solveResult.MatchInstances);
+                visualization.VisualizeStars(solveResult.DiagnosticsData.DetectedStars);
+                visualization.DrawImageQuadsFromMatches(solveResult.DiagnosticsData.MatchInstances);
                 visualization.SaveAsPng($"{nameof(Visualize_matches_in_solve)}.png");
             }
         }
@@ -201,12 +202,94 @@ namespace WatneyAstrometry.Core.Tests
 
             using (var image = new Image<Rgba32>(img.Metadata.ImageWidth, img.Metadata.ImageHeight))
             {
-                await QuadDatabaseVisualizer.VisualizeAreaAndFormQuads(quadDb, image, solveResult.DetectedQuadDensity, solveResult.Solution.PlateCenter, pixSize, focalLen);
+                await QuadDatabaseVisualizer.VisualizeAreaAndFormQuads(quadDb, image, solveResult.DiagnosticsData.DetectedQuadDensity, solveResult.Solution.PlateCenter, pixSize, focalLen);
                 image.SaveAsPng($"{nameof(Visualize_database_quads_in_solve)}.png");
             }
             
             
         }
+
+
+        [Fact]
+        [Trait("Category", "Performance")]
+        public async Task Blind_performance_with_sampling()
+        {
+            DefaultFitsReader r = new DefaultFitsReader();
+            //var img = r.FromFile("Resources/fits/ic1795.fits"); 
+            //var img = r.FromFile("Resources/fits/m81.fits"); 
+            //var img = r.FromFile("Resources/fits/m31.fits"); 
+            var img = r.FromFile("Resources/fits/ngc7331.fits"); 
+            //var img = r.FromFile("Resources/fits/ic1936l.fit"); 
+            
+            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategy.Options()
+            {
+                SearchOrderRa = BlindSearchStrategy.RaSearchOrder.EastFirst,
+                SearchOrderDec = BlindSearchStrategy.DecSearchOrder.NorthFirst,
+                //SearchOrderDec = BlindSearchStrategy.DecSearchOrder.SouthFirst,
+                //SearchOrderRa = BlindSearchStrategy.RaSearchOrder.WestFirst,
+                MinRadiusDegrees = 0.5f,
+                StartRadiusDegrees = 8,
+                MaxNegativeDensityOffset = 1,
+                MaxPositiveDensityOffset = 1,
+                UseParallelism = true
+            });
+            
+            var solver = new Solver().UseQuadDatabase(() =>
+                new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
+            
+            var token = CancellationToken.None;
+            var options = new SolverOptions()
+            {
+                //UseMaxStars = 300,
+                UseSampling = 0
+            };
+
+            var timeList = new List<string>();
+            var areasList = new List<string>();
+            var radii = new List<string>();
+            var runTypes = new List<string>();
+
+            SolveResult solveResult = null;
+            //for (var i = 24; i >= 17; i--)
+            for (var i = 1; i <= 32; i++)
+            {
+                options.UseSampling = i;
+                solveResult = await solver.SolveFieldAsync(img, blindStrategy, options, token);
+            
+                _testOutput.WriteLine($"With sampling = {i}");
+                if (solveResult.Success)
+                {
+                    _testOutput.WriteLine(string.Join(" / ",
+                        Conversions.DegreesToHourAngles(solveResult.Solution.PlateCenter)));
+                    _testOutput.WriteLine("  Matches: " + solveResult.MatchedQuads);
+                    _testOutput.WriteLine("  Search iteration - radius: " + solveResult.SearchRun.RadiusDegrees);
+                    _testOutput.WriteLine("  Search iteration - center: " + string.Join(" / ", Conversions.DegreesToHourAngles(solveResult.SearchRun.Center)));
+                    _testOutput.WriteLine("  Areas searched: " + solveResult.AreasSearched);
+                    _testOutput.WriteLine("  Run type: " + solveResult.DiagnosticsData.FoundUsingRunType.ToString());
+                    _testOutput.WriteLine("  " + solveResult.TimeSpent.ToString());
+                    timeList.Add(solveResult.TimeSpent.ToString());
+                    areasList.Add($"{solveResult.AreasSearched}");
+                    radii.Add($"{solveResult.SearchRun.RadiusDegrees}");
+                    runTypes.Add(solveResult.DiagnosticsData.FoundUsingRunType.ToString());
+                    
+                }
+                else
+                {
+                    _testOutput.WriteLine("  Failed");
+                    _testOutput.WriteLine("  " + solveResult.TimeSpent.ToString());
+                    timeList.Add(solveResult.TimeSpent.ToString());
+                }
+            }
+            
+            _testOutput.WriteLine($"Stars used: {solveResult.DiagnosticsData.UsedStarCount}");
+            timeList.ForEach(x => _testOutput.WriteLine(x));
+            areasList.ForEach(x => _testOutput.WriteLine(x));
+            radii.ForEach(x => _testOutput.WriteLine(x));
+            runTypes.ForEach(x => _testOutput.WriteLine(x));
+
+        }
+
+
 
 
     }

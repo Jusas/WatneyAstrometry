@@ -51,7 +51,7 @@ namespace WatneyAstrometry.Core.StarDetection
         }
 
         //https://www.gaia.ac.uk/sites/default/files/resources/Calculating_Magnitudes.pdf
-        public (double PixelPosX, double PixelPosY, long BrightnessValue, double starSize) GetCenterPixelPosAndRelativeBrightness() // todo: also return size, and in sorting sort by size and brightness combined
+        public (double PixelPosX, double PixelPosY, long BrightnessValue, double starSize) GetCenterPixelPosAndRelativeBrightness()
         {
             // Center coordinate in small stars is generally the brightest pixel in the bin.
             // When there are more pixels of the same or almost the same brightness, we will calculate

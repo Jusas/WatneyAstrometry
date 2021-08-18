@@ -35,16 +35,22 @@ namespace WatneyAstrometry.Core.Types
         /// How many star quad matches were successfully identified.
         /// </summary>
         public int MatchedQuads { get; set; } = 0;
-        
-        // Get the actual matches.
-        internal List<StarQuadMatch> MatchInstances { get; set; }
 
-        // Get the detected stars.
-        internal IList<ImageStar> DetectedStars { get; set; }
+        internal SolveDiagnosticsData DiagnosticsData { get; set; }
 
-        // Quad density per square deg
-        internal int DetectedQuadDensity { get; set; }
-        
+        //// Get the actual matches.
+        //internal List<StarQuadMatch> MatchInstances { get; set; }
+
+        //// Get the detected stars.
+        //internal IList<ImageStar> DetectedStars { get; set; }
+
+        //internal int UsedStarCount { get; set; }
+        //internal RunType FoundUsingRunType { get; set; }
+        //internal int NumberOfPotentialHitAreasFound { get; set; }
+
+        //// Quad density per square deg
+        //internal int DetectedQuadDensity { get; set; }
+
         /// <summary>
         /// For sampling; we will want to know those runs that had potential for a match.
         /// Sampling may not get a full match (enough quads), and we will repeat the search

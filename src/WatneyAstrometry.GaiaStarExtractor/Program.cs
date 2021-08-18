@@ -33,8 +33,6 @@ namespace WatneyAstrometry.GaiaStarExtractor
             
             [Option('t', "threads", Required = false, HelpText = "Threads to use. Defaults to detected logical processor count count - 1 (or 1 if only one is detected)")]
             public int Threads { get; set; } = -1;
-            // todo change this to do splitting into separate files.
-            // todo a temporary separate program that does the splitting from the blob.
         }
 
         private static Dictionary<string, Stream> _cachedOutputStreams = new Dictionary<string, Stream>();

@@ -30,11 +30,6 @@ namespace VizUtils
 
         public static void DrawQuadSymbolTo(IImageProcessingContext context, PointF quadCenter, StarQuad quad, List<PointF> starPoints, Color color, string text)
         {
-            //var imageSize = context.GetCurrentSize();
-
-            // todo instead of points, use circles. Color of circles, 5 of them. Innermost can be a dot. Changes color per ratio. (10 colors: 0.0 -> 0.9)
-
-            //var ratioSymbolSizeFactor = 0.02f * imageSize.Height;
 
             var colors = new Dictionary<float, Color>
             {

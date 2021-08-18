@@ -155,6 +155,38 @@ namespace WatneyAstrometry.Core
                 .ToList();
         }
 
+        private static int ApproximateGoodSamplingValue(int chosenStarCount)
+        {
+            // For now, after some observations, a somewhat simple strategy.
+            // When we have less stars, it's obvious that we can't deduct too much DB quads.
+            // It looks like it's quite safe to go with a sampling of 3 in nearly all cases (assuming we have a good database).
+            // With sampling 3 we mostly still get immediate matches, going up from that we'll have to fall back to check partial matches.
+            // The less quads we need to compare to get partial matches, the more efficient the partial search is and the more time we shave off.
+            // With more stars we use larger sampling values.
+
+            // If stars < 100
+            // use sampling of 3
+            // if stars < 300
+            // use sampling of 6
+            // if stars >= 300 && < 500
+            // use sampling of 8
+            // if stars >= 500 && < 900
+            // use sampling of 16
+            // if stars > 900
+            // use sampling of 24
+
+            if (chosenStarCount < 100)
+                return 3;
+            if (chosenStarCount < 300)
+                return 6;
+            if (chosenStarCount < 500)
+                return 8;
+            if (chosenStarCount < 900)
+                return 16;
+
+            return 24;
+        }
+
         /// <summary>
         /// Solves the field (image) using the specified search strategy.
         /// Requires an already resolved list of stars in the image, and also known image dimensions.
@@ -167,25 +199,18 @@ namespace WatneyAstrometry.Core
         public async Task<SolveResult> SolveFieldAsync(IImageDimensions imageDimensions, IList<ImageStar> stars, 
             ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
-            // TODO: some refactoring: do star detecting as a separate step, and introduce a PartialBlindSearchStrategy that is a single part of the blind solve.
-            // A "manager" then produces us PartialBlindSearchStrategies which is basically BlindSearchStrategy split into multiple parts.
-            // This would allow us to distribute the processing to multiple nodes using an outside construct for the orchestration.
-            // An orchestrator would perform the star detection once, generate partial strategies and then spawn multiple solvers (on multiple nodes)
-            // to perform parallel processing. This would allow use to use lower tier computing power to perform otherwise slow blind solves.
-            // Nothing else really needs changing, the orchestrator would do the hard work.
-
 
             if (strategy == null)
                 throw new SolverException("Must define a search strategy");
 
             SolveResult result = null;
-
+            
             _logger.Write("Image parsed, starting the solve");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             
             // Max stars:
-            // Take minimum of 300 stars.
+            // Take minimum of 300 stars. 
             // Take maximum of 1200 stars.
             // If 0.33 * detected stars > 300, take that many.
 
@@ -196,10 +221,6 @@ namespace WatneyAstrometry.Core
                 maxStars = 0.33 * stars.Count <= 300
                     ? 300
                     : (int)Math.Min(0.33 * stars.Count, 1200);
-
-            // TODO depending on how many stars we have, the more effective sampling seems to be.
-            // at least in the extreme cases where we have thousands if not tens of thousands of stars.
-            // Perhaps figure out an algorithm that would perform 'auto sampling'.
             
 
             var chosenDetectedStars = TakeBrightest(stars, maxStars);
@@ -222,18 +243,36 @@ namespace WatneyAstrometry.Core
             var completionCts = new CancellationTokenSource();
             var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(completionCts.Token, cancellationToken);
 
+            int? sampling = options.UseSampling;
+
+            if(sampling != null && sampling > 1)
+                _logger.Write($"Using sampling, 1/{sampling} quads will be used for the first search round");
+            else if (sampling == null)
+            {
+                _logger.Write("Using auto-sampling");
+                sampling = ApproximateGoodSamplingValue(chosenDetectedStars.Count);
+            }
+
+            var diagnosticsData = new SolveDiagnosticsData()
+            {
+                DetectedStars = stars,
+                DetectedQuadDensity = countInFirstPass,
+                MatchInstances = null,
+                UsedStarCount = chosenDetectedStars.Count
+            };
+
+            diagnosticsData.FoundUsingRunType = sampling <= 1 ? SolveRunType.NonSampledRun : SolveRunType.SampledRun;
 
             if (strategy.UseParallelism)
             {
                 Task<SolveResult[]> whenAllResult = null;
 
                 _logger.Write("Starting search tasks in parallel");
-                if(options.UseSampling != null && options.UseSampling > 1)
-                    _logger.Write($"Using sampling, 1/{options.UseSampling} quads will be used for the first search round");
-
+                
                 var searchTasks = strategy.GetSearchQueue().Select(searchRun => Task.Run(async () =>
                     await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb, options.UseSampling ?? 1, imageStarQuads,
                         completionCts)));
+
 
                 try
                 {
@@ -243,8 +282,12 @@ namespace WatneyAstrometry.Core
                     if (options.UseSampling != null && options.UseSampling > 1)
                     {
                         var resultSet = GetMatchedAndUnmatchedSearchRuns(whenAllResult.Result);
+                        diagnosticsData.NumberOfPotentialHitAreasFound = resultSet.withMatches.Length;
+
                         if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null && !combinedCts.Token.IsCancellationRequested)
                         {
+                            diagnosticsData.FoundUsingRunType = SolveRunType.SampledHintedRun;
+                            
                             // No result: run again, first on those that had potential matches, then if still no full result, on those that did not.
                             _logger.Write("Sampling: no result from the first search round, executing a second round without sampling on areas that had potential matches with sampling on");
                             var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
@@ -258,6 +301,7 @@ namespace WatneyAstrometry.Core
 
                             if (whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) == null && !combinedCts.Token.IsCancellationRequested)
                             {
+                                diagnosticsData.FoundUsingRunType = SolveRunType.SampledLastDitchRun;
                                 _logger.Write("Sampling: no result from the second search round, executing a third round without sampling on areas that had no matches with sampling on");
                                 var lastDitchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
                                 var lastDitchSearchTasks = lastDitchQueue.Select(searchRun => Task.Run(async () =>
@@ -276,8 +320,8 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) ?? new SolveResult();
-                    result.DetectedStars = stars;
-                    result.DetectedQuadDensity = countInFirstPass;
+                    diagnosticsData.MatchInstances = result.DiagnosticsData.MatchInstances;
+                    result.DiagnosticsData = diagnosticsData;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
                     if (cancellationToken.IsCancellationRequested)
@@ -294,8 +338,8 @@ namespace WatneyAstrometry.Core
                 void MakeSuccessResult(SolveResult r)
                 {
                     result = r;
-                    result.DetectedStars = stars;
-                    result.DetectedQuadDensity = countInFirstPass;
+                    diagnosticsData.MatchInstances = r.DiagnosticsData.MatchInstances;
+                    result.DiagnosticsData = diagnosticsData;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
                 }
@@ -325,10 +369,15 @@ namespace WatneyAstrometry.Core
                 if (options.UseSampling != null && options.UseSampling > 1)
                 {
                     var resultSet = GetMatchedAndUnmatchedSearchRuns(serialSearches.ToArray());
+                    diagnosticsData.NumberOfPotentialHitAreasFound = resultSet.withMatches.Length;
+
                     if (resultSet.withMatches.FirstOrDefault(x => x != null && x.Success) == null && !combinedCts.Token.IsCancellationRequested)
                     {
                         // No result: run again, first on those that had potential matches, then if still no full result, on those that did not.
+
                         _logger.Write("Sampling: no result from the first search round, executing a second round without sampling on areas that had potential matches with sampling on");
+                        diagnosticsData.FoundUsingRunType = SolveRunType.SampledHintedRun;
+
                         var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
 
                         foreach (var searchRun in potentialMatchQueue)
@@ -353,6 +402,8 @@ namespace WatneyAstrometry.Core
                         if (result == null && !combinedCts.Token.IsCancellationRequested)
                         {
                             _logger.Write("Sampling: no result from the second search round, executing a third round without sampling on areas that had no matches with sampling on");
+                            diagnosticsData.FoundUsingRunType = SolveRunType.SampledLastDitchRun;
+
                             var lastDitchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
                             foreach (var searchRun in lastDitchQueue)
                             {
@@ -382,8 +433,7 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = new SolveResult();
-                    result.DetectedStars = stars;
-                    result.DetectedQuadDensity = countInFirstPass;
+                    result.DiagnosticsData = diagnosticsData;
                     result.AreasSearched = _iterations;
                     result.TimeSpent = stopwatch.Elapsed;
                     if (cancellationToken.IsCancellationRequested)
@@ -425,7 +475,8 @@ namespace WatneyAstrometry.Core
             SolveResult taskResult = new SolveResult()
             {
                 Success = false,
-                SearchRun = searchRun
+                SearchRun = searchRun,
+                DiagnosticsData = new SolveDiagnosticsData() // this will mostly be filled outside this method.
             };
 
             
@@ -516,7 +567,7 @@ namespace WatneyAstrometry.Core
                 taskResult.SearchRun = searchRun;
                 taskResult.MatchedQuads = improvedSolution.matches.Count;
                 taskResult.Solution = improvedSolution.solution;
-                taskResult.MatchInstances = improvedSolution.matches;
+                taskResult.DiagnosticsData.MatchInstances = improvedSolution.matches;
                 completionCts.Cancel();
                 return taskResult;
 

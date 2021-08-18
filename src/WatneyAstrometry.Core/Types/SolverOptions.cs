@@ -19,8 +19,11 @@ namespace WatneyAstrometry.Core.Types
         /// Example: with sampling value 4, only 25% of the quads available in the database are tested, the rest are skipped and ignored.
         /// In most cases this speeds up blind solves significantly.
         /// <para>
-        /// Recommended to use values 2..10. Best values are probably 4..8.
+        /// Most reliable (performance increasing) values are probably 2..8. Image that have a lot of stars (> 1000)
+        /// can benefit from going up to 32 or perhaps even more.
         /// </para>
+        /// <para>
+        /// Use value 0 or 1 to not use sampling. Leave as null to use auto-sampling.</para>
         /// </summary>
         public int? UseSampling { get; set; } = null;
 
