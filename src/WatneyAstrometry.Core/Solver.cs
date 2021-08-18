@@ -97,16 +97,7 @@ namespace WatneyAstrometry.Core
             return this;
         }
 
-        /// <summary>
-        /// Solves the field (image) using the specified search strategy.
-        /// Uses the registered <see cref="IStarDetector"/> to detect stars.
-        /// If sufficient matches are found, a solution is then calculated and returned.
-        /// </summary>
-        /// <param name="filename">The image file to solve.</param>
-        /// <param name="strategy">The search strategy.</param>
-        /// <param name="options">Additional options for the solver.</param>
-        /// <param name="cancellationToken">A token for cancelling the solving process.</param>
-        /// <returns>The result of the solver operation</returns>
+        /// <inheritdoc />
         public async Task<SolveResult> SolveFieldAsync(string filename, ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
             _logger.Write($"Solving field from file {filename}, with strategy {strategy.GetType().Name}");
@@ -124,6 +115,7 @@ namespace WatneyAstrometry.Core
             return await SolveFieldAsync(image, strategy, options, cancellationToken);
         }
 
+        /// <inheritdoc />
         public async Task<SolveResult> SolveFieldAsync(IImage image, ISearchStrategy strategy, SolverOptions options,
             CancellationToken cancellationToken)
         {
@@ -187,15 +179,7 @@ namespace WatneyAstrometry.Core
             return 24;
         }
 
-        /// <summary>
-        /// Solves the field (image) using the specified search strategy.
-        /// Requires an already resolved list of stars in the image, and also known image dimensions.
-        /// If sufficient matches are found, a solution is then calculated and returned.
-        /// </summary>
-        /// <param name="strategy">The search strategy.</param>
-        /// <param name="options">Additional options for the solver.</param>
-        /// <param name="cancellationToken">A token for cancelling the solving process.</param>
-        /// <returns>The result of the solver operation</returns>
+        /// <inheritdoc />
         public async Task<SolveResult> SolveFieldAsync(IImageDimensions imageDimensions, IList<ImageStar> stars, 
             ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
