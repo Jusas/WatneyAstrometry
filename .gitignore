@@ -7,3 +7,5 @@ src/.idea/
 src/*/Resources
 launchSettings.json
 src/WatneyAstrometry.SolverApp/watney-solve-config.yml
+perftest/
+publishing/
