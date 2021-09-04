@@ -304,7 +304,7 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = whenAllResult.Result.FirstOrDefault(r => r != null && r.Success) ?? new SolveResult();
-                    diagnosticsData.MatchInstances = result.DiagnosticsData.MatchInstances;
+                    diagnosticsData.MatchInstances = result.DiagnosticsData?.MatchInstances;
                     result.DiagnosticsData = diagnosticsData;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;

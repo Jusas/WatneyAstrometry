@@ -76,10 +76,13 @@ namespace WatneyAstrometry.Core
             public uint MaxPositiveDensityOffset { get; set; }
         }
 
-        
-        private EquatorialCoords _point;
-        private Options _options;
-        private int[] _densityOffsets;
+        public EquatorialCoords CenterPoint { get; internal set; }
+        public Options StrategyOptions { get; internal set; }
+        public int[] DensityOffsets { get; internal set; }
+
+        public NearbySearchStrategy()
+        {
+        }
 
         /// <summary>
         /// Create a Nearby search strategy instance.
@@ -88,12 +91,12 @@ namespace WatneyAstrometry.Core
         /// <param name="options">The search options.</param>
         public NearbySearchStrategy(EquatorialCoords point, Options options)
         {
-            _point = point;
-            _options = options;
+            CenterPoint = point;
+            StrategyOptions = options;
             UseParallelism = options.UseParallelism;
-            _densityOffsets = new int[_options.MaxNegativeDensityOffset + _options.MaxPositiveDensityOffset + 1];
-            for (int i = -(int)_options.MaxNegativeDensityOffset, n = 0; i <= _options.MaxPositiveDensityOffset; i++, n++)
-                _densityOffsets[n] = i;
+            DensityOffsets = new int[StrategyOptions.MaxNegativeDensityOffset + StrategyOptions.MaxPositiveDensityOffset + 1];
+            for (int i = -(int)StrategyOptions.MaxNegativeDensityOffset, n = 0; i <= StrategyOptions.MaxPositiveDensityOffset; i++, n++)
+                DensityOffsets[n] = i;
         }
         
         /// <inheritdoc />
@@ -108,20 +111,20 @@ namespace WatneyAstrometry.Core
             {
                 (0, new SearchRun()
                 {
-                    Center = _point,
-                    DensityOffsets = _densityOffsets,
-                    RadiusDegrees = _options.ScopeFieldRadius
+                    Center = CenterPoint,
+                    DensityOffsets = DensityOffsets,
+                    RadiusDegrees = StrategyOptions.ScopeFieldRadius
                 })
             };
 
             int n = 0;
-            float maxDec = Math.Min((float)_point.Dec + _options.SearchAreaRadius, 90);
-            float minDec = Math.Max((float)_point.Dec - _options.SearchAreaRadius, -90);
+            float maxDec = Math.Min((float)CenterPoint.Dec + StrategyOptions.SearchAreaRadius, 90);
+            float minDec = Math.Max((float)CenterPoint.Dec - StrategyOptions.SearchAreaRadius, -90);
 
-            for (float dec = minDec; dec <= maxDec; dec += _options.ScopeFieldRadius, n++) // Take only the decs that are +- radius
+            for (float dec = minDec; dec <= maxDec; dec += StrategyOptions.ScopeFieldRadius, n++) // Take only the decs that are +- radius
             {
                 var angularDistToCover = Math.Cos(Conversions.Deg2Rad(dec)) * 360.0;
-                var numberOfSearchCircles = (int)Math.Ceiling(angularDistToCover / (2 * _options.ScopeFieldRadius)) + 1;
+                var numberOfSearchCircles = (int)Math.Ceiling(angularDistToCover / (2 * StrategyOptions.ScopeFieldRadius)) + 1;
                 var raStep = 360.0f / numberOfSearchCircles;
                 var raOffset = n % 2 * 0.5f * raStep;
 
@@ -129,14 +132,14 @@ namespace WatneyAstrometry.Core
                 {
                     var ra = (raOffset + i * raStep) % 360.0f; // is this % necessary?
                     var searchCenter = new EquatorialCoords(ra, dec);
-                    var distToOriginalSearchCenter = EquatorialCoords.GetAngularDistanceBetween(searchCenter, _point);
-                    if (distToOriginalSearchCenter < _options.SearchAreaRadius)
+                    var distToOriginalSearchCenter = EquatorialCoords.GetAngularDistanceBetween(searchCenter, CenterPoint);
+                    if (distToOriginalSearchCenter < StrategyOptions.SearchAreaRadius)
                     {
                         runs.Add((distToOriginalSearchCenter, new SearchRun()
                         {
                             Center = new EquatorialCoords(ra, dec),
-                            RadiusDegrees = _options.ScopeFieldRadius,
-                            DensityOffsets = _densityOffsets
+                            RadiusDegrees = StrategyOptions.ScopeFieldRadius,
+                            DensityOffsets = DensityOffsets
                         }));
                     }
                 }

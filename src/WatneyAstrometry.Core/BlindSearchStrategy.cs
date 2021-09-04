@@ -118,18 +118,22 @@ namespace WatneyAstrometry.Core
             public bool UseParallelism { get; set; } = true;
         }
 
-        private Options _options;
-        private int[] _densityOffsets;
+        public Options StrategyOptions { get; internal set; }
+        public int[] DensityOffsets { get; internal set; }
+
+        public BlindSearchStrategy()
+        {
+        }
 
         public BlindSearchStrategy(Options options = null)
         {
-            _options = options ?? new Options();
-            UseParallelism = _options.UseParallelism;
-            if (_options.MinRadiusDegrees > _options.StartRadiusDegrees)
+            StrategyOptions = options ?? new Options();
+            UseParallelism = StrategyOptions.UseParallelism;
+            if (StrategyOptions.MinRadiusDegrees > StrategyOptions.StartRadiusDegrees)
                 throw new Exception("MinRadiusDegrees must be <= StartRadiusDegrees");
-            _densityOffsets = new int[_options.MaxNegativeDensityOffset + _options.MaxPositiveDensityOffset + 1];
-            for (int i = -(int)_options.MaxNegativeDensityOffset, n = 0; i <= _options.MaxPositiveDensityOffset; i++, n++)
-                _densityOffsets[n] = i;
+            DensityOffsets = new int[StrategyOptions.MaxNegativeDensityOffset + StrategyOptions.MaxPositiveDensityOffset + 1];
+            for (int i = -(int)StrategyOptions.MaxNegativeDensityOffset, n = 0; i <= StrategyOptions.MaxPositiveDensityOffset; i++, n++)
+                DensityOffsets[n] = i;
         }
 
         /// <summary>
@@ -170,7 +174,7 @@ namespace WatneyAstrometry.Core
         /// <inheritdoc />
         public IEnumerable<SearchRun> GetSearchQueue()
         {
-            var radius = _options.StartRadiusDegrees;
+            var radius = StrategyOptions.StartRadiusDegrees;
             
             //- Rows are zigzagging. Spacing is always constant, until too much calculated overlap.
             //	- First row, dec 0, spacing = diameter
@@ -182,7 +186,7 @@ namespace WatneyAstrometry.Core
             //	when Dec reaches a value where 180 - cos(dec) * 180 == diameter
 
 
-            while (radius >= _options.MinRadiusDegrees)
+            while (radius >= StrategyOptions.MinRadiusDegrees)
             {
                 // 4 iterations: positive and negative on east side, positive and negative on west side.
                 for (var decIteration = 0; decIteration < 4; decIteration++)
@@ -207,9 +211,9 @@ namespace WatneyAstrometry.Core
 
                         // Adjust dec sign depending on which iteration we're on and what search ordering preference was used.
                         var actualDec = dec;
-                        if (_options.SearchOrderDec == DecSearchOrder.SouthFirst && decIteration < 2)
+                        if (StrategyOptions.SearchOrderDec == DecSearchOrder.SouthFirst && decIteration < 2)
                             actualDec = -dec;
-                        else if (_options.SearchOrderDec == DecSearchOrder.NorthFirst && decIteration >= 2)
+                        else if (StrategyOptions.SearchOrderDec == DecSearchOrder.NorthFirst && decIteration >= 2)
                             actualDec = -dec;
 
                         for (var i = 0; i < numberOfSearchCircles; i++)
@@ -217,16 +221,16 @@ namespace WatneyAstrometry.Core
                             var ra = (raOffset + i * raStep) % 180.0f; // is this % necessary?
                             var actualRa = ra;
 
-                            if (_options.SearchOrderRa == RaSearchOrder.WestFirst && decIteration % 2 == 0)
+                            if (StrategyOptions.SearchOrderRa == RaSearchOrder.WestFirst && decIteration % 2 == 0)
                                 actualRa += 180;
-                            else if (_options.SearchOrderRa == RaSearchOrder.EastFirst && decIteration % 2 == 1)
+                            else if (StrategyOptions.SearchOrderRa == RaSearchOrder.EastFirst && decIteration % 2 == 1)
                                 actualRa += 180;
 
                             yield return new SearchRun()
                             {
                                 Center = new EquatorialCoords(actualRa, actualDec),
                                 RadiusDegrees = radius,
-                                DensityOffsets = _densityOffsets
+                                DensityOffsets = DensityOffsets
                             };
                         }
 

@@ -56,7 +56,7 @@ namespace WatneyAstrometry.GaiaStarExtractor
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            int[] magnitudes = new int[20];
+            int[] magnitudes = new int[25];
 
             InitializeOutputStreams(options);
 
@@ -121,7 +121,7 @@ namespace WatneyAstrometry.GaiaStarExtractor
         static (int extracted, int[] magnitudes) ExtractData(Stream data, double maxMag)
         {
             int total = 0;
-            int[] magnitudes = new int[20];
+            int[] magnitudes = new int[25];
 
 
             var tmpStreams = SkySegmentSphere.Cells
