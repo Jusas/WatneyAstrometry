@@ -14,6 +14,15 @@
 
   <ItemGroup>
     <None Include="StarDatabaseTests.cs" />
+    <None Update="Resources\fits\other_7331.fit">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\fits\trunk.fit">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Resources\jpg\other_7331.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

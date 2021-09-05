@@ -158,17 +158,18 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="center"></param>
         /// <param name="angularDistance"></param>
         /// <param name="passIndex"></param>
-        /// <param name="sampling"></param>
+        /// <param name="numSubSets">The number of quad subsets we divide the available quads to.</param>
+        /// <param name="subSetIndex">The index of the quad subset we want to include.</param>
         /// <param name="imageQuads"></param>
         /// <returns></returns>
-        public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, int sampling, ImageStarQuad[] imageQuads)
+        public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads)
         {
-            sampling = sampling <= 0 ? 1 : sampling;
             var foundQuads = new List<StarQuad>();
             var subCellsInRange = new List<SubCellInfo>();
 
             var pass = FileDescriptor.Passes[passIndex];
 
+            // TODO: the higher the subset count, the more this gets called and it does add up.
             for (var p = 0; p < pass.SubCells.Length; p++)
             {
                 var subCell = pass.SubCells[p];
@@ -189,6 +190,7 @@ namespace WatneyAstrometry.Core.QuadDb
             if (!_fileStreamPool.TryDequeue(out fileStream))
                 fileStream = new FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
 
+            // TODO: filestream reads and seeks are taking the toll when using large subset count. Could potentially speed things up with caching at the cost of memory usage.
             for (var sc = 0; sc < subCellsInRangeArr.Length; sc++)
             {
                 fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
@@ -196,8 +198,16 @@ namespace WatneyAstrometry.Core.QuadDb
                 fileStream.Read(dataBuf, 0, dataBuf.Length);
 
                 int advance = 0;
-                var quadCount = dataBuf.Length / QuadDataLen / sampling;
-                for (var q = 0; q < quadCount; q++)
+                var quadCount = dataBuf.Length / QuadDataLen;
+                // We will split the quadCount to numSubSets, and pick the quads in our assigned subset.
+                var quadCountPerSubSet = quadCount / numSubSets;
+                var startIndex = quadCountPerSubSet * subSetIndex;
+                var nextStartIndex = subSetIndex == numSubSets - 1
+                    ? quadCount
+                    : startIndex + quadCountPerSubSet;
+
+                advance = startIndex * QuadDataLen;
+                for (var q = startIndex; q < nextStartIndex; q++)
                 {
                     var quad = BytesToQuad(dataBuf, advance, imageQuadsCopy);
                     if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
@@ -208,6 +218,7 @@ namespace WatneyAstrometry.Core.QuadDb
                     for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
                         imageQuadsCopy[iq] = imageQuads[iq];
                 }
+                
             }
 
             _fileStreamPool.Enqueue(fileStream);

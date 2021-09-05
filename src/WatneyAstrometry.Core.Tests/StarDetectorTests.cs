@@ -91,7 +91,7 @@ namespace WatneyAstrometry.Core.Tests
         [Trait("Category", "Visual")]
         public void Visualize_star_pixel_bins()
         {
-            using (var image = SixLabors.ImageSharp.Image.Load("Resources/png/m81.png"))
+            using (var image = SixLabors.ImageSharp.Image.Load("Resources/jpg/other_7331.jpg"))
             {
                 image.Mutate(ctx => ctx.Grayscale());
                 var monoImage = image.CloneAs<L8>();

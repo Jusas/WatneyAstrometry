@@ -18,10 +18,10 @@ namespace WatneyAstrometry.Core.Tests
         [Trait("Category", "Visual")]
         public void Visualize_blind_search_areas()
         {
-            var options = new BlindSearchStrategy.Options()
+            var options = new BlindSearchStrategyOptions()
             {
-                SearchOrderRa = BlindSearchStrategy.RaSearchOrder.EastFirst,
-                SearchOrderDec = BlindSearchStrategy.DecSearchOrder.NorthFirst,
+                SearchOrderRa = BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
+                SearchOrderDec = BlindSearchStrategyOptions.DecSearchOrder.NorthFirst,
                 MinRadiusDegrees = 5,
                 StartRadiusDegrees = 20
             };
@@ -72,7 +72,7 @@ namespace WatneyAstrometry.Core.Tests
         [Trait("Category", "Visual")]
         public void Visualize_nearby_search_areas()
         {
-            var options = new NearbySearchStrategy.Options()
+            var options = new NearbySearchStrategyOptions()
             {
                 ScopeFieldRadius = 4,
                 SearchAreaRadius = 20

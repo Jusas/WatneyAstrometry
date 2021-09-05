@@ -56,7 +56,7 @@ namespace WatneyAstrometry.Core.Types
         /// without sampling for promising candidates first, and if still no full match is
         /// found we will repeat the search for all areas without sampling.
         /// </summary>
-        internal bool HadPotentialMatches { get; set; }
+        internal int NumPotentialMatches { get; set; }
 
         /// <summary>
         /// The search run that produced the solution.

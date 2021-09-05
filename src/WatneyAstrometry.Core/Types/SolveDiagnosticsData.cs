@@ -8,10 +8,10 @@ namespace WatneyAstrometry.Core.Types
 
     public enum SolveRunType
     {
-        NonSampledRun,
+        //NonSampledRun,
         SampledRun,
-        SampledHintedRun,
-        SampledLastDitchRun
+        SampledHintedRun
+        //SampledLastDitchRun
     }
     
     internal class SolveDiagnosticsData

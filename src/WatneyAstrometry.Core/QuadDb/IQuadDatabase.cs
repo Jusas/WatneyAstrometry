@@ -30,6 +30,6 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadDensityOffsets">Offsets to the quads per square degree density, allowing to include lower and higher densities to the search. The offsets refer to pass indexes. Example: [-1, 0, 1]</param>
         /// <param name="sampling">Use sampling to reduce the number of quads tested. If sampling is 4 for example, only 25% of the quads available in the database will be tested against imageQuads and returned. Use 0 or 1 to not use sampling.</param>
         /// <param name="imageQuads">The quads formed from the source image's stars</param>
-        Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int sampling, ImageStarQuad[] imageQuads);
+        Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads);
     }
 }

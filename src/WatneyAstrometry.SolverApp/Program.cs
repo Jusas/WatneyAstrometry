@@ -217,7 +217,7 @@ namespace WatneyAstrometry.SolverApp
 
         private static BlindSearchStrategy ParseStrategy(BlindOptions options)
         {
-            var strategyOptions = new BlindSearchStrategy.Options()
+            var strategyOptions = new BlindSearchStrategyOptions()
             {
                 MaxNegativeDensityOffset = options.LowerDensityOffset,
                 MaxPositiveDensityOffset = options.HigherDensityOffset,
@@ -225,11 +225,11 @@ namespace WatneyAstrometry.SolverApp
                 MinRadiusDegrees = options.MinRadius,
                 StartRadiusDegrees = options.MaxRadius,
                 SearchOrderRa = options.WestFirst
-                    ? BlindSearchStrategy.RaSearchOrder.WestFirst
-                    : BlindSearchStrategy.RaSearchOrder.EastFirst,
+                    ? BlindSearchStrategyOptions.RaSearchOrder.WestFirst
+                    : BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
                 SearchOrderDec = options.SouthFirst
-                    ? BlindSearchStrategy.DecSearchOrder.SouthFirst
-                    : BlindSearchStrategy.DecSearchOrder.NorthFirst
+                    ? BlindSearchStrategyOptions.DecSearchOrder.SouthFirst
+                    : BlindSearchStrategyOptions.DecSearchOrder.NorthFirst
             };
 
             var strategy = new BlindSearchStrategy(strategyOptions);
@@ -242,7 +242,7 @@ namespace WatneyAstrometry.SolverApp
             var parseErrors = new List<string>();
 
             NearbySearchStrategy strategy;
-            var strategyOptions = new NearbySearchStrategy.Options
+            var strategyOptions = new NearbySearchStrategyOptions
             {
                 MaxNegativeDensityOffset = options.LowerDensityOffset,
                 MaxPositiveDensityOffset = options.HigherDensityOffset,

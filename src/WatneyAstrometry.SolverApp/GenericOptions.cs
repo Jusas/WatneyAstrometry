@@ -13,13 +13,15 @@ namespace WatneyAstrometry.SolverApp
 
         [Option("max-stars", Required = false, Default = 0, HelpText = "Maximum number of stars to use from the image. When not given, the solver decides itself. " +
             "When given, the solver uses this number. In cases of very high star count present in the image (wide-field images), the solve may fail if this number is not set high enough. " +
-            "A high number (> 1000) will however also affect performance due to the high number of calculations, especially noticeable with blind solves.")]
+            "A low number of stars can speed up the solve, since it means less calculations are required. 300 is generally a good value." +
+            "A high number (> 1000) will however also affect performance due to the high number of calculations, and this gets especially noticeable with blind solves.")]
         public int MaxStars { get; set; }
 
-        [Option("sampling", Required = false, Default = 1, HelpText = "Use a preliminary search run with sampled quads. With sampling, we will not get all the potential quads from the " +
+        [Option("sampling", Required = false, Default = 0, HelpText = "Use a preliminary search run with sampled quads. With sampling, we will not get all the potential quads from the " +
             "database, we only get 1/<sampling> quads for which we run the first search round. This means less quads to compare to, which means less time spent in comparisons. If no solution is " +
-            "found with sampling, then all best candidate areas with any quads found will get searched without sampling. Finally if the best candidates give no solutions, we search the rest of " +
-            "the areas without sampling. In best case scenario, this can significantly shorten the blind solve times. In worst case scenario, it will extend it by a margin.")]
+            "found with sampling, then all best candidate areas with any quads found will get searched without sampling. The search will continue in sets of 1/<sampling> until all database quads " +
+            "have been included. In most scenarios, this can significantly shorten the blind solve times to a fraction of what it would be without sampling. However at higher sampling values the overhead " +
+            "from intermediary calculations can become so big that it starts to eat up the gains. Recommended to keep this at 32 or below. If not set, defaults to 24. If you do not wish to use sampling, use the value of 1.")]
         public int Sampling { get; set; }
 
         [Option("out-format", Required = false, HelpText = "Output format. Valid values are 'json', 'tsv'.", Default = "json")]

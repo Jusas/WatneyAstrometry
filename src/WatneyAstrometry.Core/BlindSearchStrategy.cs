@@ -17,122 +17,33 @@ namespace WatneyAstrometry.Core
     public class BlindSearchStrategy : ISearchStrategy
     {
         /// <summary>
-        /// In which order do we want to search RA.
+        /// The search options.
         /// </summary>
-        public enum RaSearchOrder
-        {
-            /// <summary>
-            /// Within Northern or Southern half, start search from the East side, and once East has
-            /// been fully searched, switch to West side.
-            /// </summary>
-            EastFirst,
-            /// <summary>
-            /// Within Northern or Southern half, start search from the West side, and once West has
-            /// been fully searched, switch to East side.
-            /// </summary>
-            WestFirst
-        }
-
+        public BlindSearchStrategyOptions Options { get; internal set; }
         /// <summary>
-        /// In which order do we want to search Dec.
+        /// Density offsets, created from <see cref="BlindSearchStrategyOptions.MaxNegativeDensityOffset"/> and <see cref="BlindSearchStrategyOptions.MaxPositiveDensityOffset"/>.
         /// </summary>
-        public enum DecSearchOrder
-        {
-            /// <summary>
-            /// Search 0..90 degrees declination first, searching RA in <see cref="RaSearchOrder"/>.
-            /// </summary>
-            NorthFirst,
-            /// <summary>
-            /// Search -90..0 degrees declination first, searching RA in <see cref="RaSearchOrder"/>.
-            /// </summary>
-            SouthFirst
-        }
-
-        public class Options
-        {
-            private float _startRadiusDegrees = 22.5f;
-
-            /// <summary>
-            /// This is the starting search area radius in degrees, i.e. the full sky
-            /// will get searched in circles of this radius. If matches are not found,
-            /// the search then continues on by halving the radius over and over,
-            /// until the search completes or is stopped.
-            /// </summary>
-            public float StartRadiusDegrees
-            {
-                get => _startRadiusDegrees;
-                set
-                {
-                    if (value > 30 || value <= 0)
-                        throw new Exception("Start radius should be > 0 and <= 30 degrees");
-                    _startRadiusDegrees = value;
-                }
-            }
-
-            private float _minRadiusDegrees = 22.5f / 32;
-
-            /// <summary>
-            /// Minimum radius for the search.
-            /// </summary>
-            public float MinRadiusDegrees
-            {
-                get => _minRadiusDegrees;
-                set
-                {
-                    if (value <= 0 || value > 30)
-                        throw new Exception("Minimum radius must be > 0 and <= 30");
-                    _minRadiusDegrees = value;
-                }
-            }
-
-            /// <summary>
-            /// Which side of the sky sphere to start with.
-            /// </summary>
-            public RaSearchOrder SearchOrderRa { get; set; } = RaSearchOrder.EastFirst;
-            /// <summary>
-            /// Which pole of the sky sphere to start with.
-            /// </summary>
-            public DecSearchOrder SearchOrderDec { get; set; } = DecSearchOrder.NorthFirst;
-            
-            /// <summary>
-            /// Controls the inclusion of lower density quad passes. <br/>
-            /// Including more passes in search increases the chance of detection, but also increases solve time.<br/>
-            /// Example: Setting this to 2 will include two lower quad density passes in our search (if available in the quad database).
-            /// <br/>Defaults to 0.
-            /// </summary>
-            public uint MaxNegativeDensityOffset { get; set; }
-            
-            /// <summary>
-            /// Controls the inclusion of higher density quad passes. <br/>
-            /// Including more passes in search increases the chance of detection, but also increases solve time.<br/>
-            /// Example: Setting this to 2 will include two higher quad density passes in our search (if available in the quad database).
-            /// <br/>Defaults to 0.
-            /// </summary>
-            public uint MaxPositiveDensityOffset { get; set; }
-
-            /// <summary>
-            /// Allow the use of parallelism, searching multiple areas simultaneously. <br/>
-            /// This may use more memory, but is significantly faster. <br/>
-            /// Defaults to true.
-            /// </summary>
-            public bool UseParallelism { get; set; } = true;
-        }
-
-        public Options StrategyOptions { get; internal set; }
         public int[] DensityOffsets { get; internal set; }
 
+        /// <summary>
+        /// Empty constructor; for deserialization purposes.
+        /// </summary>
         public BlindSearchStrategy()
         {
         }
 
-        public BlindSearchStrategy(Options options = null)
+        /// <summary>
+        /// Create a new blind search strategy with the specified options.
+        /// </summary>
+        /// <param name="options">The search options.</param>
+        public BlindSearchStrategy(BlindSearchStrategyOptions options = null)
         {
-            StrategyOptions = options ?? new Options();
-            UseParallelism = StrategyOptions.UseParallelism;
-            if (StrategyOptions.MinRadiusDegrees > StrategyOptions.StartRadiusDegrees)
+            Options = options ?? new BlindSearchStrategyOptions();
+            UseParallelism = Options.UseParallelism;
+            if (Options.MinRadiusDegrees > Options.StartRadiusDegrees)
                 throw new Exception("MinRadiusDegrees must be <= StartRadiusDegrees");
-            DensityOffsets = new int[StrategyOptions.MaxNegativeDensityOffset + StrategyOptions.MaxPositiveDensityOffset + 1];
-            for (int i = -(int)StrategyOptions.MaxNegativeDensityOffset, n = 0; i <= StrategyOptions.MaxPositiveDensityOffset; i++, n++)
+            DensityOffsets = new int[Options.MaxNegativeDensityOffset + Options.MaxPositiveDensityOffset + 1];
+            for (int i = -(int)Options.MaxNegativeDensityOffset, n = 0; i <= Options.MaxPositiveDensityOffset; i++, n++)
                 DensityOffsets[n] = i;
         }
 
@@ -174,7 +85,7 @@ namespace WatneyAstrometry.Core
         /// <inheritdoc />
         public IEnumerable<SearchRun> GetSearchQueue()
         {
-            var radius = StrategyOptions.StartRadiusDegrees;
+            var radius = Options.StartRadiusDegrees;
             
             //- Rows are zigzagging. Spacing is always constant, until too much calculated overlap.
             //	- First row, dec 0, spacing = diameter
@@ -186,7 +97,7 @@ namespace WatneyAstrometry.Core
             //	when Dec reaches a value where 180 - cos(dec) * 180 == diameter
 
 
-            while (radius >= StrategyOptions.MinRadiusDegrees)
+            while (radius >= Options.MinRadiusDegrees)
             {
                 // 4 iterations: positive and negative on east side, positive and negative on west side.
                 for (var decIteration = 0; decIteration < 4; decIteration++)
@@ -211,9 +122,9 @@ namespace WatneyAstrometry.Core
 
                         // Adjust dec sign depending on which iteration we're on and what search ordering preference was used.
                         var actualDec = dec;
-                        if (StrategyOptions.SearchOrderDec == DecSearchOrder.SouthFirst && decIteration < 2)
+                        if (Options.SearchOrderDec == BlindSearchStrategyOptions.DecSearchOrder.SouthFirst && decIteration < 2)
                             actualDec = -dec;
-                        else if (StrategyOptions.SearchOrderDec == DecSearchOrder.NorthFirst && decIteration >= 2)
+                        else if (Options.SearchOrderDec == BlindSearchStrategyOptions.DecSearchOrder.NorthFirst && decIteration >= 2)
                             actualDec = -dec;
 
                         for (var i = 0; i < numberOfSearchCircles; i++)
@@ -221,9 +132,9 @@ namespace WatneyAstrometry.Core
                             var ra = (raOffset + i * raStep) % 180.0f; // is this % necessary?
                             var actualRa = ra;
 
-                            if (StrategyOptions.SearchOrderRa == RaSearchOrder.WestFirst && decIteration % 2 == 0)
+                            if (Options.SearchOrderRa == BlindSearchStrategyOptions.RaSearchOrder.WestFirst && decIteration % 2 == 0)
                                 actualRa += 180;
-                            else if (StrategyOptions.SearchOrderRa == RaSearchOrder.EastFirst && decIteration % 2 == 1)
+                            else if (Options.SearchOrderRa == BlindSearchStrategyOptions.RaSearchOrder.EastFirst && decIteration % 2 == 1)
                                 actualRa += 180;
 
                             yield return new SearchRun()

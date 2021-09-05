@@ -14,6 +14,7 @@ using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.QuadDb;
 using WatneyAstrometry.Core.StarDetection;
+using WatneyAstrometry.Core.Tests.Utils;
 using WatneyAstrometry.Core.Types;
 using Xunit;
 using Xunit.Abstractions;
@@ -51,26 +52,29 @@ namespace WatneyAstrometry.Core.Tests
         public async Task Should_successfully_blind_solve()
         {
             DefaultFitsReader r = new DefaultFitsReader();
-            var img = r.FromFile("Resources/fits/ngc1491.fits"); 
+            var img = r.FromFile("Resources/fits/m81.fits"); 
             
-            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategy.Options()
+            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategyOptions()
             {
-                SearchOrderRa = BlindSearchStrategy.RaSearchOrder.EastFirst,
-                SearchOrderDec = BlindSearchStrategy.DecSearchOrder.NorthFirst,
+                SearchOrderRa = BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
+                SearchOrderDec = BlindSearchStrategyOptions.DecSearchOrder.NorthFirst,
                 MinRadiusDegrees = 0.5f,
                 StartRadiusDegrees = 8,
                 MaxNegativeDensityOffset = 1,
                 MaxPositiveDensityOffset = 1,
                 UseParallelism = true
             });
+
+            SolverUnitTestVerboseLogger testLogger = null; // new SolverUnitTestVerboseLogger(_testOutput);
             
-            var solver = new Solver().UseQuadDatabase(() =>
+            var solver = new Solver(testLogger).UseQuadDatabase(() =>
                 new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
             
             var token = CancellationToken.None;
             var options = new SolverOptions()
             {
-                UseSampling = 4
+                UseSampling = 24,
+                UseMaxStars = 300
             };
             var solveResult = await solver.SolveFieldAsync(img, blindStrategy, options, token);
 
@@ -96,15 +100,16 @@ namespace WatneyAstrometry.Core.Tests
         public async Task Should_successfully_nearby_solve()
         {
             DefaultFitsReader r = new DefaultFitsReader();
-            var img = r.FromFile("Resources/fits/m31.fits");
+            var img = r.FromFile("Resources/fits/ngc7331.fits");
             
-            var nearCenter = new EquatorialCoords(img.Metadata.CenterPos.Ra + 0.1, img.Metadata.CenterPos.Dec + 5);
-            var nearbyStrategy = new NearbySearchStrategy(nearCenter, new NearbySearchStrategy.Options()
+            //var nearCenter = new EquatorialCoords(img.Metadata.CenterPos.Ra + 0.1, img.Metadata.CenterPos.Dec + 5);
+            var nearCenter = EquatorialCoords.FromText("22 36 30", "34 15 43");
+            var nearbyStrategy = new NearbySearchStrategy(nearCenter, new NearbySearchStrategyOptions()
             {
-                ScopeFieldRadius = 2,
+                ScopeFieldRadius = 1.0f,
                 SearchAreaRadius = 10,
-                MaxNegativeDensityOffset = 2,
-                MaxPositiveDensityOffset = 2
+                MaxNegativeDensityOffset = 1,
+                MaxPositiveDensityOffset = 1
             });
             
             var solver = new Solver().UseQuadDatabase(() =>
@@ -113,7 +118,8 @@ namespace WatneyAstrometry.Core.Tests
             var token = CancellationToken.None;
             var options = new SolverOptions()
             {
-                UseSampling = 4
+                //UseMaxStars = 100,
+                UseSampling = 1
             };
             var solveResult = await solver.SolveFieldAsync(img, nearbyStrategy, options, token);
 
@@ -218,13 +224,13 @@ namespace WatneyAstrometry.Core.Tests
             //var img = r.FromFile("Resources/fits/ic1795.fits"); 
             //var img = r.FromFile("Resources/fits/m81.fits"); 
             //var img = r.FromFile("Resources/fits/m31.fits"); 
-            var img = r.FromFile("Resources/fits/ngc7331.fits"); 
+            var img = r.FromFile("Resources/fits/trunk.fit"); 
             //var img = r.FromFile("Resources/fits/ic1936l.fit"); 
             
-            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategy.Options()
+            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategyOptions()
             {
-                SearchOrderRa = BlindSearchStrategy.RaSearchOrder.EastFirst,
-                SearchOrderDec = BlindSearchStrategy.DecSearchOrder.NorthFirst,
+                SearchOrderRa = BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
+                SearchOrderDec = BlindSearchStrategyOptions.DecSearchOrder.NorthFirst,
                 //SearchOrderDec = BlindSearchStrategy.DecSearchOrder.SouthFirst,
                 //SearchOrderRa = BlindSearchStrategy.RaSearchOrder.WestFirst,
                 MinRadiusDegrees = 0.5f,
@@ -240,7 +246,7 @@ namespace WatneyAstrometry.Core.Tests
             var token = CancellationToken.None;
             var options = new SolverOptions()
             {
-                //UseMaxStars = 300,
+                UseMaxStars = 300,
                 UseSampling = 0
             };
 

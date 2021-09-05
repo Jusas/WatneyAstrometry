@@ -68,7 +68,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="sampling">If > 0, taken into account. Reduces the number of quads taken. Speeds up the process.</param>
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
         /// <returns></returns>
-        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int sampling, ImageStarQuad[] imageQuads)
+        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads)
         {
             var cells = SkySegmentSphere.Cells;
             var cellsToInclude = new string[cells.Count];
@@ -76,7 +76,7 @@ namespace WatneyAstrometry.Core.QuadDb
             for (int i = 0; i < cellsToInclude.Length; i++)
             {
                 var cell = cells[i];
-                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) // optimize
+                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) // TODO the more we call this (the more subsets we use) the more cpu time this really starts to take. A cache might be useful here.
                 {
                     cellsToInclude[cellsToIncludeCount] = cell.CellId;
                     cellsToIncludeCount++;
@@ -117,7 +117,7 @@ namespace WatneyAstrometry.Core.QuadDb
                     var idx = i;
                     tasks.Add(Task.Run(() =>
                     {
-                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(center, radiusDegrees, quadsPerSqDegree, offset, sampling, imageQuads);
+                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads);
                     }));
 
                 }

@@ -15,15 +15,24 @@ namespace WatneyAstrometry.Core.Types
         public int? UseMaxStars { get; set; } = null;
 
         /// <summary>
-        /// Uses sampling to reduce the number of database quads tested against image quads.
-        /// Example: with sampling value 4, only 25% of the quads available in the database are tested, the rest are skipped and ignored.
-        /// In most cases this speeds up blind solves significantly.
         /// <para>
-        /// Most reliable (performance increasing) values are probably 2..8. Image that have a lot of stars (> 1000)
-        /// can benefit from going up to 32 or perhaps even more.
+        /// Uses sampling to split the database quads into smaller subsets, running the search per each subset. If a solution can be
+        /// found with a subset, less calculations are thrown at finding the solution, making the solve process faster.
         /// </para>
         /// <para>
-        /// Use value 0 or 1 to not use sampling. Leave as null to use auto-sampling.</para>
+        /// However, the more subsets we use, the more general overhead of I/O and intermediary calculations we get and at some point
+        /// the overhead becomes so big that it eats up the CPU cycles that were otherwise saved. The practical limit probably sits
+        /// somewhere near 32. It all depends on the image really.
+        /// </para>
+        /// <para>
+        /// Example: with sampling value 4, only 25% of the quads available in the database are tested. If a solution or an indication
+        /// of possible solution is found, we've just saved the time otherwise spent in checking the rest (75%) of the quads in our database.
+        /// In most cases this speeds up blind solves significantly.
+        /// </para>
+        /// <para>
+        /// If left as null, the default value of 24 is used.<br/>
+        /// A sampling value of 1 effectively means that this feature is turned off.
+        /// </para>
         /// </summary>
         public int? UseSampling { get; set; } = null;
 
