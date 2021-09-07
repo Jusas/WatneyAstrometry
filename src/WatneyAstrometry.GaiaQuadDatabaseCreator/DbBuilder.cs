@@ -17,7 +17,8 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
         private int _starsPerSqDeg;
         //private double _starsPerDegree;
         private readonly float _passFactor;
-        private readonly int _passes;
+        private readonly int _startPassIndex;
+        private readonly int _endPassIndex;
 
         public DbBuilder(Program.Options options)
         {
@@ -28,7 +29,8 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             _sourceFilesDir = options.InputDir;
             _starsPerSqDeg = options.StarsPerSqDeg;
             _outputDir = options.OutputDir;
-            _passes = options.Passes;
+            _startPassIndex = options.StartPass;
+            _endPassIndex = options.EndPass;
             _passFactor = (float) options.PassFactor;
 
             var files = Directory.GetFiles(_sourceFilesDir, "*.stars");
@@ -42,7 +44,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     if (matchingStarFile == null)
                         throw new Exception($"No star file found for sky sphere segment {cell.CellId}");
                     quadCells.Add(new QuadDatabaseCellFile(cell, options.StarsPerSqDeg, options.PassFactor,
-                        options.Passes, matchingStarFile));
+                        _startPassIndex, _endPassIndex, matchingStarFile));
                 }
             }
             else
@@ -51,7 +53,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                 var matchingStarFile = files.FirstOrDefault(x => x.EndsWith($"{cell.CellId}.stars"));
                 if (matchingStarFile == null)
                     throw new Exception($"No star file found for sky sphere segment {cell.CellId}");
-                quadCells.Add(new QuadDatabaseCellFile(cell, options.StarsPerSqDeg, options.PassFactor, options.Passes,
+                quadCells.Add(new QuadDatabaseCellFile(cell, options.StarsPerSqDeg, options.PassFactor, _startPassIndex, _endPassIndex,
                     matchingStarFile));
 
             }
@@ -135,7 +137,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
             Console.WriteLine($"Serializing completed in {stopwatch.Elapsed}");
 
-            var statsFile = Path.Combine(_outputDir, $"stats-{_passes}-{_starsPerSqDeg}.txt");
+            var statsFile = Path.Combine(_outputDir, $"stats-{_startPassIndex:00}-{_endPassIndex:00}-{_starsPerSqDeg}.txt");
             var stats = new[]
             {
                 $"Total formed quads: {quadCount}",

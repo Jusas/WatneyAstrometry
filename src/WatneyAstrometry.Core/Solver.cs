@@ -142,7 +142,7 @@ namespace WatneyAstrometry.Core
                 : (starSizes[midIndex] + starSizes[midIndex + 1]) / 2;
             return detectedStars.OrderByDescending(star => star.StarSize <= medianSize
                 ? star.Brightness
-                : star.Brightness + (star.StarSize / medianSize) * 10)
+                : star.Brightness + (star.StarSize / medianSize) * 50)
                 .Take(numStars)
                 .ToList();
         }
@@ -164,8 +164,11 @@ namespace WatneyAstrometry.Core
             
             // Max stars:
             // Take minimum of 300 stars. 
-            // Take maximum of 1200 stars.
+            // Take maximum of 800 stars.
             // If 0.33 * detected stars > 300, take that many.
+            // With really high star density images we may have to go with a large number of stars
+            // in order to get a result. Sometimes however, even a 100 star limit works - all depends
+            // on the image, the saturation of stars and the size difference of bright stars.
 
             int maxStars;
             if (options?.UseMaxStars != null)
@@ -173,7 +176,7 @@ namespace WatneyAstrometry.Core
             else
                 maxStars = 0.33 * stars.Count <= 300
                     ? 300
-                    : (int)Math.Min(0.33 * stars.Count, 1200);
+                    : (int)Math.Min(0.33 * stars.Count, 800);
             
 
             var chosenDetectedStars = TakeBrightest(stars, maxStars);
@@ -203,7 +206,7 @@ namespace WatneyAstrometry.Core
             else
             {
                 _logger.Write("Using auto-sampling");
-                sampling = 24; // After testing, seems like a good performant value overall.
+                sampling = 4; // After testing, seems like a good performant value overall.
             }
 
             var diagnosticsData = new SolveDiagnosticsData()
@@ -221,58 +224,122 @@ namespace WatneyAstrometry.Core
             SolveResult successfulSolveResult = null;
             IEnumerable<SearchRun> searchQueue = strategy.GetSearchQueue();
 
+            var runsByRadius = searchQueue
+                .GroupBy(x => x.RadiusDegrees)
+                .OrderByDescending(x => x.Key)
+                .Select(g => g.ToList())
+                .ToList();
+            var radiusGroupCount = runsByRadius.Count;
+
+
             if (strategy.UseParallelism)
             {
                 
                 try
                 {
                     Task<SolveResult[]> whenAllResult = null;
-
+                    
                     for (currentSubSetIndex = 0; currentSubSetIndex < numSubSets; currentSubSetIndex++)
                     {
-
-                        _logger.Write($"Starting search tasks in parallel, {currentSubSetIndex+1}/{numSubSets}");
                         
-                        var searchTasks = searchQueue.Select(searchRun => Task.Run(async () =>
-                            await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass, quadDb,
-                                numSubSets, currentSubSetIndex, imageStarQuads,
-                                completionCts)));
+                        bool continueSearching = true;
 
-
-                        whenAllResult = Task.WhenAll(searchTasks);
-                        await whenAllResult;
-
-                        var resultSet = GetMatchedAndUnmatchedSearchRuns(whenAllResult.Result);
-
-                        successfulSolveResult = resultSet.withMatches.FirstOrDefault(x => x != null && x.Success);
-                        var continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
-                        
-                        if (continueSearching)
+                        for (var rg = 0; rg < radiusGroupCount; rg++)
                         {
-                            var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
-                            _logger.Write($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
-                            var potentialMatchSearchTasks = potentialMatchQueue.Select(searchRun =>
-                                Task.Run(async () =>
+                            // Console.WriteLine($"Group {rg} - {runsByRadius[rg].Count}");
+                            //searchQueue = runsByRadius[rg];
+
+                            var batchItemCount = 1000;
+                            var areaBatches =
+                                new List<SearchRun>[(int)Math.Ceiling((double)runsByRadius[rg].Count / batchItemCount)];
+                            for (var areaBatch = 0; areaBatch < areaBatches.Length; areaBatch++)
+                                areaBatches[areaBatch] = new List<SearchRun>(1000);
+                            for (var areaIndex = 0; areaIndex < runsByRadius[rg].Count; areaIndex++)
+                            {
+                                areaBatches[areaIndex / batchItemCount].Add(runsByRadius[rg][areaIndex]);
+                            }
+
+
+                            for (var areaBatchIndex = 0; areaBatchIndex < areaBatches.Length; areaBatchIndex++)
+                            {
+                                if (combinedCts.Token.IsCancellationRequested)
+                                {
+                                    continueSearching = false;
+                                    break;
+                                }
+
+                                searchQueue = areaBatches[areaBatchIndex];
+                                
+                                _logger.Write(
+                                    $"Starting search tasks in parallel, {currentSubSetIndex + 1}/{numSubSets}");
+
+                                var searchTasks = searchQueue.Select(searchRun => Task.Run(async () =>
                                     await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
-                                        quadDb, 1, 0, imageStarQuads,
+                                        quadDb,
+                                        numSubSets, currentSubSetIndex, imageStarQuads,
                                         completionCts)));
 
-                            whenAllResult = Task.WhenAll(potentialMatchSearchTasks);
-                            await whenAllResult;
 
-                            successfulSolveResult = whenAllResult.Result.FirstOrDefault(x => x != null && x.Success);
-                            continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+                                whenAllResult = Task.WhenAll(searchTasks);
+                                await whenAllResult;
 
-                            if(successfulSolveResult != null)
-                                _logger.Write($"A successful result was found!");
+                                var resultSet = GetMatchedAndUnmatchedSearchRuns(whenAllResult.Result);
+
+                                successfulSolveResult = resultSet.withMatches.FirstOrDefault(x => x != null && x.Success);
+                                continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+                                
+                                if (!continueSearching)
+                                    break;
+
+                                // If only one subset aka no sampling, no need to check potential matches since they aren't potential as
+                                // we're already using all database quads in our search.
+                                if (numSubSets == 1)
+                                    continue;
+
+
+                                var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
+
+                                // Remove all potentials so that we don't search them again in the next subset.
+                                // They aren't a significant number, but every little bit helps.
+                                for (var m = 0; m < potentialMatchQueue.Length; m++) 
+                                    runsByRadius[rg].Remove(potentialMatchQueue[m]);
+
+                                // Console.WriteLine($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
+                                _logger.Write(
+                                    $"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
+                                var potentialMatchSearchTasks = potentialMatchQueue.Select(searchRun =>
+                                    Task.Run(async () =>
+                                        await TrySolveSingle(imageDimensions, combinedCts, searchRun,
+                                            countInFirstPass,
+                                            quadDb, 1, 0, imageStarQuads,
+                                            completionCts)));
+
+                                whenAllResult = Task.WhenAll(potentialMatchSearchTasks);
+                                await whenAllResult;
+
+                                successfulSolveResult = whenAllResult.Result.FirstOrDefault(x => x != null && x.Success);
+                                continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+
+                                if (successfulSolveResult != null)
+                                    _logger.Write($"A successful result was found!");
+
+
+                                if (!continueSearching)
+                                    break;
+                                
+                                
+                            }
+                            
+                            if (!continueSearching)
+                                break;
+
+                            _logger.Write($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
                         }
 
                         if (!continueSearching)
                             break;
-                        
-                        searchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
-                        _logger.Write($"Round yielded no result, starting next round with {searchQueue.Count()} areas to search");
                     }
+
                 }
                 finally
                 {
@@ -303,74 +370,121 @@ namespace WatneyAstrometry.Core
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
                 }
+                
 
                 for (currentSubSetIndex = 0; currentSubSetIndex < numSubSets; currentSubSetIndex++)
                 {
-                    foreach (var searchRun in searchQueue)
+                    bool continueSearching = true;
+
+                    for (var rg = 0; rg < radiusGroupCount; rg++)
                     {
-                        if (cancellationToken.IsCancellationRequested)
-                            break;
-                    
-                        var taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
-                            quadDb, numSubSets, currentSubSetIndex,
-                            imageStarQuads,
-                            completionCts);
+                        // Console.WriteLine($"Group {rg} - {runsByRadius[rg].Count}");
 
-                        serialSearches.Add(taskResult);
-
-                        if (taskResult != null && taskResult.Success)
+                        var batchItemCount = 1000;
+                        var areaBatches =
+                            new List<SearchRun>[(int)Math.Ceiling((double)runsByRadius[rg].Count / batchItemCount)];
+                        for (var areaBatch = 0; areaBatch < areaBatches.Length; areaBatch++)
+                            areaBatches[areaBatch] = new List<SearchRun>(1000);
+                        for (var areaIndex = 0; areaIndex < runsByRadius[rg].Count; areaIndex++)
                         {
-                            stopwatch.Stop();
-                            _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
-                            MakeSuccessResult(taskResult);
-
-                            break;
+                            areaBatches[areaIndex / batchItemCount].Add(runsByRadius[rg][areaIndex]);
                         }
-                    }
-                    
-                    var resultSet = GetMatchedAndUnmatchedSearchRuns(serialSearches.ToArray());
-                    serialSearches.Clear();
-                    successfulSolveResult = resultSet.withMatches.FirstOrDefault(x => x != null && x.Success);
-                    var continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
-                    
-                    if (continueSearching)
-                    {
-                        var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
-                        _logger.Write($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
 
-                        SolveResult taskResult = null;
-                        foreach (var searchRun in potentialMatchQueue)
+
+                        for (var areaBatchIndex = 0; areaBatchIndex < areaBatches.Length; areaBatchIndex++)
                         {
-                            taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
-                                quadDb, 1, 0, imageStarQuads,
-                                completionCts);
+                            searchQueue = areaBatches[areaBatchIndex];
+                            SolveResult taskResult = null;
 
-                            if (taskResult != null && taskResult.Success)
+                            foreach (var searchRun in searchQueue)
                             {
-                                stopwatch.Stop();
-                                _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
-                                MakeSuccessResult(taskResult);
+                                if (cancellationToken.IsCancellationRequested)
+                                {
+                                    continueSearching = false;
+                                    break;
+                                }
 
+                                taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
+                                    quadDb, numSubSets, currentSubSetIndex,
+                                    imageStarQuads,
+                                    completionCts);
+
+                                serialSearches.Add(taskResult);
+
+                                if (taskResult != null && taskResult.Success)
+                                {
+                                    stopwatch.Stop();
+                                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                                    MakeSuccessResult(taskResult);
+
+                                    continueSearching = false;
+                                    break;
+                                }
+                            }
+
+                           
+                            if (!continueSearching)
+                                break;
+
+                            // If only one subset aka no sampling, no need to check potential matches since they aren't potential as
+                            // we're already using all database quads in our search.
+                            if (numSubSets == 1)
+                                continue;
+
+                            var resultSet = GetMatchedAndUnmatchedSearchRuns(serialSearches.ToArray());
+                            serialSearches.Clear();
+
+                            var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
+                            _logger.Write($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
+
+                            // Remove all potentials so that we don't search them again in the next subset.
+                            // They aren't a significant number, but every little bit helps.
+                            for (var m = 0; m < potentialMatchQueue.Length; m++) 
+                                runsByRadius[rg].Remove(potentialMatchQueue[m]);
+                            
+                            foreach (var searchRun in potentialMatchQueue)
+                            {
+                                taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
+                                    quadDb, 1, 0, imageStarQuads,
+                                    completionCts);
+
+                                if (taskResult != null && taskResult.Success)
+                                {
+                                    stopwatch.Stop();
+                                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                                    MakeSuccessResult(taskResult);
+                                    
+                                    break;
+                                }
+                            }
+
+                            successfulSolveResult = result;
+                            continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+
+                            if (successfulSolveResult != null)
+                            {
+                                _logger.Write($"A successful result was found!");
                                 break;
                             }
+
+                            if (!continueSearching)
+                                break;
+                            
+
                         }
 
-                        successfulSolveResult = result;
-                        continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+                        if (!continueSearching)
+                            break;
 
-                        if(successfulSolveResult != null)
-                            _logger.Write($"A successful result was found!");
+                        _logger.Write($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
                     }
 
                     if (!continueSearching)
                         break;
-                        
-                    searchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
-                    _logger.Write($"Round yielded no result, starting next round with {searchQueue.Count()} areas to search");
-                    
 
+                    _logger.Write($"Subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next subset.");
                 }
-                
+
                 if (result == null)
                 {
                     stopwatch.Stop();
@@ -382,6 +496,91 @@ namespace WatneyAstrometry.Core
                     if (cancellationToken.IsCancellationRequested)
                         result.Canceled = true;
                 }
+
+
+
+
+
+                //for (currentSubSetIndex = 0; currentSubSetIndex < numSubSets; currentSubSetIndex++)
+                //{
+                //    foreach (var searchRun in searchQueue)
+                //    {
+                //        if (cancellationToken.IsCancellationRequested)
+                //            break;
+                    
+                //        var taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
+                //            quadDb, numSubSets, currentSubSetIndex,
+                //            imageStarQuads,
+                //            completionCts);
+
+                //        serialSearches.Add(taskResult);
+
+                //        if (taskResult != null && taskResult.Success)
+                //        {
+                //            stopwatch.Stop();
+                //            _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                //            MakeSuccessResult(taskResult);
+
+                //            break;
+                //        }
+                //    }
+                    
+                //    var resultSet = GetMatchedAndUnmatchedSearchRuns(serialSearches.ToArray());
+                //    serialSearches.Clear();
+                //    successfulSolveResult = resultSet.withMatches.FirstOrDefault(x => x != null && x.Success);
+                //    var continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+                    
+                //    if (continueSearching)
+                //    {
+                //        var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
+                //        _logger.Write($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
+
+                //        SolveResult taskResult = null;
+                //        foreach (var searchRun in potentialMatchQueue)
+                //        {
+                //            taskResult = await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
+                //                quadDb, 1, 0, imageStarQuads,
+                //                completionCts);
+
+                //            if (taskResult != null && taskResult.Success)
+                //            {
+                //                stopwatch.Stop();
+                //                _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                //                MakeSuccessResult(taskResult);
+
+                //                break;
+                //            }
+                //        }
+
+                //        successfulSolveResult = result;
+                //        continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
+
+                //        if(successfulSolveResult != null)
+                //            _logger.Write($"A successful result was found!");
+                //    }
+
+                //    if (!continueSearching)
+                //        break;
+                        
+                //    searchQueue = resultSet.withoutMatches.Select(x => x.SearchRun).ToArray();
+                //    _logger.Write($"Round yielded no result, starting next round with {searchQueue.Count()} areas to search");
+                    
+
+                //}
+                
+                //if (result == null)
+                //{
+                //    stopwatch.Stop();
+                //    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                //    result = new SolveResult();
+                //    result.DiagnosticsData = diagnosticsData;
+                //    result.AreasSearched = _iterations;
+                //    result.TimeSpent = stopwatch.Elapsed;
+                //    if (cancellationToken.IsCancellationRequested)
+                //        result.Canceled = true;
+                //}
+
+
             }
 
 
@@ -827,9 +1026,10 @@ namespace WatneyAstrometry.Core
             int countInFirstPass = 0;
 
             // Do a few passes. Experimental.
-            var passes = 2;
+            var passes = 4;
             for (var p = 0; p < passes; p++)
             {
+                //var starsToUse = (int) (starsFound.Count * (1 - p * 0.05));
                 var starsToUse = (int) (starsFound.Count * (1 - p * 0.05));
                 var stars = starsFound.Take(starsToUse).ToList();
 

@@ -25,9 +25,12 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
             [Option('t', "threads", Required = true, HelpText = "Threads to use. Defaults to detected logical processor count count - 1 (or 1 if only one is detected)")]
             public int Threads { get; set; } = -1;
+            
+            [Option("start-pass", Required = false, HelpText = "Which pass to start on. Passes are the number of times to gather the quads, with each pass increasing the number of stars included", Default = 0)]
+            public int StartPass { get; set; } = 0;
 
-            [Option('p', "passes", Required = false, HelpText = "Passes, the number of times to gather the quads, each pass decreasing the number of stars included", Default = 7)]
-            public int Passes { get; set; } = 10;
+            [Option("end-pass", Required = false, HelpText = "Which pass the run ends in. Passes are the number of times to gather the quads, with each pass increasing the number of stars included", Default = 9)]
+            public int EndPass { get; set; } = 9;
 
             [Option('x', "passfactor", Required = false, HelpText = "Base factor to use when increasing number of stars per pass. This number gets raised to the power [pass], i.e. passfactor^passNumber. Defaults to sqrt(2).", Default = 1.4142135623730950488016887242097f)]
             public float PassFactor { get; set; } = (float)Math.Sqrt(2);

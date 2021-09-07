@@ -209,14 +209,14 @@ namespace WatneyAstrometry.Core.QuadDb
                 advance = startIndex * QuadDataLen;
                 for (var q = startIndex; q < nextStartIndex; q++)
                 {
-                    var quad = BytesToQuad(dataBuf, advance, imageQuadsCopy);
+                    var quad = BytesToQuadNew(dataBuf, advance, imageQuadsCopy);
                     if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
                         foundQuads.Add(quad);
                     advance += QuadDataLen;
                     // Reset the array for next loop round.
                     if (imageQuadsCopy == null) continue;
-                    for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
-                        imageQuadsCopy[iq] = imageQuads[iq];
+                    //for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
+                    //    imageQuadsCopy[iq] = imageQuads[iq];
                 }
                 
             }
@@ -274,8 +274,9 @@ namespace WatneyAstrometry.Core.QuadDb
             const float divider = 50_000.0f;
             fixed (byte* pBuf = buf)
             {
-                
+
                 ushort* pRatios = (ushort*)(pBuf + offset);
+
                 var ratio0 = pRatios[0] / divider;
                 bool match = noMatching || NullifyNonMatches(0, ratio0, tentativeMatches);
                 if (!match)
@@ -301,7 +302,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 if (!match)
                     return null;
 
-                var ratios = new[] {ratio0, ratio1, ratio2, ratio3, ratio4};
+                var ratios = new[] { ratio0, ratio1, ratio2, ratio3, ratio4 };
 
                 float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
                 var largestDist = pFloats[0];
@@ -310,6 +311,108 @@ namespace WatneyAstrometry.Core.QuadDb
 
                 var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
                 return quad;
+            }
+        }
+
+        /// <summary>
+        /// Read the bytes and spit out a quad.
+        /// </summary>
+        /// <param name="buf"></param>
+        /// <param name="offset"></param>
+        /// <param name="tentativeMatches"></param>
+        /// <returns></returns>
+        private static unsafe StarQuad BytesToQuadNew(byte[] buf, int offset, ImageStarQuad[] tentativeMatches)
+        {
+            // Optimized: we try to detect unfit quads as early as possible, and we try to
+            // do as little work as possible in order to achieve that. We can shave off some seconds
+            // from blind solves by doing this.
+
+            bool noMatching = tentativeMatches == null;
+            const float divider = 50_000.0f;
+            fixed (byte* pBuf = buf)
+            {
+                
+                ushort* pRatios = (ushort*)(pBuf + offset);
+
+                if (noMatching)
+                {
+                    var ratios = new[] {pRatios[0] / divider, pRatios[1] / divider, pRatios[2] / divider, pRatios[3] / divider, pRatios[4] / divider};
+
+                    float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
+                    var largestDist = pFloats[0];
+                    var ra = pFloats[1];
+                    var dec = pFloats[2];
+
+                    var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
+                    return quad;
+                }
+
+                for (var q = 0; q < tentativeMatches.Length; q++)
+                {
+                    var imgQuad = tentativeMatches[q];
+                    if (imgQuad != null
+                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / divider) - 1.0f) <= 0.01f
+                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / divider) - 1.0f) <= 0.01f
+                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / divider) - 1.0f) <= 0.01f
+                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / divider) - 1.0f) <= 0.01f
+                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / divider) - 1.0f) <= 0.01f
+                    )
+                    {
+                        var ratios = new[] {pRatios[0] / divider, pRatios[1] / divider, pRatios[2] / divider, pRatios[3] / divider, pRatios[4] / divider};
+
+                        float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
+                        var largestDist = pFloats[0];
+                        var ra = pFloats[1];
+                        var dec = pFloats[2];
+
+                        var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
+                        return quad;
+                    }
+
+                }
+
+                return null;
+
+
+
+
+
+
+
+                //var ratio0 = pRatios[0] / divider;
+                //bool match = noMatching || NullifyNonMatches(0, ratio0, tentativeMatches);
+                //if (!match)
+                //    return null;
+
+                //var ratio1 = pRatios[1] / divider;
+                //match = noMatching || NullifyNonMatches(1, ratio1, tentativeMatches);
+                //if (!match)
+                //    return null;
+
+                //var ratio2 = pRatios[2] / divider;
+                //match = noMatching || NullifyNonMatches(2, ratio2, tentativeMatches);
+                //if (!match)
+                //    return null;
+
+                //var ratio3 = pRatios[3] / divider;
+                //match = noMatching || NullifyNonMatches(3, ratio3, tentativeMatches);
+                //if (!match)
+                //    return null;
+
+                //var ratio4 = pRatios[4] / divider;
+                //match = noMatching || NullifyNonMatches(4, ratio4, tentativeMatches);
+                //if (!match)
+                //    return null;
+
+                //var ratios = new[] {ratio0, ratio1, ratio2, ratio3, ratio4};
+
+                //float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
+                //var largestDist = pFloats[0];
+                //var ra = pFloats[1];
+                //var dec = pFloats[2];
+
+                //var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
+                //return quad;
             }
             
         }

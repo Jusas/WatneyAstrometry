@@ -9,7 +9,7 @@ namespace WatneyAstrometry.Core
     /// <summary>
     /// A search run (a single solve invocation) to perform.
     /// </summary>
-    public struct SearchRun
+    public class SearchRun
     {
         /// <summary>
         /// The proposed image radius.
