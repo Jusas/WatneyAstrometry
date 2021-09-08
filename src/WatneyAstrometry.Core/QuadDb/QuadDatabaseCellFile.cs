@@ -227,92 +227,7 @@ namespace WatneyAstrometry.Core.QuadDb
             return foundQuads.ToArray();
             
         }
-
-        /// <summary>
-        /// Remove all that have the ratio over the threshold from the array of imageQuads.
-        /// Return true if we still found a match (ratio under threshold).
-        /// </summary>
-        /// <param name="index"></param>
-        /// <param name="ratio"></param>
-        /// <param name="imageQuads"></param>
-        /// <returns></returns>
-        private static bool NullifyNonMatches(int index, float ratio, ImageStarQuad[] imageQuads)
-        {
-            bool hadMatch = false;
-            for (var q = 0; q < imageQuads.Length; q++)
-            {
-                if (imageQuads[q] == null)
-                    continue;
-
-                if (!imageQuads[q].IsRatioWithinThreshold(index, ratio, 0.01f))
-                {
-                    imageQuads[q] = null;
-                }
-                else
-                {
-                    hadMatch = true;
-                }
-            }
-
-            return hadMatch;
-        }
-
-        /// <summary>
-        /// Read the bytes and spit out a quad.
-        /// </summary>
-        /// <param name="buf"></param>
-        /// <param name="offset"></param>
-        /// <param name="tentativeMatches"></param>
-        /// <returns></returns>
-        private static unsafe StarQuad BytesToQuad(byte[] buf, int offset, ImageStarQuad[] tentativeMatches)
-        {
-            // Optimized: we try to detect unfit quads as early as possible, and we try to
-            // do as little work as possible in order to achieve that. We can shave off some seconds
-            // from blind solves by doing this.
-
-            bool noMatching = tentativeMatches == null;
-            const float divider = 50_000.0f;
-            fixed (byte* pBuf = buf)
-            {
-
-                ushort* pRatios = (ushort*)(pBuf + offset);
-
-                var ratio0 = pRatios[0] / divider;
-                bool match = noMatching || NullifyNonMatches(0, ratio0, tentativeMatches);
-                if (!match)
-                    return null;
-
-                var ratio1 = pRatios[1] / divider;
-                match = noMatching || NullifyNonMatches(1, ratio1, tentativeMatches);
-                if (!match)
-                    return null;
-
-                var ratio2 = pRatios[2] / divider;
-                match = noMatching || NullifyNonMatches(2, ratio2, tentativeMatches);
-                if (!match)
-                    return null;
-
-                var ratio3 = pRatios[3] / divider;
-                match = noMatching || NullifyNonMatches(3, ratio3, tentativeMatches);
-                if (!match)
-                    return null;
-
-                var ratio4 = pRatios[4] / divider;
-                match = noMatching || NullifyNonMatches(4, ratio4, tentativeMatches);
-                if (!match)
-                    return null;
-
-                var ratios = new[] { ratio0, ratio1, ratio2, ratio3, ratio4 };
-
-                float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
-                var largestDist = pFloats[0];
-                var ra = pFloats[1];
-                var dec = pFloats[2];
-
-                var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
-                return quad;
-            }
-        }
+        
 
         /// <summary>
         /// Read the bytes and spit out a quad.
@@ -373,46 +288,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
                 return null;
 
-
-
-
-
-
-
-                //var ratio0 = pRatios[0] / divider;
-                //bool match = noMatching || NullifyNonMatches(0, ratio0, tentativeMatches);
-                //if (!match)
-                //    return null;
-
-                //var ratio1 = pRatios[1] / divider;
-                //match = noMatching || NullifyNonMatches(1, ratio1, tentativeMatches);
-                //if (!match)
-                //    return null;
-
-                //var ratio2 = pRatios[2] / divider;
-                //match = noMatching || NullifyNonMatches(2, ratio2, tentativeMatches);
-                //if (!match)
-                //    return null;
-
-                //var ratio3 = pRatios[3] / divider;
-                //match = noMatching || NullifyNonMatches(3, ratio3, tentativeMatches);
-                //if (!match)
-                //    return null;
-
-                //var ratio4 = pRatios[4] / divider;
-                //match = noMatching || NullifyNonMatches(4, ratio4, tentativeMatches);
-                //if (!match)
-                //    return null;
-
-                //var ratios = new[] {ratio0, ratio1, ratio2, ratio3, ratio4};
-
-                //float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
-                //var largestDist = pFloats[0];
-                //var ra = pFloats[1];
-                //var dec = pFloats[2];
-
-                //var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
-                //return quad;
+                
             }
             
         }
