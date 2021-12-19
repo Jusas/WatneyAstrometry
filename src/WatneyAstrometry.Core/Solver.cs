@@ -714,7 +714,7 @@ namespace WatneyAstrometry.Core
             var cdelt1 = cd1_1;
             var cdelt2 = cd2_2;
 
-            
+            // The determinant, which also tells us if the image is mirrored.
             var sign = cd1_1 * cd2_2 - cd1_2 * cd2_1 < 0 ? -1 : 1;
             if (cd2_1 != 0 && cd1_2 != 0)
             {
@@ -727,10 +727,12 @@ namespace WatneyAstrometry.Core
             var scopePxY = (-(-pc.A / pc.D * pc.F) + -pc.C) /
                     (pc.B + -pc.A / pc.D * pc.E);
             var scopePxX = (-pc.B * scopePxY + (-pc.C)) / pc.A;
+            
+            var parity = sign < 0 ? Parity.Normal : Parity.Flipped; 
 
             var solution = new Solution(scopeCoords, imageCenterEquatorial, imgW, imgH, pixScale,
                 fieldWidthDeg, fieldHeightDeg, fieldRadiusDeg, pc, cdelt1, cdelt2, crota1, crota2, cd1_1, cd2_1, cd1_2,
-                cd2_2, scopeCoords.Ra, scopeCoords.Dec, scopePxX, scopePxY);
+                cd2_2, scopeCoords.Ra, scopeCoords.Dec, scopePxX, scopePxY, parity);
 
             
             return solution;

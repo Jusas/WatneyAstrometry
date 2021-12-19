@@ -151,6 +151,7 @@ namespace WatneyAstrometry.SolverApp
                 outputData.Add("fieldRadius", result.Solution.Radius);
                 outputData.Add("orientation", result.Solution.Orientation);
                 outputData.Add("pixScale", result.Solution.PixelScale);
+                outputData.Add("parity", result.Solution.Parity.ToString().ToLowerInvariant());
             }
 
             if (extended)

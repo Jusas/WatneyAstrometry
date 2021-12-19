@@ -2,11 +2,19 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Platforms>AnyCPU;x64</Platforms>
     <Version>0.9.0</Version>
     <Authors>Jussi Saarivirta</Authors>
     <Product>WatneyAstrometry.Core</Product>
-    <Description>Watney astrometric solver core library.</Description>
+    <Description>WatneyAstrometry.Core is the core library of the WatneyAstrometry Astrometric Solver.</Description>
+    <PackageProjectUrl>https://github.com/Jusas/WatneyAstrometry</PackageProjectUrl>
+    <PackageIcon>nuget-icon-small.png</PackageIcon>
+    <RepositoryUrl>https://github.com/Jusas/WatneyAstrometry.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>astrometry;watney</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -26,5 +34,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DefineConstants>TRACE</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\docs\images\nuget-icon-small.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>

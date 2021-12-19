@@ -52,7 +52,7 @@ namespace WatneyAstrometry.Core.Tests
         public async Task Should_successfully_blind_solve()
         {
             DefaultFitsReader r = new DefaultFitsReader();
-            var img = r.FromFile(@"Resources/fits/m81.fits"); 
+            var img = r.FromFile(@"Resources/fits/other_7331.fit"); 
             
             var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategyOptions()
             {
@@ -73,7 +73,7 @@ namespace WatneyAstrometry.Core.Tests
             var token = CancellationToken.None;
             var options = new SolverOptions()
             {
-                UseSampling = 4,
+                UseSampling = 16,
                 //UseMaxStars = 300
             };
             var solveResult = await solver.SolveFieldAsync(img, blindStrategy, options, token);
@@ -95,6 +95,72 @@ namespace WatneyAstrometry.Core.Tests
 
 
         }
+
+
+        [Fact]
+        public async Task Blind_solve_perftesting()
+        {
+            DefaultFitsReader r = new DefaultFitsReader();
+            var images = new[]
+            {
+                ("Resources/fits/ngc7331.fits", r.FromFile(@"Resources/fits/ngc7331.fits")),
+                (@"Resources/fits/other_7331.fit", r.FromFile(@"Resources/fits/other_7331.fit")),
+                ("Resources/fits/ic1795.fits", r.FromFile("Resources/fits/ic1795.fits")),
+                ("Resources/fits/m81.fits", r.FromFile("Resources/fits/m81.fits")),
+                ("Resources/fits/m31.fits", r.FromFile("Resources/fits/m31.fits")),
+                ("Resources/fits/trunk.fit", r.FromFile("Resources/fits/trunk.fit")), 
+                ("Resources/fits/ic1936l.fit", r.FromFile("Resources/fits/ic1936l.fit"))
+            };
+            
+            var blindStrategy = new BlindSearchStrategy(new BlindSearchStrategyOptions()
+            {
+                SearchOrderRa = BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
+                SearchOrderDec = BlindSearchStrategyOptions.DecSearchOrder.NorthFirst,
+                MinRadiusDegrees = 0.25f,
+                StartRadiusDegrees = 8,
+                MaxNegativeDensityOffset = 1,
+                MaxPositiveDensityOffset = 1,
+                UseParallelism = true
+            });
+
+            SolverUnitTestVerboseLogger testLogger = null; // new SolverUnitTestVerboseLogger(_testOutput);
+                        
+            var token = CancellationToken.None;
+            var options = new SolverOptions()
+            {
+                UseSampling = 6,
+                UseMaxStars = 300
+            };
+
+            foreach (var img in images)
+            {
+                var solver = new Solver(testLogger).UseQuadDatabase(() =>
+                    new CompactQuadDatabase().UseDataSource(_quadDbPath, false));
+
+                var solveResult = await solver.SolveFieldAsync(img.Item2, blindStrategy, options, token);
+
+                if (solveResult.Success)
+                {
+                    _testOutput.WriteLine(img.Item1);
+                    _testOutput.WriteLine(string.Join(" / ",
+                        Conversions.DegreesToHourAngles(solveResult.Solution.PlateCenter)));
+                    _testOutput.WriteLine("Matches: " + solveResult.MatchedQuads);
+                    _testOutput.WriteLine("Search iteration - radius: " + solveResult.SearchRun.RadiusDegrees);
+                    _testOutput.WriteLine("Search iteration - center: " + string.Join(" / ", Conversions.DegreesToHourAngles(solveResult.SearchRun.Center)));
+                    _testOutput.WriteLine(solveResult.TimeSpent.ToString());
+                    _testOutput.WriteLine("--");
+                }
+                else
+                {
+                    _testOutput.WriteLine("Failed");
+                }
+            }
+            
+            
+
+
+        }
+
 
         [Fact]
         public async Task Should_successfully_nearby_solve()

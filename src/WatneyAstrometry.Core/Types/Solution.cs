@@ -6,11 +6,19 @@ using WatneyAstrometry.Core.MathUtils;
 
 namespace WatneyAstrometry.Core.Types
 {
+    public enum Parity
+    {
+        Normal = 0,
+        Flipped = 1
+    }
+
+
     /// <summary>
     /// The completed astrometric solution.
     /// </summary>
     public class Solution
     {
+
         public class FitsHeaderFields
         {
             /// <summary>
@@ -89,6 +97,12 @@ namespace WatneyAstrometry.Core.Types
         /// </summary>
         public double Radius { get; internal set; }
         /// <summary>
+        /// Aka 'parity', whether the image is mirrored.
+        /// If <see cref="Parity.Normal"/>, when North is up East is on the left.
+        /// If <see cref="Parity.Flipped"/>, the image is mirrored (when North is up East is on the right).
+        /// </summary>
+        public Parity Parity { get; internal set; }
+        /// <summary>
         /// The calculated plate constants A-F.
         /// These are used for conversions between standard, pixel and equatorial coordinates.
         /// </summary>
@@ -114,7 +128,8 @@ namespace WatneyAstrometry.Core.Types
             double crota1, double crota2,
             double cd1_1, double cd2_1, double cd1_2, double cd2_2,
             double crval1, double crval2,
-            double crpix1, double crpix2)
+            double crpix1, double crpix2,
+            Parity parity)
         {
             FitsHeaders = new FitsHeaderFields(cdelt1, cdelt2, crota1, crota2, cd1_1, cd2_1, cd1_2, cd2_2, crval1,
                 crval2, crpix1, crpix2);
@@ -126,7 +141,7 @@ namespace WatneyAstrometry.Core.Types
             FieldHeight = fieldHeight;
             Radius = radius;
             PlateConstants = plateConstants;
-
+            Parity = parity;
             _imageH = imageH;
             _imageW = imageW;
         }
