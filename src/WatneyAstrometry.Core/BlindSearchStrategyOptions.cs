@@ -16,13 +16,13 @@ namespace WatneyAstrometry.Core
         public enum RaSearchOrder
         {
             /// <summary>
-            /// Within Northern or Southern half, start search from the East side, and once East has
-            /// been fully searched, switch to West side.
+            /// Within Northern or Southern half, start search from the East side (0..180 degrees), and once East has
+            /// been fully searched, switch to West side (180..360 degrees).
             /// </summary>
             EastFirst,
             /// <summary>
-            /// Within Northern or Southern half, start search from the West side, and once West has
-            /// been fully searched, switch to East side.
+            /// Within Northern or Southern half, start search from the West side (180..360 degrees), and once West has
+            /// been fully searched, switch to East side (0..180 degrees).
             /// </summary>
             WestFirst
         }
