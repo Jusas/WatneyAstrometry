@@ -7,11 +7,11 @@ namespace WatneyAstrometry.WebApi.Models;
 
 public class JobParametersModel
 {
-    public enum SolveMode
-    {
-        Blind,
-        Nearby
-    }
+    //public enum SolveMode
+    //{
+    //    Blind,
+    //    Nearby
+    //}
 
     /// <summary>
     /// Maximum number of stars to use from the image. When not given, the solver decides itself.
@@ -56,7 +56,8 @@ public class JobParametersModel
 
     [FromForm(Name = "mode")]
     [Required]
-    public SolveMode Mode { get; set; }
+    [RegularExpression("^(blind|nearby)$")]
+    public string Mode { get; set; }
 
     [FromForm(Name = "nearby")]
     public NearbyOptions NearbyParameters { get; set; }

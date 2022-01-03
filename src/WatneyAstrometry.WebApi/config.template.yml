@@ -1,0 +1,110 @@
+# This is the configuration file for Watney solver API.
+# The format of this file is YAML.
+
+# ================================================================================
+# The path to the quad database. If using relative directory, start with './'
+# Examples: 
+#   quadDbPath: ./db
+#   quadDbPath: /opt/watney-astrometry/db
+#   quadDbPath: 'C:\Program Files\watney-astrometry\db'
+# ================================================================================ #
+quadDbPath: './db'
+
+
+# ================================================================================
+# Does the API use persistency or not.
+# Persistency means saving the queued and solved jobs to disk.
+# If false, the jobs and the queue will be held in memory only and
+# will be cleared when the process restarts.
+# ================================================================================
+usePersistency: false
+
+
+# ================================================================================
+# The directory for persistency, i.e. where jobs will be stored.
+# If using relative directory, start with './'
+# This is literally a work directory, and it can be emptied to free space if 
+# needed.
+# ================================================================================
+workDirectory: './work'
+
+
+# ================================================================================
+# Maximum image upload size in bytes.
+# ================================================================================
+maxImageSizeBytes: 50000000
+
+
+# ================================================================================
+# The lifetime of a job, once it has been queued.
+# The jobo will remain this long in memory after it has been queued
+# or solved.
+#
+# Example 1: if the lifetime of a job is 00:10:00 (10 minutes) but the queue
+# is so long that it would take 11 minutes for the job to be started, at 
+# 10 minutes the job will be abandoned.
+#
+# Example 2: after the job has been solved, it will remain in
+# memory (you can request its status and results) for this long. Once the job's 
+# age passes this value, the job will automatically be removed.
+#
+# The format is hh:mm:ss
+# ================================================================================
+jobLifetime: '00:10:00'
+
+
+# ================================================================================
+# The timeout for a single solve task.
+# If the field cannot be solved in this time, the solve task will be automatically
+# aborted and the job will be marked as canceled.
+# ================================================================================
+solverTimeoutValue: '00:02:00'
+
+
+# ================================================================================
+# How many concurrent solves the API will handle.
+# The more solves are running concurrently, the longer a single solve will take.
+# Executing too many blind solves concurrently is generally not recommended.
+# Note that load balancing between jobs is not guaranteed.
+# ================================================================================
+allowedConcurrentSolves: 2
+
+
+# ================================================================================
+# Enables Swagger and Swagger UI (OpenAPI 3 specification) if enabled.
+# Mostly useful for debugging.
+# ================================================================================
+enableSwagger: false
+
+
+# ================================================================================
+# Authentication method.
+# Available authentication methods are:
+# - apikey
+#
+# If left empty, no authentication is required.
+# Examples:
+#   authentication: 'apikey'
+#   authentication: ''
+#   authentication:
+# ================================================================================
+authentication: 'apikey'
+
+
+# ================================================================================
+# API key to use, if using API key authentication.
+# This can be any string. If authentication is set to 'apikey', this key will
+# be the key that is required to be present in all requests.
+# It can be sent in either headers or as a query parameter.
+# See the README.md for more information.
+# ================================================================================
+apikey: 'abcd1234'
+
+
+# ================================================================================
+# If true, enables the Astrometry.net compatibility API.
+# With this turned on, you may use this API like Astrometry.net web API for
+# a limited degree. Note that since this is a compatiblity API, there will be some 
+# limitations in usage.
+# ================================================================================
+enableAstrometryNetCompatibilityApi: true

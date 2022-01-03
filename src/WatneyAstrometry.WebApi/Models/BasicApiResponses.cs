@@ -9,12 +9,6 @@ public class ApiInternalErrorResponse : BasicResponse
 {
 }
 
-public class ApiBadRequestErrorResponse : BasicResponse
-{
-    public string[] Errors { get; set; } = new string[0];
-
-}
-
 
 public class ApiNotFoundResponse : BasicResponse
 {

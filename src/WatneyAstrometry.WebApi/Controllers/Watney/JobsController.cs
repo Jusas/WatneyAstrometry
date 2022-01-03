@@ -1,10 +1,13 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WatneyAstrometry.WebApi.Authentication;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Services;
 using WatneyAstrometry.WebApi.Utils;
 
 namespace WatneyAstrometry.WebApi.Controllers.Watney
 {
+    [Authorize]
     [ApiController]
     [Route("api/watney/jobs")]
     public class JobsController : ControllerBase
@@ -28,25 +31,17 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
         [HttpPost]
-        [ProducesResponseType(statusCode: 400, type: typeof(ApiBadRequestErrorResponse))]
+        [ProducesResponseType(statusCode: 400, type: typeof(ValidationProblemDetails))]
         [ProducesResponseType(statusCode: 500, type: typeof(ApiInternalErrorResponse))]
         [ProducesResponseType(statusCode: 201, type: typeof(JobModel))]
         public async Task<IActionResult> Post([FromForm] JobFormUnifiedModel unifiedModel, IFormFile image)
         {
             unifiedModel.Image = image;
-            ApiBadRequestErrorResponse badRequestResponse = new ApiBadRequestErrorResponse();
-            if (!ModelState.IsValid)
-                badRequestResponse = ModelState.ProduceErrorResponse();
 
-            var extendedValidationErrors = unifiedModel?.Validate() ?? Array.Empty<string>();
+            var customValidationErrors = unifiedModel?.Validate() ?? new Dictionary<string, string[]>();
 
-            if(extendedValidationErrors.Any())
-                badRequestResponse.Errors = badRequestResponse.Errors.Concat(extendedValidationErrors).ToArray();
-
-            if(badRequestResponse.Errors.Any())
-                return BadRequest(badRequestResponse);
-
-            // TODO timeouts?
+            if (customValidationErrors.Any())
+                return ValidationProblem(new ValidationProblemDetails(customValidationErrors));
             
             var createdJob = await _jobManager.PrepareJob(unifiedModel);
             return Ok(createdJob);
@@ -99,6 +94,13 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
             {
                 Message = $"Job {id} was signaled cancellation if it was queued or running"
             });
+        }
+
+        [HttpGet("test")]
+        public async Task<IActionResult> Test([FromQuery]int foo)
+        {
+            throw new Exception("shit");
+
         }
 
     }

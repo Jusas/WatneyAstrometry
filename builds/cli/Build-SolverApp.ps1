@@ -1,6 +1,9 @@
+# A build script for building the WatneyAstrometry.SolverApp project
+# and producing single-file binaries for all operating systems.
+
 $ErrorActionPreference = "Stop";
 
-$project = "$PSScriptRoot/../src/WatneyAstrometry.SolverApp";
+$project = "$PSScriptRoot/../../src/WatneyAstrometry.SolverApp";
 $targets = @(
   'osx-x64',
   'linux-arm64',

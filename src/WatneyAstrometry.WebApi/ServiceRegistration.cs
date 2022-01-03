@@ -5,7 +5,7 @@ namespace WatneyAstrometry.WebApi;
 
 public static class ServiceRegistration
 {
-    public static void AddSolverApiServices(this IServiceCollection services, IConfiguration configuration)
+    public static void AddSolverApiServices(this IServiceCollection services, IConfiguration configuration, WatneyApiConfiguration watneyApiConfiguration)
     {
         services.AddSingleton<IJobManager, JobManager>();
         services.AddSingleton<IQueueManager, InMemoryQueueManager>();
@@ -14,13 +14,14 @@ public static class ServiceRegistration
         
         services.Configure<SolverProcessManager.Configuration>(config =>
         {
-            config.AllowedConcurrentSolves = 2;
-            config.QuadDatabasePath = @"Z:\gaiaquads_multi"; //configuration[""];
+            config.AllowedConcurrentSolves = watneyApiConfiguration.AllowedConcurrentSolves;
+            config.QuadDatabasePath = watneyApiConfiguration.QuadDatabasePath;
+            config.SolverTimeout = watneyApiConfiguration.SolverTimeoutValue;
         });
 
         services.Configure<InMemoryJobRepository.Configuration>(config =>
         {
-            config.JobLifeTime = TimeSpan.FromMinutes(10);
+            config.JobLifeTime = watneyApiConfiguration.JobLifetime;
         });
     }
 

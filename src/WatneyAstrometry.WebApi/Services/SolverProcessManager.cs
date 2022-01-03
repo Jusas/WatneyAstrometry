@@ -16,6 +16,7 @@ public class SolverProcessManager : ISolverProcessManager
     {
         public string QuadDatabasePath { get; set; }
         public int AllowedConcurrentSolves { get; set; } = 1;
+        public TimeSpan SolverTimeout { get; set; } = TimeSpan.FromMinutes(2);
     }
 
     private readonly IQueueManager _queueManager;
@@ -114,8 +115,9 @@ public class SolverProcessManager : ISolverProcessManager
     private async Task SolveJob(JobModel job)
     {
 
-        var cancellationTokenSource = new CancellationTokenSource();
-        _jobCancellationTokens.TryAdd(job.Id, cancellationTokenSource);
+        var timeoutCancellationTokenSource = new CancellationTokenSource(_config.SolverTimeout);
+        //var cancellationTokenSource = new CancellationTokenSource();
+        _jobCancellationTokens.TryAdd(job.Id, timeoutCancellationTokenSource);
 
         job.Status = JobStatus.Solving;
         await _jobRepository.Update(job).ConfigureAwait(false);
@@ -129,7 +131,7 @@ public class SolverProcessManager : ISolverProcessManager
         if (job.Parameters.Sampling > 0)
             useSampling = job.Parameters.Sampling;
 
-        if (job.Parameters.Mode == JobParametersModel.SolveMode.Blind && job.Parameters.BlindParameters != null)
+        if (job.Parameters.Mode == "blind" && job.Parameters.BlindParameters != null)
         {
             var p = job.Parameters.BlindParameters;
             searchStrategy = new BlindSearchStrategy(new BlindSearchStrategyOptions
@@ -178,7 +180,7 @@ public class SolverProcessManager : ISolverProcessManager
         {
             var solver = new Solver().UseQuadDatabase(() => _quadDatabase);
             var solverResult = await solver.SolveFieldAsync(inputImageFrame, job.Stars, searchStrategy, solverOptions,
-                cancellationTokenSource.Token).ConfigureAwait(false);
+                timeoutCancellationTokenSource.Token).ConfigureAwait(false);
 
             if (solverResult.Canceled)
             {

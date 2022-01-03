@@ -1,56 +1,63 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 
 namespace WatneyAstrometry.WebApi.Models
 {
     public class JobFormUnifiedModel
     {
-        //[ModelBinder(BinderType = typeof(SubmissionDataJsonBinder))]
         [FromForm(Name = "args")]
         public JobParametersModel Parameters { get; set; }
         
         internal IFormFile Image { get; set; }
 
-        public string[] Validate()
+        public Dictionary<string, string[]> Validate()
         {
-            // TODO make global constants of the different limits ...
+            
+            var errors = new Dictionary<string, string[]>();
 
-            var errors = new List<string>();
+            string[] arr(string item) => new string[] { item };
 
             if(Image == null)
-                errors.Add("Image was not defined.");
+                errors.Add("image", arr("Image was not defined."));
 
-            if(Image?.Length == 0)
-               errors.Add("Image size is zero bytes.");
+            else if(Image?.Length == 0)
+               errors.Add("image", arr("Image size is zero bytes."));
 
             var fileExtension = Path.GetExtension(Image.FileName).ToLowerInvariant();
             var supportedImageExtensions = new[] { ".fit", ".fits", ".png", ".jpg", ".jpeg" };
             if(supportedImageExtensions.All(e => e != fileExtension))
-                errors.Add($"Unsupported file extension. Supported file extensions are: {string.Join(", ", supportedImageExtensions)}.");
+                errors.Add("image", arr($"Unsupported file extension. Supported file extensions are: {string.Join(", ", supportedImageExtensions)}."));
 
 
-            if (Parameters.Mode == JobParametersModel.SolveMode.Nearby)
+            if (Parameters.Mode == "nearby")
             {
                 var useFitsHeaders = Parameters.NearbyParameters?.UseFitsHeaders ?? false;
                 var p = Parameters.NearbyParameters;
 
                 if (p.SearchRadius == null)
-                    errors.Add("searchRadius must be set for nearby solves");
+                    errors.Add("searchRadius", arr("searchRadius must be set for nearby solves"));
 
-                if (!useFitsHeaders && (p?.Ra == null || p.Dec == null || p.FieldRadius == null))
-                    errors.Add($"ra, dec and fieldRadius must be provided when useFitsHeaders is false");
-
+                if (!useFitsHeaders)
+                {
+                    if((p?.Ra == null || p.Dec == null || p.FieldRadius == null))
+                        errors.Add("useFitsHeaders", arr($"ra, dec and fieldRadius must be provided when useFitsHeaders is false"));
+                }
             }
 
-            if (Parameters.Mode == JobParametersModel.SolveMode.Blind)
+            if (Parameters.Mode == "blind")
             {
                 var p = Parameters.BlindParameters;
-                if (p?.MaxRadius == null || p.MinRadius == null)
-                    errors.Add($"maxRadius and minRadius must be set when ");
+                if (p?.MaxRadius == null)
+                    errors.Add("maxRadius", arr("maxRadius must be set when solve mode is blind"));
+                if (p?.MinRadius == null)
+                    errors.Add("minRadius", arr("minRadius must be set when solve mode is blind"));
 
             }
 
-            return errors.ToArray();
+            return errors;
 
         }
+
+
     }
 }

@@ -10,3 +10,6 @@ src/WatneyAstrometry.SolverApp/watney-solve-config.yml
 perftest/
 publishing/
 builds/binaries/
+builds/cli/binaries/
+builds/api/binaries
+src/WatneyAstrometry.WebApi/config.yml
