@@ -29,11 +29,16 @@ public class JobManager : IJobManager
         {
             Id = Guid.NewGuid().Shortened(),
             Status = JobStatus.Queued,
-            Parameters = new JobParametersModel
-            {
-                BlindParameters = jobFormModel.Parameters.BlindParameters,
-                NearbyParameters = jobFormModel.Parameters.NearbyParameters
-            }
+            Parameters = jobFormModel.Parameters
+            //Parameters = new JobParametersModel
+            //{
+            //    BlindParameters = jobFormModel.Parameters.BlindParameters,
+            //    NearbyParameters = jobFormModel.Parameters.NearbyParameters,
+            //    Mode = jobFormModel.Parameters.Mode,
+            //    HigherDensityOffset = jobFormModel.Parameters.HigherDensityOffset,
+            //    LowerDensityOffset = jobFormModel.Parameters.HigherDensityOffset,
+                
+            //}
         };
         AnalyzeAndExtractStars(jobFormModel.Image, jobModel);
         

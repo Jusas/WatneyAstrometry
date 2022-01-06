@@ -22,7 +22,6 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        
         bool gotApiKeyFromHeader = Request.Headers.TryGetValue("apikey", out var headerApiKey);
         bool gotApiKeyFromQuery = Request.Query.TryGetValue("apikey", out var queryApiKey);
 
@@ -31,19 +30,21 @@ public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthentic
             return AuthenticateResult.NoResult();
         }
 
-        var requiredApiKey = _apiConfiguration.ApiKey;
+        var availableApiKeys = _apiConfiguration.ApiKeys;
 
         var requestApiKey = gotApiKeyFromHeader ? headerApiKey : queryApiKey;
 
-        if (requiredApiKey.Equals(requestApiKey))
+        if (availableApiKeys.Values.Where(k => !string.IsNullOrEmpty(k)).Any(apiKey => apiKey == requestApiKey))
         {
-            var claim = new Claim(ClaimTypes.Name, "user");
+            var match = availableApiKeys.First(key => key.Value.Equals(requestApiKey));
+            var claim = new Claim(ClaimTypes.Name, match.Key);
             var ci = new ClaimsIdentity(new Claim[] { claim }, Options.AuthenticationType);
             var identities = new List<ClaimsIdentity>() { ci };
             var principal = new ClaimsPrincipal(identities);
 
             return AuthenticateResult.Success(new AuthenticationTicket(principal, Options.Scheme));
         }
+        
 
         return AuthenticateResult.NoResult();
 

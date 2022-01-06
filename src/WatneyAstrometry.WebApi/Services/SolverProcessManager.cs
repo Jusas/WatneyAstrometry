@@ -106,6 +106,7 @@ public class SolverProcessManager : ISolverProcessManager
             }
             catch (Exception ex)
             {
+                await SetJobError(job);
                 _logger.LogError(ex, "SolveJob threw an exception: " + ex.Message);
             }
 

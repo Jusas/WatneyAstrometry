@@ -92,13 +92,15 @@ authentication: 'apikey'
 
 
 # ================================================================================
-# API key to use, if using API key authentication.
-# This can be any string. If authentication is set to 'apikey', this key will
-# be the key that is required to be present in all requests.
-# It can be sent in either headers or as a query parameter.
+# API keys to use, if using API key authentication.
+# This is a path to a file where the keys are defined.
+# When authentication mode is set to 'apikey', this file will be read and the 
+# user:apikey pairs will be used for authentication.
+# When using API key authentication, an API key is required to be present in 
+# all requests. It can be sent in either headers or as a query parameter.
 # See the README.md for more information.
 # ================================================================================
-apikey: 'abcd1234'
+apikeys: './apikeys.yml'
 
 
 # ================================================================================

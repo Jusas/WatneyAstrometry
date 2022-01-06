@@ -7,8 +7,8 @@ namespace WatneyAstrometry.WebApi
         [YamlMember(Alias = "quadDbPath")]
         public string QuadDatabasePath { get; set; }
 
-        [YamlMember(Alias = "usePersistency")]
-        public string UsePersistency { get; set; }
+        [YamlMember(Alias = "usePersistency", SerializeAs = typeof(bool))]
+        public bool UsePersistency { get; set; }
 
         [YamlMember(Alias = "workDirectory")]
         public string WorkDirectory { get; set; }
@@ -31,13 +31,14 @@ namespace WatneyAstrometry.WebApi
         [YamlMember(Alias = "authentication")]
         public string Authentication { get; set; }
         
-        [YamlMember(Alias = "apikey")]
-        public string ApiKey { get; set; }
+        [YamlMember(Alias = "apikeys")]
+        public string ApiKeyFile { get; set; }
         
         [YamlMember(Alias = "enableAstrometryNetCompatibilityApi", SerializeAs = typeof(bool))]
         public bool EnableCompatibilityApi { get; set; }
 
-        
+        [YamlIgnore]
+        public IReadOnlyDictionary<string, string> ApiKeys { get; set; }
 
         private string _executableDirectory;
 
@@ -60,6 +61,16 @@ namespace WatneyAstrometry.WebApi
                 var config = deserializer.Deserialize<WatneyApiConfiguration>(configuration);
                 config._executableDirectory = // Hmm, do I need this?
                     Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+
+                if (!string.IsNullOrEmpty(config.ApiKeyFile) && "apikey".Equals(config.Authentication, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (!File.Exists(config.ApiKeyFile))
+                        throw new Exception("apikeys file does not exist");
+
+                    var apiKeyContent = File.ReadAllText(config.ApiKeyFile);
+                    config.ApiKeys = deserializer.Deserialize<Dictionary<string, string>>(apiKeyContent);
+                }
+
                 return config;
             }
             catch (Exception e)

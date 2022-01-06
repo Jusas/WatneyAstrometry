@@ -8,9 +8,33 @@ public static class ServiceRegistration
     public static void AddSolverApiServices(this IServiceCollection services, IConfiguration configuration, WatneyApiConfiguration watneyApiConfiguration)
     {
         services.AddSingleton<IJobManager, JobManager>();
-        services.AddSingleton<IQueueManager, InMemoryQueueManager>();
         services.AddSingleton<ISolverProcessManager, SolverProcessManager>();
-        services.AddSingleton<IJobRepository, InMemoryJobRepository>();
+
+        if (watneyApiConfiguration.UsePersistency)
+        {
+            services.AddSingleton<IQueueManager, FileSystemQueueManager>();
+            services.AddSingleton<IJobRepository, FileSystemJobRepository>();
+
+            services.Configure<FileSystemQueueManager.Configuration>(config =>
+            {
+                config.WorkDirectory = watneyApiConfiguration.WorkDirectory;
+            });
+            services.Configure<FileSystemJobRepository.Configuration>(config =>
+            {
+                config.JobLifeTime = watneyApiConfiguration.JobLifetime;
+                config.WorkDirectory = watneyApiConfiguration.WorkDirectory;
+            });
+        }
+        else
+        {
+            services.AddSingleton<IQueueManager, InMemoryQueueManager>();
+            services.AddSingleton<IJobRepository, InMemoryJobRepository>();
+            
+            services.Configure<InMemoryJobRepository.Configuration>(config =>
+            {
+                config.JobLifeTime = watneyApiConfiguration.JobLifetime;
+            });
+        }
         
         services.Configure<SolverProcessManager.Configuration>(config =>
         {
@@ -19,10 +43,6 @@ public static class ServiceRegistration
             config.SolverTimeout = watneyApiConfiguration.SolverTimeoutValue;
         });
 
-        services.Configure<InMemoryJobRepository.Configuration>(config =>
-        {
-            config.JobLifeTime = watneyApiConfiguration.JobLifetime;
-        });
     }
 
     public static void InitializeApiServices(IServiceProvider sp)

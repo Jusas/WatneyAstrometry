@@ -28,6 +28,8 @@ namespace WatneyAstrometry.WebApi.Models
             if(supportedImageExtensions.All(e => e != fileExtension))
                 errors.Add("image", arr($"Unsupported file extension. Supported file extensions are: {string.Join(", ", supportedImageExtensions)}."));
 
+            if("nearby" != Parameters.Mode && "blind" != Parameters.Mode)
+                errors.Add("mode", arr("Mode must be set to either blind or nearby"));
 
             if (Parameters.Mode == "nearby")
             {

@@ -1,0 +1,12 @@
+﻿# ================================================================================
+# This file contains API keys in the format of username: apikey
+# The file format is YAML.
+# Restart the program for the changes to take effect.
+# Examples:
+#
+# john: johnssecretapikey
+# mike: supersecretmikekey
+# 'John Doe': abcd1234
+# 'Star Party 2022': 'starparty2022!participant'
+# ================================================================================
+defaultuser: demoapikey
