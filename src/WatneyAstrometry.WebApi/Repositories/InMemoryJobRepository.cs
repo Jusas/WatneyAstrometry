@@ -1,4 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using WatneyAstrometry.WebApi.Models;
 
@@ -70,6 +73,15 @@ public class InMemoryJobRepository : IJobRepository
     {
         return Task.FromResult(_jobs.TryGetValue(id, out JobModel job) ? job : null);
 
+    }
+
+    public Task<JobModel> Get(int numericId)
+    {
+        var match = _jobs
+            .Where(x => x.Value.NumericId == numericId)
+            .Select(x => x.Value)
+            .FirstOrDefault();
+        return Task.FromResult(match);
     }
 
     private static void PurgeOldJobs()

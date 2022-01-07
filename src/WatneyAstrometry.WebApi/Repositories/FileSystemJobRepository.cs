@@ -1,4 +1,7 @@
-﻿using System.Text;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Text;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using WatneyAstrometry.WebApi.Models;
@@ -113,7 +116,7 @@ public class FileSystemJobRepository : IJobRepository
     {
         job.Updated = DateTimeOffset.UtcNow;
 
-        var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{job.Id}");
+        var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{job.Id}_{job.NumericId}");
         if (Directory.Exists(jobDirectory))
             throw new Exception($"Conflict: directory {jobDirectory} exists already - is this job ID unique?");
 
@@ -142,7 +145,7 @@ public class FileSystemJobRepository : IJobRepository
 
     public Task Update(JobModel job)
     {
-        var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{job.Id}");
+        var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{job.Id}_{job.NumericId}");
         if (!Directory.Exists(jobDirectory))
             throw new Exception($"Job directory {jobDirectory} does not exist, the job does not exist");
         
@@ -168,8 +171,11 @@ public class FileSystemJobRepository : IJobRepository
 
     public Task<JobModel> Get(string id)
     {
-        var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{id}");
-        if (!Directory.Exists(jobDirectory))
+        // var jobDirectory = Path.Combine(_config.WorkDirectory, $"job_{id}");
+        var directories = Directory.GetDirectories(_config.WorkDirectory, $"job_{id}_*");
+        var jobDirectory = directories.FirstOrDefault();
+
+        if (jobDirectory == null)
             return null;
 
         var jobFile = Path.Combine(jobDirectory, "job.json");
@@ -180,5 +186,19 @@ public class FileSystemJobRepository : IJobRepository
         return Task.FromResult(JsonConvert.DeserializeObject<JobModel>(Encoding.ASCII.GetString(jobBytes)));
     }
 
+    public Task<JobModel> Get(int numericId)
+    {
+        var directories = Directory.GetDirectories(_config.WorkDirectory, $"job_*_{numericId}");
+        var jobDirectory = directories.FirstOrDefault();
 
+        if (jobDirectory == null)
+            return null;
+
+        var jobFile = Path.Combine(jobDirectory, "job.json");
+        if (!File.Exists(jobFile))
+            return null;
+
+        var jobBytes = File.ReadAllBytes(jobFile);
+        return Task.FromResult(JsonConvert.DeserializeObject<JobModel>(Encoding.ASCII.GetString(jobBytes)));
+    }
 }

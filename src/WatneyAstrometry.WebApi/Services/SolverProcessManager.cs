@@ -1,4 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.QuadDb;
@@ -78,18 +81,35 @@ public class SolverProcessManager : ISolverProcessManager
                 ? numberOfAvailableTasks
                 : _queueManager.QueueSize;
             
-            if(_quadDatabase == null) // TODO dispose when all jobs complete, and initialize when not initialized
+            if(_quadDatabase == null)
                 _quadDatabase = new CompactQuadDatabase().UseDataSource(_config.QuadDatabasePath);
 
             for (var i = 0; i < tasksToSpawn; i++)
             {
                 Task solveTask = Task.Run(TakeFromQueueAndSolveUntilQueueEmpty);
+                solveTask.ContinueWith(CleanupQuadDb);
                 _solveTasks.Add(solveTask);
             }
         }
     }
-    
 
+    private void CleanupQuadDb(Task _)
+    {
+        lock (_mutex)
+        {
+            if (_quadDatabase == null)
+                return;
+
+            var numberOfRunningTasks = _solveTasks.Count(x => !x.IsCompleted);
+            if (numberOfRunningTasks == 0)
+            {
+                var qdb = _quadDatabase;
+                _quadDatabase = null;
+                qdb.Dispose();
+            }
+        }
+        
+    }
 
     private async Task TakeFromQueueAndSolveUntilQueueEmpty()
     {
@@ -121,6 +141,7 @@ public class SolverProcessManager : ISolverProcessManager
         _jobCancellationTokens.TryAdd(job.Id, timeoutCancellationTokenSource);
 
         job.Status = JobStatus.Solving;
+        job.SolveStarted = DateTimeOffset.UtcNow;
         await _jobRepository.Update(job).ConfigureAwait(false);
         
         ISearchStrategy searchStrategy = null;

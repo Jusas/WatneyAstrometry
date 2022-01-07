@@ -1,4 +1,7 @@
-﻿using WatneyAstrometry.WebApi.Models;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using WatneyAstrometry.WebApi.Models;
 
 namespace WatneyAstrometry.WebApi.Repositories;
 
@@ -11,6 +14,7 @@ public interface IJobRepository
     Task Insert(JobModel job);
     Task Update(JobModel job);
     Task<JobModel> Get(string id);
+    Task<JobModel> Get(int numericId);
     // Task<JobModel> Dequeue();
 
 }

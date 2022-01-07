@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using Microsoft.AspNetCore.Authentication;
 
 namespace WatneyAstrometry.WebApi.Authentication;
 

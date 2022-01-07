@@ -1,12 +1,17 @@
+// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
 
 // https://docs.microsoft.com/en-us/aspnet/core/migration/50-to-60?view=aspnetcore-6.0&tabs=visual-studio
 
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Models;
 using WatneyAstrometry.WebApi;
 using WatneyAstrometry.WebApi.Authentication;
+using WatneyAstrometry.WebApi.Controllers;
 using WatneyAstrometry.WebApi.Services;
 
 var cultureInfo = CultureInfo.InvariantCulture;
@@ -36,7 +41,12 @@ if (!string.IsNullOrEmpty(apiConfig.Authentication))
     }).AddApiKeySupport(opts => { });
 }
 
-builder.Services.AddControllers();
+//builder.Services.AddControllers();
+builder.Services.AddControllers().ConfigureApplicationPartManager(manager =>
+{
+    manager.FeatureProviders.Remove(manager.FeatureProviders.OfType<ControllerFeatureProvider>().FirstOrDefault());
+    manager.FeatureProviders.Add(new ControllerProvider(apiConfig));
+});
 
 
 if (apiConfig.EnableSwagger)
@@ -102,7 +112,6 @@ if(!string.IsNullOrEmpty(apiConfig.Authentication))
     app.MapControllers();
 else
     app.MapControllers().WithMetadata(new AllowAnonymousAttribute());
-
 
 
 

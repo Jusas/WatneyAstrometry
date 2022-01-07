@@ -1,4 +1,7 @@
-﻿using WatneyAstrometry.WebApi.Repositories;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using WatneyAstrometry.WebApi.Repositories;
 using WatneyAstrometry.WebApi.Services;
 
 namespace WatneyAstrometry.WebApi;
@@ -42,6 +45,8 @@ public static class ServiceRegistration
             config.QuadDatabasePath = watneyApiConfiguration.QuadDatabasePath;
             config.SolverTimeout = watneyApiConfiguration.SolverTimeoutValue;
         });
+
+        services.AddHttpClient();
 
     }
 

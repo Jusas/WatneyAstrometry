@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.Options;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using Microsoft.Extensions.Options;
 
 namespace WatneyAstrometry.WebApi.Services;
 

@@ -1,4 +1,7 @@
-﻿using YamlDotNet.Serialization;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using YamlDotNet.Serialization;
 
 namespace WatneyAstrometry.WebApi
 {

@@ -1,4 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Collections.Concurrent;
 using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.StarDetection;
@@ -25,9 +28,11 @@ public class JobManager : IJobManager
     {
         await Task.Yield();
 
+        var jobGeneratedId = Guid.NewGuid().Shortened();
         var jobModel = new JobModel
         {
-            Id = Guid.NewGuid().Shortened(),
+            Id = jobGeneratedId,
+            NumericId = jobGeneratedId.GetHashCode(),
             Status = JobStatus.Queued,
             Parameters = jobFormModel.Parameters
             //Parameters = new JobParametersModel
@@ -52,6 +57,11 @@ public class JobManager : IJobManager
         return await _jobRepository.Get(id);
     }
 
+    public async Task<JobModel> GetJob(int numericId)
+    {
+        return await _jobRepository.Get(numericId);
+    }
+
     public async Task CancelJob(string id)
     {
         _queueManager.Cancel(id);
@@ -64,6 +74,8 @@ public class JobManager : IJobManager
         {
             IImage image;
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            model.OriginalFilename = file.FileName;
+
             using var stream = file.OpenReadStream();
 
             if (fileExtension is ".fit" or ".fits")

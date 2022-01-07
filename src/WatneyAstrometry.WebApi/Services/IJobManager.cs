@@ -1,4 +1,7 @@
-﻿using WatneyAstrometry.WebApi.Models;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using WatneyAstrometry.WebApi.Models;
 
 namespace WatneyAstrometry.WebApi.Services;
 
@@ -9,6 +12,7 @@ public interface IJobManager
 {
     Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel);
     Task<JobModel> GetJob(string id);
+    Task<JobModel> GetJob(int numericId);
     Task CancelJob(string id);
 
 }
