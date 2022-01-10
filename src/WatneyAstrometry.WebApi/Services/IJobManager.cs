@@ -10,7 +10,7 @@ namespace WatneyAstrometry.WebApi.Services;
 /// </summary>
 public interface IJobManager
 {
-    Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel);
+    Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel, IDictionary<string, object> metadata = null);
     Task<JobModel> GetJob(string id);
     Task<JobModel> GetJob(int numericId);
     Task CancelJob(string id);

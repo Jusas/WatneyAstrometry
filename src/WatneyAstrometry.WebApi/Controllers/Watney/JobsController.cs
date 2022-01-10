@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using WatneyAstrometry.WebApi.Authentication;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Services;
@@ -39,13 +40,18 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
         [ProducesResponseType(statusCode: 201, type: typeof(JobModel))]
         public async Task<IActionResult> Post([FromForm] JobFormUnifiedModel unifiedModel, IFormFile image)
         {
+
+            _logger.LogTrace("Receiving a new job");
             unifiedModel.Image = image;
 
             var customValidationErrors = unifiedModel?.Validate() ?? new Dictionary<string, string[]>();
 
             if (customValidationErrors.Any())
+            {
+                _logger.LogTrace("Job input validation failed: " + JsonConvert.SerializeObject(customValidationErrors));
                 return ValidationProblem(new ValidationProblemDetails(customValidationErrors));
-            
+            }
+
             var createdJob = await _jobManager.PrepareJob(unifiedModel);
             return Ok(createdJob);
 

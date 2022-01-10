@@ -7,6 +7,7 @@ namespace WatneyAstrometry.WebApi.Services;
 
 public class InMemoryQueueManager : IQueueManager
 {
+    private readonly ILogger<InMemoryQueueManager> _logger;
     public event IQueueManager.JobQueuedHandler OnJobQueued;
     public event IQueueManager.JobCanceledHandler OnJobCanceled;
 
@@ -15,10 +16,16 @@ public class InMemoryQueueManager : IQueueManager
 
     public int QueueSize => _queue.Count;
 
+    public InMemoryQueueManager(ILogger<InMemoryQueueManager> logger)
+    {
+        _logger = logger;
+    }
+
     public void Enqueue(string id)
     {
         lock (_mutex)
         {
+            _logger.LogTrace($"Queuing job {id}");
             _queue.Enqueue(id);
         }
         OnJobQueued?.Invoke(id);
@@ -28,7 +35,14 @@ public class InMemoryQueueManager : IQueueManager
     {
         lock (_mutex)
         {
-            return _queue.TryDequeue(out var item) ? item : null;
+            var didDequeue = _queue.TryDequeue(out var job);
+            if (didDequeue)
+            {
+                _logger.LogTrace($"Dequeued job {job}");
+                return job;
+            }
+
+            return null;
         }
         
     }
@@ -37,6 +51,7 @@ public class InMemoryQueueManager : IQueueManager
     {
         lock (_mutex)
         {
+            _logger.LogTrace($"Cancelling job {id}, removing it from queue");
             _queue = new Queue<string>(_queue.Where(x => x != id));
         }
         OnJobCanceled?.Invoke(id);

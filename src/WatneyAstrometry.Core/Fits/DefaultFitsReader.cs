@@ -24,11 +24,6 @@ namespace WatneyAstrometry.Core.Fits
     /// </summary>
     public class DefaultFitsReader : IImageReader
     {
-        // The header comes in blocks, one or more of these.
-        private const int HeaderBlockSize = 2880;
-        // One header record size.
-        private const int HduHeaderRecordSize = 80;
-
 
         public static bool IsSupported(string filename)
         {
@@ -39,11 +34,11 @@ namespace WatneyAstrometry.Core.Fits
         public static bool IsSupported(Stream stream)
         {
             var pos = stream.Position;
-            if (stream.Length < HeaderBlockSize)
+            if (stream.Length < FitsConstants.HeaderBlockSize)
                 return false;
 
-            var buf = new byte[HeaderBlockSize];
-            stream.Read(buf, 0, HeaderBlockSize);
+            var buf = new byte[FitsConstants.HeaderBlockSize];
+            stream.Read(buf, 0, FitsConstants.HeaderBlockSize);
             stream.Seek(pos, SeekOrigin.Begin);
 
             try
@@ -80,26 +75,26 @@ namespace WatneyAstrometry.Core.Fits
             };
 
             stream.Seek(0, SeekOrigin.Begin);
-            if (stream.Length < HeaderBlockSize)
-                throw new Exception($"A valid FITS file header should be at least {HeaderBlockSize} bytes");
+            if (stream.Length < FitsConstants.HeaderBlockSize)
+                throw new Exception($"A valid FITS file header should be at least {FitsConstants.HeaderBlockSize} bytes");
 
             int headerBlockIndex = 0;
-            var buf = new byte[HeaderBlockSize];
+            var buf = new byte[FitsConstants.HeaderBlockSize];
 
             // Keep reading header blocks until we run into "END" header.
-            while (stream.Read(buf, 0, HeaderBlockSize) == HeaderBlockSize)
+            while (stream.Read(buf, 0, FitsConstants.HeaderBlockSize) == FitsConstants.HeaderBlockSize)
             {
                 if (headerBlockIndex == 0)
                     ValidateBegin(buf);
 
-                for (var i = 0; i < HeaderBlockSize / HduHeaderRecordSize; i++)
+                for (var i = 0; i < FitsConstants.HeaderBlockSize / FitsConstants.HduHeaderRecordSize; i++)
                 {
-                    var hduRecord = new HduHeaderRecord(Encoding.ASCII.GetString(buf, i * HduHeaderRecordSize, HduHeaderRecordSize));
+                    var hduRecord = new HduHeaderRecord(Encoding.ASCII.GetString(buf, i * FitsConstants.HduHeaderRecordSize, FitsConstants.HduHeaderRecordSize));
                     if (hduRecord.Keyword == "END")
                     {
                         PopulateDimensions(fitsImage);
                         ThrowIfUnsupportedFormat(fitsImage);
-                        fitsImage.PixelDataStreamOffset = HeaderBlockSize + headerBlockIndex * HeaderBlockSize;
+                        fitsImage.PixelDataStreamOffset = FitsConstants.HeaderBlockSize + headerBlockIndex * FitsConstants.HeaderBlockSize;
                         fitsImage.PixelDataStream = stream;
                         fitsImage.PixelDataStreamLength = fitsImage.Metadata.ImageWidth *
                             fitsImage.Metadata.ImageHeight * fitsImage.Metadata.BitsPerPixel / 8;
@@ -118,7 +113,7 @@ namespace WatneyAstrometry.Core.Fits
 
         private static void ValidateBegin(byte[] headerData)
         {
-            var hduData = Encoding.ASCII.GetString(headerData, 0, HduHeaderRecordSize);
+            var hduData = Encoding.ASCII.GetString(headerData, 0, FitsConstants.HduHeaderRecordSize);
             var hdu = new HduHeaderRecord(hduData);
             if (hdu.Keyword != "SIMPLE")
                 throw new Exception("FITS header should start with SIMPLE, invalid header");

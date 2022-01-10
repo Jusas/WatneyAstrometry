@@ -43,6 +43,7 @@ public class FileSystemQueueManager : IQueueManager
             return;
         try
         {
+            _logger.LogTrace($"Creating queue file {_queueFile}");
             File.Create(_queueFile).Dispose();
         }
         catch (UnauthorizedAccessException e)
@@ -61,6 +62,7 @@ public class FileSystemQueueManager : IQueueManager
     {
         lock (_mutex)
         {
+            _logger.LogTrace($"Queuing job {id}");
             InitializeQueueFile();
             File.AppendAllLines(_queueFile, new[] { id });
         }
@@ -74,8 +76,12 @@ public class FileSystemQueueManager : IQueueManager
             InitializeQueueFile();
             var allLines = File.ReadAllLines(_queueFile);
             var first = allLines.FirstOrDefault();
-            if(first != null)
+            if (first != null)
+            {
+                _logger.LogTrace($"Dequeued job {first}");
                 File.WriteAllLines(_queueFile, allLines.Skip(1));
+            }
+
             return first;
         }
     }
@@ -84,6 +90,7 @@ public class FileSystemQueueManager : IQueueManager
     {
         lock (_mutex)
         {
+            _logger.LogTrace($"Cancelling job {id}, removing it from queue");
             InitializeQueueFile();
             var allLines = File.ReadAllLines(_queueFile);
             var match = allLines.FirstOrDefault(x => x == id);

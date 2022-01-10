@@ -41,7 +41,6 @@ if (!string.IsNullOrEmpty(apiConfig.Authentication))
     }).AddApiKeySupport(opts => { });
 }
 
-//builder.Services.AddControllers();
 builder.Services.AddControllers().ConfigureApplicationPartManager(manager =>
 {
     manager.FeatureProviders.Remove(manager.FeatureProviders.OfType<ControllerFeatureProvider>().FirstOrDefault());
@@ -87,7 +86,9 @@ if (apiConfig.EnableSwagger)
 
 builder.WebHost.ConfigureKestrel(config =>
 {
+    // https://docs.microsoft.com/en-us/aspnet/core/fundamentals/servers/kestrel/endpoints?view=aspnetcore-6.0
     config.Limits.MaxRequestBodySize = apiConfig.MaxImageSizeBytes;
+    //config.ConfigureEndpointDefaults(lo => lo.);
 });
 
 
@@ -102,7 +103,7 @@ if (apiConfig.EnableSwagger)
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseRouting();

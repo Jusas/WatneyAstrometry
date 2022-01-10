@@ -17,41 +17,36 @@ public class JobManager : IJobManager
 {
     private readonly IJobRepository _jobRepository;
     private readonly IQueueManager _queueManager;
+    private readonly ILogger<JobManager> _logger;
 
-    public JobManager(IJobRepository jobRepository, IQueueManager queueManager)
+    public JobManager(IJobRepository jobRepository, IQueueManager queueManager, ILogger<JobManager> logger)
     {
         _jobRepository = jobRepository;
         _queueManager = queueManager;
+        _logger = logger;
     }
 
-    public async Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel)
+    public async Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel, IDictionary<string, object> metadata = null)
     {
         await Task.Yield();
 
         var jobGeneratedId = Guid.NewGuid().Shortened();
+        _logger.LogTrace($"Preparing job {jobGeneratedId}");
+
         var jobModel = new JobModel
         {
             Id = jobGeneratedId,
             NumericId = jobGeneratedId.GetHashCode(),
             Status = JobStatus.Queued,
             Parameters = jobFormModel.Parameters
-            //Parameters = new JobParametersModel
-            //{
-            //    BlindParameters = jobFormModel.Parameters.BlindParameters,
-            //    NearbyParameters = jobFormModel.Parameters.NearbyParameters,
-            //    Mode = jobFormModel.Parameters.Mode,
-            //    HigherDensityOffset = jobFormModel.Parameters.HigherDensityOffset,
-            //    LowerDensityOffset = jobFormModel.Parameters.HigherDensityOffset,
-                
-            //}
         };
-        AnalyzeAndExtractStars(jobFormModel.Image, jobModel);
+        AnalyzeAndExtractStars(jobFormModel.Image, jobModel, metadata);
         
         await _jobRepository.Insert(jobModel).ConfigureAwait(false);
         _queueManager.Enqueue(jobModel.Id);
         return jobModel;
     }
-
+    
     public async Task<JobModel> GetJob(string id)
     {
         return await _jobRepository.Get(id);
@@ -64,14 +59,17 @@ public class JobManager : IJobManager
 
     public async Task CancelJob(string id)
     {
+        _logger.LogTrace($"Job cancellation signal received for job {id}");
         _queueManager.Cancel(id);
     }
 
 
-    private void AnalyzeAndExtractStars(IFormFile file, JobModel model)
+    private void AnalyzeAndExtractStars(IFormFile file, JobModel model, IDictionary<string, object> metadata)
     {
         try
         {
+            _logger.LogTrace($"Job {model.Id}: analyzing and extracting stars");
+
             IImage image;
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             model.OriginalFilename = file.FileName;
@@ -80,6 +78,7 @@ public class JobManager : IJobManager
 
             if (fileExtension is ".fit" or ".fits")
             {
+                _logger.LogTrace("File appears to be a FITS file");
                 try
                 {
                     var fitsReader = new DefaultFitsReader();
@@ -94,6 +93,7 @@ public class JobManager : IJobManager
                 {
                     try
                     {
+                        _logger.LogTrace("Using coordinates and field radius from the FITS headers");
                         var fits = (FitsImage)image;
                         model.Parameters.NearbyParameters.Ra = fits.Metadata.CenterPos.Ra;
                         model.Parameters.NearbyParameters.Dec = fits.Metadata.CenterPos.Dec;
@@ -110,6 +110,7 @@ public class JobManager : IJobManager
             }
             else if (fileExtension is ".png" or ".jpg" or ".jpeg")
             {
+                _logger.LogTrace("File appears to be a png/jpg file");
                 try
                 {
                     var imgReader = new CommonFormatsImageReader();
@@ -126,12 +127,28 @@ public class JobManager : IJobManager
                 throw new FileFormatException($"The file extension '{fileExtension}' is not supported");
             }
 
+            
             model.ImageHeight = image.Metadata.ImageHeight;
             model.ImageWidth = image.Metadata.ImageWidth;
+            _logger.LogTrace($"Image dimensions: {model.ImageWidth}x{model.ImageHeight}");
 
+            // Metadata transformations
+            if (metadata != null && metadata.ContainsKey("CalculateFieldRadiusFromArcSecsPerPixel") && model.Parameters.Mode == "nearby")
+            {
+                double appValue = (double)metadata["CalculateFieldRadiusFromArcSecsPerPixel"];
+                var radiusArcsecs = Math.Sqrt(model.ImageWidth * model.ImageWidth + model.ImageHeight * model.ImageHeight) * 0.5 * appValue;
+                var radiusDeg = radiusArcsecs / 3600.0;
+                model.Parameters.NearbyParameters.FieldRadius = radiusDeg;
+                _logger.LogTrace($"Calculated image field radius from arcsecperpixel: {radiusDeg:F} deg");
+            }
+
+            _logger.LogTrace("Detecting stars");
             var starDetector = new DefaultStarDetector();
             var stars = starDetector.DetectStars(image).ToList();
             model.Stars = stars;
+            _logger.LogTrace($"The detector found {stars.Count} stars");
+
+            _logger.LogTrace($"Analysis complete");
         }
         catch (FileFormatException)
         {

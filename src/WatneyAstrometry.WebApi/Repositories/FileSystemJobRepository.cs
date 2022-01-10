@@ -38,6 +38,7 @@ public class FileSystemJobRepository : IJobRepository
 
     public void StartPeriodicalPurge()
     {
+        _logger.LogTrace("Registering a periodical purge task to clean up old jobs");
         _purgeTask ??= Task.Run(PeriodicalPurgeTask);
     }
 
@@ -49,11 +50,15 @@ public class FileSystemJobRepository : IJobRepository
     
     private static void PurgeOldJobs(ILogger logger)
     {
+        logger.LogTrace("Purging old job files from disk");
+
         var now = DateTime.Now;
         if (!Directory.Exists(_config.WorkDirectory))
             return;
 
         var jobDirectories = Directory.GetDirectories(_config.WorkDirectory, "job_*");
+        logger.LogTrace($"Found {jobDirectories.Length} job directories (job_*) from work directory");
+
         var exceptions = new List<Exception>();
         foreach (var jobDirectory in jobDirectories)
         {
@@ -68,6 +73,7 @@ public class FileSystemJobRepository : IJobRepository
                 {
                     try
                     {
+                        logger.LogTrace($"Deleting old job {jobId}");
                         File.Delete(jobFile);
                         Directory.Delete(jobDirectory);
                     }
@@ -83,8 +89,11 @@ public class FileSystemJobRepository : IJobRepository
             }
         }
 
-        if(exceptions.Any())
+
+        if (exceptions.Any())
+        {
             throw new AggregateException(exceptions);
+        }
     }
 
     private async Task PeriodicalPurgeTask()

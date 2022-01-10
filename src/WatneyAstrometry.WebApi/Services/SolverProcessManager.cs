@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.QuadDb;
 using WatneyAstrometry.Core.Types;
@@ -67,6 +68,7 @@ public class SolverProcessManager : ISolverProcessManager
 
     private void StartProcessingOfAllQueuedItems()
     {
+        _logger.LogTrace("A job was queued, triggering the processing/emptying of the queue");
         lock (_mutex)
         {
             var numberOfRunningTasks = _solveTasks.Count(x => !x.IsCompleted);
@@ -84,6 +86,8 @@ public class SolverProcessManager : ISolverProcessManager
             if(_quadDatabase == null)
                 _quadDatabase = new CompactQuadDatabase().UseDataSource(_config.QuadDatabasePath);
 
+            _logger.LogTrace($"Spawning {tasksToSpawn} solve tasks");
+
             for (var i = 0; i < tasksToSpawn; i++)
             {
                 Task solveTask = Task.Run(TakeFromQueueAndSolveUntilQueueEmpty);
@@ -100,6 +104,7 @@ public class SolverProcessManager : ISolverProcessManager
             if (_quadDatabase == null)
                 return;
 
+            _logger.LogTrace("Releasing QuadDatabase resources");
             var numberOfRunningTasks = _solveTasks.Count(x => !x.IsCompleted);
             if (numberOfRunningTasks == 0)
             {
@@ -131,6 +136,8 @@ public class SolverProcessManager : ISolverProcessManager
             }
 
         }
+
+        _logger.LogTrace("The queue is empty, nothing to do");
     }
 
     private async Task SolveJob(JobModel job)
@@ -139,6 +146,8 @@ public class SolverProcessManager : ISolverProcessManager
         var timeoutCancellationTokenSource = new CancellationTokenSource(_config.SolverTimeout);
         //var cancellationTokenSource = new CancellationTokenSource();
         _jobCancellationTokens.TryAdd(job.Id, timeoutCancellationTokenSource);
+
+        _logger.LogTrace($"Starting solver for job {job.Id}, using timeout of {_config.SolverTimeout}");
 
         job.Status = JobStatus.Solving;
         job.SolveStarted = DateTimeOffset.UtcNow;
@@ -166,6 +175,8 @@ public class SolverProcessManager : ISolverProcessManager
                 MinRadiusDegrees = (float)p.MinRadius,
                 StartRadiusDegrees = (float)p.MaxRadius
             });
+
+            _logger.LogTrace("Using blind strategy, with parameters: " + JsonConvert.SerializeObject(searchStrategy));
         }
         else if (job.Parameters.NearbyParameters != null)
         {
@@ -179,6 +190,8 @@ public class SolverProcessManager : ISolverProcessManager
                     ScopeFieldRadius = (float)p.FieldRadius,
                     SearchAreaRadius = (float)p.SearchRadius
                 });
+
+            _logger.LogTrace("Using nearby strategy, with parameters: " + JsonConvert.SerializeObject(searchStrategy));
         }
         else
         {
@@ -193,6 +206,8 @@ public class SolverProcessManager : ISolverProcessManager
         };
         var inputImageFrame = new ExtractedStarImage { ImageHeight = job.ImageHeight, ImageWidth = job.ImageWidth };
 
+        _logger.LogTrace("Using solver options: " + JsonConvert.SerializeObject(solverOptions));
+
         if (_jobCancellationTokens[job.Id].IsCancellationRequested)
         {
             await SetJobCancelled(job);
@@ -206,16 +221,19 @@ public class SolverProcessManager : ISolverProcessManager
 
             if (solverResult.Canceled)
             {
+                _logger.LogTrace($"Job {job.Id} was canceled");
                 await SetJobCancelled(job);
                 return;
             }
 
             if (solverResult.Success)
             {
+                _logger.LogTrace($"Job {job.Id} was successfully solved");
                 await SetJobSuccessful(job, solverResult);
             }
             else
             {
+                _logger.LogTrace($"Job {job.Id} failed to solve");
                 await SetJobFailed(job, solverResult);
             }
         }
@@ -283,6 +301,8 @@ public class SolverProcessManager : ISolverProcessManager
                 }
             };
 
+            _logger.LogTrace($"Job {job.Id} solution: " + JsonConvert.SerializeObject(job.Solution));
+
             job.Status = JobStatus.Success;
             await _jobRepository.Update(job);
         }
@@ -297,6 +317,7 @@ public class SolverProcessManager : ISolverProcessManager
     {
         try
         {
+            _logger.LogTrace($"Job {job.Id} ended with an error");
             job.Status = JobStatus.Error;
             await _jobRepository.Update(job);
         }

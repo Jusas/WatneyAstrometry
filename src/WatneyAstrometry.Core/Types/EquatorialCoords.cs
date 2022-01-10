@@ -7,6 +7,10 @@ using System.Globalization;
 using System.Linq;
 using WatneyAstrometry.Core.MathUtils;
 
+// https://phys.libretexts.org/Bookshelves/Astronomy__Cosmology/Book%3A_Celestial_Mechanics_(Tatum)/11%3A_Photographic_Astrometry/11.02%3A_Standard_Coordinates_and_Plate_Constants
+// https://www.researchgate.net/publication/333841450_Astrometry_The_Foundation_for_Observational_Astronomy
+// https://afh.sonoma.edu/astrometry/
+
 namespace WatneyAstrometry.Core.Types
 {
     /// <summary>

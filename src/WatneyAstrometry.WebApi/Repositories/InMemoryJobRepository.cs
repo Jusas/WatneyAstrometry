@@ -46,6 +46,7 @@ public class InMemoryJobRepository : IJobRepository
 
     public void StartPeriodicalPurge()
     {
+        _logger.LogTrace("Registering a periodical purge task to clean up old jobs");
         _purgeTask ??= Task.Run(PeriodicalPurgeTask);
     }
 
@@ -84,11 +85,16 @@ public class InMemoryJobRepository : IJobRepository
         return Task.FromResult(match);
     }
 
-    private static void PurgeOldJobs()
+    private static void PurgeOldJobs(ILogger logger)
     {
         var now = DateTimeOffset.UtcNow;
         var expiredJobIds = _jobs.Where(x => x.Value.Updated + _config.JobLifeTime < now)
             .Select(x => x.Key).ToArray();
+        if (expiredJobIds.Length > 0)
+        {
+            logger.LogTrace("Purging old jobs from memory");
+            logger.LogTrace($"Removing {expiredJobIds.Length} old jobs");
+        }
         foreach (var id in expiredJobIds)
             _jobs.TryRemove(id, out var _);
     }
@@ -99,7 +105,7 @@ public class InMemoryJobRepository : IJobRepository
         {
             try
             {
-                PurgeOldJobs();
+                PurgeOldJobs(_logger);
                 await Task.Delay(60_000, _cancellationTokenSource.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)

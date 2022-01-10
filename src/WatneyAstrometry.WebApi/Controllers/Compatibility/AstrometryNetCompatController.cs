@@ -7,10 +7,12 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 using WatneyAstrometry.WebApi.Controllers.Watney;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Services;
+using WcsFitsWriter = WatneyAstrometry.WebApi.Utils.WcsFitsWriter;
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 {
@@ -109,6 +111,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             FileUploadModel data;
             try
             {
+                _logger.LogTrace("Pre-validation input data: " + upload);
                 data = JsonConvert.DeserializeObject<FileUploadModel>(upload);
             }
             catch (Exception)
@@ -139,12 +142,14 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 };
             }
 
+            _logger.LogTrace("Post-validation input data: " + JsonConvert.SerializeObject(data));
+
             try
             {
 
                 // Use blind solve if we don't get coordinates and field radius.
                 var mode = "blind";
-                if (data.CenterDec != null && data.CenterRa != null && data.FieldRadius != null)
+                if (data.CenterDec != null && data.CenterRa != null && data.ScaleType != null) // TODO: we really need a blind area-bound search.
                 {
                     mode = "nearby";
                 }
@@ -161,7 +166,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                             Dec = data.CenterDec,
                             UseFitsHeaders = false,
                             FieldRadius = data.FieldRadius,
-                            SearchRadius = 20
+                            SearchRadius = data.SearchRadius
                         } : null,
                         BlindParameters = mode == "blind" ? new BlindOptions
                         {
@@ -176,7 +181,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     }
                 };
 
-                var createdJob = await _jobManager.PrepareJob(jobModel);
+                var createdJob = await _jobManager.PrepareJob(jobModel, data.Metadata);
 
                 return Ok(new
                 {
@@ -184,7 +189,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     // A lazy way, but since Astrometry.net uses a number as the ID this should be sufficient.
                     // I'm going to assume returning an int is valid and probably the safest bet that won't
                     // break other software.
-                    subId = createdJob.NumericId,
+                    subid = createdJob.NumericId,
                     hash = string.Join("",
                         SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(file.FileName))
                             .Select(b => $"{b:X}".ToLowerInvariant()))
@@ -271,7 +276,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
                 // Use blind solve if we don't get coordinates and field radius.
                 var mode = "blind";
-                if (data.CenterDec != null && data.CenterRa != null && data.FieldRadius != null)
+                if (data.CenterDec != null && data.CenterRa != null && data.ScaleType != null)
                 {
                     mode = "nearby";
                 }
@@ -288,7 +293,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                             Dec = data.CenterDec,
                             UseFitsHeaders = false,
                             FieldRadius = data.FieldRadius,
-                            SearchRadius = 20
+                            SearchRadius = data.SearchRadius
                         } : null,
                         BlindParameters = mode == "blind" ? new BlindOptions
                         {
@@ -303,7 +308,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     }
                 };
 
-                var createdJob = await _jobManager.PrepareJob(jobModel);
+                var createdJob = await _jobManager.PrepareJob(jobModel, data.Metadata);
 
                 return Ok(new
                 {
@@ -311,7 +316,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     // A lazy way, but since Astrometry.net uses a number as the ID this should be sufficient.
                     // I'm going to assume returning an int is valid and probably the safest bet that won't
                     // break other software.
-                    subId = createdJob.NumericId,
+                    subid = createdJob.NumericId,
                     hash = string.Join("",
                         SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(data.Url))
                             .Select(b => $"{b:X}".ToLowerInvariant()))
@@ -503,7 +508,31 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             => await GetJobInfo(id);
 
 
+        [HttpGet]
+        [Route("/wcs_file/{id}")]
+        public async Task<IActionResult> GetWcsFile([FromRoute] int id)
+        {
+            var job = await _jobManager.GetJob(id);
 
+            if (job == null)
+                return NotFound("Not found");
+
+            if(job.Solution == null || job.Solution.FitsWcs == null)
+                return NotFound("Not found");
+
+            var stream = new MemoryStream();
+            var wcsWriter = new WcsFitsWriter(stream);
+            wcsWriter.WriteWcsFile(job.Solution, job.ImageWidth, job.ImageHeight);
+            
+            stream.Seek(0, SeekOrigin.Begin);
+            return File(stream, "application/fits", "wcs.fits");
+        }
+
+        // To comply with Nova also supporting POST
+        [HttpPost]
+        [Route("/wcs_file/{id}")]
+        public async Task<IActionResult> GetWcsFileViaPost([FromRoute] int id)
+            => await GetWcsFile(id);
 
 
 
@@ -546,6 +575,39 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             => await GetAnnotationsInField(id);
 
         
+        
+        [HttpGet]
+        [Route("jobs/{id}/tags")]
+        public async Task<IActionResult> GetTagsInField([FromRoute] int id)
+        {
+            // Not supported, just return an empty list every time.
+            return Ok(new
+            {
+                tags = Array.Empty<string>()
+            });
+        }
 
+        // To comply with Nova also supporting POST
+        [HttpPost]
+        [Route("jobs/{id}/tags")]
+        public async Task<IActionResult> GetTagsInFieldViaPost([FromRoute] int id)
+            => await GetTagsInField(id);
+
+        
+        
+        [HttpGet]
+        [Route("/joblog/{id}")]
+        public async Task<IActionResult> GetLogs([FromRoute] int id)
+        {
+            // Not supported, just return an empty list every time.
+            return Ok("no log");
+        }
+
+        // To comply with Nova also supporting POST
+        [HttpPost]
+        [Route("/joblog/{id}")]
+        public async Task<IActionResult> GetLogsViaPost([FromRoute] int id)
+            => await GetLogs(id);
+        
     }
 }

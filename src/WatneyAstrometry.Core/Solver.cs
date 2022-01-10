@@ -714,6 +714,8 @@ namespace WatneyAstrometry.Core
             var cdelt1 = cd1_1;
             var cdelt2 = cd2_2;
 
+            // https://www.virtualastronomy.org/AVM_DRAFTVersion12_rlh02.pdf
+
             // The determinant, which also tells us if the image is mirrored.
             var sign = cd1_1 * cd2_2 - cd1_2 * cd2_1 < 0 ? -1 : 1;
             if (cd2_1 != 0 && cd1_2 != 0)
