@@ -42,7 +42,7 @@ namespace WatneyAstrometry.Core
             SouthFirst
         }
     
-        private float _startRadiusDegrees = 22.5f;
+        private double _startRadiusDegrees = 22.5f;
 
         /// <summary>
         /// This is the starting search area radius in degrees, i.e. the full sky
@@ -50,7 +50,7 @@ namespace WatneyAstrometry.Core
         /// the search then continues on by halving the radius over and over,
         /// until the search completes or is stopped.
         /// </summary>
-        public float StartRadiusDegrees
+        public double StartRadiusDegrees
         {
             get => _startRadiusDegrees;
             set
@@ -61,12 +61,12 @@ namespace WatneyAstrometry.Core
             }
         }
 
-        private float _minRadiusDegrees = 22.5f / 32;
+        private double _minRadiusDegrees = 22.5f / 32;
 
         /// <summary>
         /// Minimum radius for the search.
         /// </summary>
-        public float MinRadiusDegrees
+        public double MinRadiusDegrees
         {
             get => _minRadiusDegrees;
             set

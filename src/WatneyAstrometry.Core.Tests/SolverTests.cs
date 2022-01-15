@@ -172,8 +172,9 @@ namespace WatneyAstrometry.Core.Tests
             var nearCenter = EquatorialCoords.FromText("22 36 30", "34 15 43");
             var nearbyStrategy = new NearbySearchStrategy(nearCenter, new NearbySearchStrategyOptions()
             {
-                ScopeFieldRadius = 1.0f,
-                SearchAreaRadius = 10,
+                MaxFieldRadiusDegrees = 1.0,
+                MinFieldRadiusDegrees = 1.0,
+                SearchAreaRadiusDegrees = 10,
                 MaxNegativeDensityOffset = 1,
                 MaxPositiveDensityOffset = 1
             });

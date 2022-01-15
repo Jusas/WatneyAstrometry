@@ -73,6 +73,12 @@ namespace WatneyAstrometry.Core
             return this;
         }
 
+        public Solver UseStarDetector(IStarDetector starDetector)
+        {
+            _starDetectorFactory = () => starDetector;
+            return this;
+        }
+
         public Solver UseStarDetector(Func<IStarDetector> factoryFunc)
         {
             _starDetectorFactory = factoryFunc;
@@ -88,6 +94,12 @@ namespace WatneyAstrometry.Core
         public Solver UseQuadDatabase(Func<IQuadDatabase> factoryFunc)
         {
             _quadDatabaseFactory = factoryFunc;
+            return this;
+        }
+
+        public Solver UseQuadDatabase(IQuadDatabase quadDatabase)
+        {
+            _quadDatabaseFactory = () => quadDatabase;
             return this;
         }
 

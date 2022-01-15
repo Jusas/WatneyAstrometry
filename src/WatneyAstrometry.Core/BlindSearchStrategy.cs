@@ -104,7 +104,7 @@ namespace WatneyAstrometry.Core
                 {
                     int n = 0;
                     //for (float dec = 0; dec <= 90; dec += radius, n++)
-                    float dec = 0;
+                    double dec = 0;
                     bool complete = false;
                     while(!complete)
                     {

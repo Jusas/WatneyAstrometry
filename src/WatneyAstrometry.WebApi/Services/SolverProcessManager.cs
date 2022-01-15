@@ -9,6 +9,7 @@ using WatneyAstrometry.Core.QuadDb;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Exceptions;
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Repositories;
 
 namespace WatneyAstrometry.WebApi.Services;
@@ -187,8 +188,9 @@ public class SolverProcessManager : ISolverProcessManager
                     UseParallelism = false,
                     MaxNegativeDensityOffset = job.Parameters.LowerDensityOffset ?? 1,
                     MaxPositiveDensityOffset = job.Parameters.HigherDensityOffset ?? 1,
-                    ScopeFieldRadius = (float)p.FieldRadius,
-                    SearchAreaRadius = (float)p.SearchRadius
+                    MaxFieldRadiusDegrees = p.MaxFieldRadius.Value,
+                    MinFieldRadiusDegrees = p.MinFieldRadius.Value,
+                    SearchAreaRadiusDegrees = p.SearchRadius.Value
                 });
 
             _logger.LogTrace("Using nearby strategy, with parameters: " + JsonConvert.SerializeObject(searchStrategy));

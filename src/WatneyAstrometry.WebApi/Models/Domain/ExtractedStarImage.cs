@@ -3,7 +3,7 @@
 
 using WatneyAstrometry.Core.Image;
 
-namespace WatneyAstrometry.WebApi.Models;
+namespace WatneyAstrometry.WebApi.Models.Domain;
 
 public class ExtractedStarImage : IImageDimensions
 {

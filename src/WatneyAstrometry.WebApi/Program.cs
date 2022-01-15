@@ -5,9 +5,13 @@
 // https://docs.microsoft.com/en-us/aspnet/core/migration/50-to-60?view=aspnetcore-6.0&tabs=visual-studio
 
 using System.Globalization;
+using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.AspNetCore.Mvc.Versioning;
 using Microsoft.OpenApi.Models;
 using WatneyAstrometry.WebApi;
 using WatneyAstrometry.WebApi.Authentication;
@@ -47,12 +51,42 @@ builder.Services.AddControllers().ConfigureApplicationPartManager(manager =>
     manager.FeatureProviders.Add(new ControllerProvider(apiConfig));
 });
 
+builder.Services.AddApiVersioning(config =>
+{
+    config.DefaultApiVersion = new ApiVersion(1, 0);
+    config.AssumeDefaultVersionWhenUnspecified = true;
+    config.ApiVersionReader = new UrlSegmentApiVersionReader();
+    config.ReportApiVersions = true;
+});
+
+builder.Services.AddVersionedApiExplorer(config =>
+{
+    config.GroupNameFormat = "'v'VVV";
+    config.SubstituteApiVersionInUrl = true;
+});
+
 
 if (apiConfig.EnableSwagger)
 {
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(setup =>
     {
+        var versionProvider = builder.Services.BuildServiceProvider()
+            .GetRequiredService<IApiVersionDescriptionProvider>();
+
+        foreach (var description in versionProvider.ApiVersionDescriptions)
+        {
+            setup.SwaggerDoc(description.GroupName, new OpenApiInfo()
+            {
+                Title = "Watney API",
+                Version = description.ApiVersion.ToString()
+            });
+        }
+        
+        var xmlApiDocFileName = Path.Combine(executableDir, "apidoc.xml");
+        if(File.Exists(xmlApiDocFileName))
+            setup.IncludeXmlComments(xmlApiDocFileName, true);
+
         if ("apikey".Equals(apiConfig.Authentication))
         {
             var securityScheme = new OpenApiSecurityScheme()
@@ -91,7 +125,7 @@ builder.WebHost.ConfigureKestrel(config =>
     //config.ConfigureEndpointDefaults(lo => lo.);
 });
 
-
+builder.Services.AddAutoMapper(typeof(ServiceRegistration).Assembly);
 builder.Services.AddSolverApiServices(builder.Configuration, apiConfig);
 
 var app = builder.Build();
@@ -100,7 +134,16 @@ var app = builder.Build();
 if (apiConfig.EnableSwagger)
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(config =>
+    {
+        var versionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+        foreach (var description in versionProvider.ApiVersionDescriptions)
+        {
+            config.SwaggerEndpoint(
+                $"/swagger/{description.GroupName}/swagger.json",
+                description.GroupName.ToUpperInvariant());
+        }
+    });
 }
 
 //app.UseHttpsRedirection();
@@ -113,8 +156,6 @@ if(!string.IsNullOrEmpty(apiConfig.Authentication))
     app.MapControllers();
 else
     app.MapControllers().WithMetadata(new AllowAnonymousAttribute());
-
-
 
 
 

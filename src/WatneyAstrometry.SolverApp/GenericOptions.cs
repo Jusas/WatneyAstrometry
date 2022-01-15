@@ -40,7 +40,7 @@ namespace WatneyAstrometry.SolverApp
         public uint HigherDensityOffset { get; set; }
 
         [Option("extended", Required = false, Default = false,
-            HelpText = "Produce extended output. This will print out a lot of additional detail about the solve.")]
+            HelpText = "Produce extended output. This will print out a lot of additional detail about the solve, including the FITS header keywords/values and the CD matrix.")]
         public bool ExtendedOutput { get; set; }
         
         [Option("log-stdout", Required = false, Default = false,

@@ -20,8 +20,16 @@ namespace WatneyAstrometry.SolverApp
         public string Dec { get; set; }
 
         [Option('f', "field-radius", SetName = "manual-params", Required = false,
-            HelpText = "The (telescope) field radius (in degrees) to use.")]
-        public float FieldRadius { get; set; }
+            HelpText = "The (telescope) field radius (in degrees) to use. Mutually exclusive with the --field-radius-range parameter.")]
+        public double FieldRadius { get; set; }
+
+        [Option('f', "field-radius-range", SetName = "manual-params", Required = false,
+            HelpText = "The (telescope) field radius (in degrees) to use as a min-max range. Separate the values with a dash, e.g. '4-2.5'. The order of those two values does not matter. If this argument is set, it will override --field-radius.")]
+        public string FieldRadiusMinMax { get; set; }
+
+        [Option('n', "field-radius-steps", SetName = "manual-params", Required = false, Default = "0",
+            HelpText = "How many intermediate steps to use between min-max when trying out field radii when --field-radius-range argument is given, otherwise this value will be ignored. If given the parameter 'auto', the number of intermediate steps will be auto-generated: the tried field radius value will be halved until minimum value is reached. If not given, defaults to 0.")]
+        public string IntermediateFieldRadiusSteps { get; set; }
 
         [Option('h', "use-fits-headers", Required = false, SetName = "auto-params",
             HelpText = "Specifies that the assumed center and field radius is provided by the file FITS headers. Will result in an error if the input file is not FITS or it does not contain the required FITS headers.")]
@@ -29,7 +37,7 @@ namespace WatneyAstrometry.SolverApp
 
         [Option('s', "search-radius", Required = true,
             HelpText = "The search radius (deg), the solver search will cover this area around the center coordinate.")]
-        public float SearchRadius { get; set; }
+        public double SearchRadius { get; set; }
 
         [Option('p', "use-parallelism", Required = false, Default = false,
             HelpText = "Use parallelism, search multiple areas simultaneously.")]
@@ -53,6 +61,16 @@ namespace WatneyAstrometry.SolverApp
                     HigherDensityOffset = 1,
                     LowerDensityOffset = 1,
                     FieldRadius = 2,
+                    SearchRadius = 10,
+                    UseManualParams = true
+                });
+                yield return new Example("Manually defined coordinates with min-max radius range and one intermediate radius step", new NearbyOptions
+                {
+                    ImageFilename = "andromeda.png",
+                    Ra = "10.7",
+                    Dec = "41",
+                    FieldRadiusMinMax = "3-1.5",
+                    IntermediateFieldRadiusSteps = "1",
                     SearchRadius = 10,
                     UseManualParams = true
                 });

@@ -3,6 +3,7 @@ using System.Text;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Utils
 {

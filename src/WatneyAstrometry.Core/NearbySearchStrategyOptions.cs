@@ -7,13 +7,13 @@ namespace WatneyAstrometry.Core
     /// </summary>
     public class NearbySearchStrategyOptions
     {
-        private float _searchAreaRadius = 10;
+        private double _searchAreaRadius = 10;
 
         /// <summary>
         /// This is the search area radius in degrees around the center point, this area will be covered
         /// by the search.
         /// </summary>
-        public float SearchAreaRadius
+        public double SearchAreaRadiusDegrees
         {
             get => _searchAreaRadius;
             set
@@ -24,20 +24,58 @@ namespace WatneyAstrometry.Core
             }
         }
 
-        private float _scopeFieldRadius = 2;
+        private double _maxFieldRadiusDegrees = 2;
         /// <summary>
-        /// The assumed telescope field of view radius.
+        /// The maximum telescope field radius to try.
+        /// If both <see cref="MinFieldRadiusDegrees"/> and <see cref="MaxFieldRadiusDegrees"/> have the same value, only this field radius will be tried.
         /// </summary>
-        public float ScopeFieldRadius
+        public double MaxFieldRadiusDegrees
         {
-            get => _scopeFieldRadius;
+            get => _maxFieldRadiusDegrees;
             set
             {
-                if(value <= 0 || _scopeFieldRadius > 30)
-                    throw new Exception("ScopeFieldRadius should be > 0 and <= 30");
-                _scopeFieldRadius = value;
+                if(value <= 0 || _maxFieldRadiusDegrees > 30)
+                    throw new Exception("MaxFieldRadiusDegrees should be > 0 and <= 30");
+                _maxFieldRadiusDegrees = value;
             }
         }
+
+        private double _minFieldRadiusDegrees;
+        /// <summary>
+        /// The minimum telescope field radius to try.
+        /// If both <see cref="MinFieldRadiusDegrees"/> and <see cref="MaxFieldRadiusDegrees"/> have the same value, only this field radius will be tried.
+        /// </summary>
+        public double MinFieldRadiusDegrees
+        {
+            get => _minFieldRadiusDegrees;
+            set
+            {
+                if (value <= 0)
+                    throw new Exception("MinFieldRadiusDegrees should be > 0");
+                _minFieldRadiusDegrees = value;
+            }
+        }
+
+        /// <summary>
+        /// How many interpolated intermediate field radii to use in the search.<br/>
+        /// If both <see cref="MinFieldRadiusDegrees"/> and <see cref="MaxFieldRadiusDegrees"/> have the same value, this parameter is not used.
+        /// <para>
+        /// If left as null, the field radius used starts at <see cref="MaxFieldRadiusDegrees"/> and this value is halved
+        /// each cycle, until <see cref="MinFieldRadiusDegrees"/> is met. <br/>
+        /// <i>Example: null == [8, 4, 2, 1]</i>
+        /// </para>
+        /// <para>
+        /// If set to 0, there will be two search cycles, one with <see cref="MinFieldRadiusDegrees"/> and one with <see cref="MaxFieldRadiusDegrees"/>.
+        /// <br/>
+        /// <i>Example: 0 == [8, 1]</i>
+        /// </para>
+        /// <para>
+        /// If set > 0, the intermediate field radii used in search will be interpolated.
+        /// <br/>
+        /// <i>Example: 3 == [8, 6.25, 4.5, 2.75, 1]</i>
+        /// </para>
+        /// </summary>
+        public uint? IntermediateFieldRadiusSteps { get; set; } = null;
 
         /// <summary>
         /// Allow the use of parallelism, searching multiple areas simultaneously. <br/>

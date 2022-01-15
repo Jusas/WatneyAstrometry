@@ -18,15 +18,16 @@ namespace WatneyAstrometry.Core
     {
      
         /// <summary>
-        /// The center point (aka the assumed center coordinate of the telescope view).
+        /// The search center point (aka the assumed correct center coordinate of the telescope view).
         /// </summary>
-        public EquatorialCoords CenterPoint { get; internal set; }
+        public EquatorialCoords SearchCenter { get; internal set; }
         /// <summary>
         /// The search options.
         /// </summary>
         public NearbySearchStrategyOptions Options { get; internal set; }
         /// <summary>
-        /// Density offsets, created from <see cref="NearbySearchStrategyOptions.MaxNegativeDensityOffset"/> and <see cref="NearbySearchStrategyOptions.MaxPositiveDensityOffset"/>.
+        /// Density offsets, created from <see cref="NearbySearchStrategyOptions.MaxNegativeDensityOffset"/>
+        /// and <see cref="NearbySearchStrategyOptions.MaxPositiveDensityOffset"/>.
         /// </summary>
         public int[] DensityOffsets { get; internal set; }
 
@@ -44,63 +45,114 @@ namespace WatneyAstrometry.Core
         /// <param name="options">The search options.</param>
         public NearbySearchStrategy(EquatorialCoords point, NearbySearchStrategyOptions options)
         {
-            CenterPoint = point;
+            SearchCenter = point;
             Options = options;
             UseParallelism = options.UseParallelism;
             DensityOffsets = new int[Options.MaxNegativeDensityOffset + Options.MaxPositiveDensityOffset + 1];
             for (int i = -(int)Options.MaxNegativeDensityOffset, n = 0; i <= Options.MaxPositiveDensityOffset; i++, n++)
                 DensityOffsets[n] = i;
         }
-        
+
         /// <inheritdoc />
         public IEnumerable<SearchRun> GetSearchQueue()
         {
-            // Lazy approach: see what Dec range is within search radius,
-            // populate it with semi-overlapping search circles and then measure distance
-            // to each circle center and include it if it's in range.
-            // Sort circles by distance.
 
-            var runs = new List<(double distance, SearchRun run)>
-            {
-                (0, new SearchRun()
+            IEnumerable<double> radiiToTry;
+            if (Options.MaxFieldRadiusDegrees == Options.MinFieldRadiusDegrees)
+                radiiToTry = new double[] {Options.MinFieldRadiusDegrees};
+            else
+                radiiToTry = new double[]
                 {
-                    Center = CenterPoint,
-                    DensityOffsets = DensityOffsets,
-                    RadiusDegrees = Options.ScopeFieldRadius
-                })
-            };
+                    Options.MaxFieldRadiusDegrees,
+                    Options.MinFieldRadiusDegrees
+                };
 
-            int n = 0;
-            float maxDec = Math.Min((float)CenterPoint.Dec + Options.SearchAreaRadius, 90);
-            float minDec = Math.Max((float)CenterPoint.Dec - Options.SearchAreaRadius, -90);
-
-            for (float dec = minDec; dec <= maxDec; dec += Options.ScopeFieldRadius, n++) // Take only the decs that are +- radius
+            if (Options.IntermediateFieldRadiusSteps == null && radiiToTry.Count() > 1)
             {
-                var angularDistToCover = Math.Cos(Conversions.Deg2Rad(dec)) * 360.0;
-                var numberOfSearchCircles = (int)Math.Ceiling(angularDistToCover / (2 * Options.ScopeFieldRadius)) + 1;
-                var raStep = 360.0f / numberOfSearchCircles;
-                var raOffset = n % 2 * 0.5f * raStep;
+                var currentRadius = Options.MaxFieldRadiusDegrees;
+                var radii = new List<double>() { currentRadius };
 
-                for (var i = 0; i < numberOfSearchCircles; i++)
+                while (currentRadius > Options.MinFieldRadiusDegrees)
                 {
-                    var ra = (raOffset + i * raStep) % 360.0f; // is this % necessary?
-                    var searchCenter = new EquatorialCoords(ra, dec);
-                    var distToOriginalSearchCenter = EquatorialCoords.GetAngularDistanceBetween(searchCenter, CenterPoint);
-                    if (distToOriginalSearchCenter < Options.SearchAreaRadius)
-                    {
-                        runs.Add((distToOriginalSearchCenter, new SearchRun()
-                        {
-                            Center = new EquatorialCoords(ra, dec),
-                            RadiusDegrees = Options.ScopeFieldRadius,
-                            DensityOffsets = DensityOffsets
-                        }));
-                    }
+                    currentRadius *= 0.5;
+                    radii.Add(currentRadius);
                 }
+
+                radii.Add(Options.MinFieldRadiusDegrees);
+                radiiToTry = radii;
+            }
+            else if (Options.IntermediateFieldRadiusSteps > 0 && radiiToTry.Count() > 1)
+            {
+                var delta = Options.MaxFieldRadiusDegrees - Options.MinFieldRadiusDegrees;
+                var stepSize = delta / (Options.IntermediateFieldRadiusSteps.Value + 1);
+                var currentRadius = Options.MaxFieldRadiusDegrees;
+                var radii = new List<double>() { currentRadius };
+
+                while (currentRadius > Options.MinFieldRadiusDegrees)
+                {
+                    currentRadius -= stepSize;
+                    radii.Add(currentRadius);
+                }
+
+                radii.Add(Options.MinFieldRadiusDegrees);
+                radiiToTry = radii;
             }
 
-            return runs.OrderBy(x => x.distance)
-                .Select(x => x.run)
-                .ToList();
+
+            int n = 0;
+            var maxDec = Math.Min(SearchCenter.Dec + Options.SearchAreaRadiusDegrees, 90);
+            var minDec = Math.Max(SearchCenter.Dec - Options.SearchAreaRadiusDegrees, -90);
+
+            // All search runs, will be from largest radius to smallest, grouped by radius
+            // and ordered in group by distance to our search center coordinate.
+            var allRuns = new List<SearchRun>();
+
+            foreach (var scopeFieldRadius in radiiToTry)
+            {
+                var runs = new List<(double distance, SearchRun run)>
+                {
+                    (0, new SearchRun()
+                    {
+                        Center = SearchCenter,
+                        DensityOffsets = DensityOffsets,
+                        RadiusDegrees = (float)scopeFieldRadius
+                    })
+                };
+
+                // Lazy approach: see what Dec range is within search radius,
+                // populate it with semi-overlapping search circles and then measure distance
+                // to each circle center and include it if it's in range.
+                // Sort circles by distance.
+
+                for (var dec = minDec; dec <= maxDec; dec += scopeFieldRadius, n++) // Take only the decs that are +- radius
+                {
+                    var angularDistToCover = Math.Cos(Conversions.Deg2Rad(dec)) * 360.0;
+                    var numberOfSearchCircles = (int)Math.Ceiling(angularDistToCover / (2 * scopeFieldRadius)) + 1;
+                    var raStep = 360.0f / numberOfSearchCircles;
+                    var raOffset = n % 2 * 0.5f * raStep;
+
+                    for (var i = 0; i < numberOfSearchCircles; i++)
+                    {
+                        var ra = (raOffset + i * raStep) % 360.0f; // is this % necessary?
+                        var currentSearchCenter = new EquatorialCoords(ra, dec);
+                        var distToOriginalSearchCenter = EquatorialCoords.GetAngularDistanceBetween(currentSearchCenter, SearchCenter);
+                        if (distToOriginalSearchCenter < Options.SearchAreaRadiusDegrees)
+                        {
+                            runs.Add((distToOriginalSearchCenter, new SearchRun()
+                            {
+                                Center = new EquatorialCoords(ra, dec),
+                                RadiusDegrees = (float)scopeFieldRadius,
+                                DensityOffsets = DensityOffsets
+                            }));
+                        }
+                    }
+                }
+
+                allRuns.AddRange(runs.OrderBy(x => x.distance)
+                    .Select(x => x.run));
+            }
+
+            return allRuns;
 
         }
 

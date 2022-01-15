@@ -74,8 +74,9 @@ namespace WatneyAstrometry.Core.Tests
         {
             var options = new NearbySearchStrategyOptions()
             {
-                ScopeFieldRadius = 4,
-                SearchAreaRadius = 20
+                MaxFieldRadiusDegrees = 4,
+                MinFieldRadiusDegrees = 4,
+                SearchAreaRadiusDegrees = 20,
             };
             var center = new EquatorialCoords(100, 30);
 
@@ -104,49 +105,6 @@ namespace WatneyAstrometry.Core.Tests
             }
 
         }
-
-        [Fact]
-        [Trait("Category", "Visual")]
-        public void Visualize_nearby_blind_search_areas()
-        {
-            var options = new NearbyBlindSearchStrategyOptions()
-            {
-                MinFieldRadiusDegrees = 4,
-                MaxFieldRadiusDegrees = 8,
-                IntermediateRadiusSteps = 1,
-                SearchAreaRadiusDegrees = 30
-            };
-            var center = new EquatorialCoords(100, 0);
-
-            var strategy = new NearbyBlindSearchStrategy(center, options);
-            var areas = strategy.GetSearchQueue().ToList();
-
-            using (var sky = SkySegmentViz.DrawSkySegmentSphere(4))
-            {
-                double distortion = 1;
-                for (var a = 0; a < areas.Count; a++)
-                {
-                    var area = areas[a];
-                    // As we go up/down, one degree covers more RA degrees. Need to distort the circle to reflect that on flat 2D plane.
-                    // Since Cos(dec) can reach 0 here, insert some sanity.
-                    distortion = Math.Min(100, 1.0 / Math.Cos(Conversions.Deg2Rad(area.Center.Dec)));
-                    sky.DrawColoredEllipseOutline(area.Center, area.RadiusDegrees * distortion, area.RadiusDegrees,
-                        Color.Red, 2.0f);
-                }
-
-                distortion = Math.Min(100, 1.0 / Math.Cos(Conversions.Deg2Rad(areas[0].Center.Dec)));
-                sky.DrawColoredEllipseOutline(areas[0].Center, areas[0].RadiusDegrees * distortion,
-                    areas[0].RadiusDegrees,
-                    Color.Green, 2.0f);
-
-                distortion = Math.Min(100, 1.0 / Math.Cos(Conversions.Deg2Rad(center.Dec)));
-                sky.DrawColoredEllipseOutline(areas[0].Center, options.SearchAreaRadiusDegrees * distortion,
-                    options.SearchAreaRadiusDegrees,
-                    Color.Yellow, 2.0f);
-
-                sky.SaveAsPng($"{nameof(Visualize_nearby_blind_search_areas)}.png");
-            }
-
-        }
+        
     }
 }

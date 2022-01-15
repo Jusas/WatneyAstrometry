@@ -1,21 +1,25 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 
-namespace WatneyAstrometry.WebApi.Models
+namespace WatneyAstrometry.WebApi.Models.Rest
 {
-    public class JobFormUnifiedModel
+    /// <summary>
+    /// New solver job data model.
+    /// </summary>
+    public class RestPostNewJobModel
     {
+        /// <summary>
+        /// The job input parameters.
+        /// </summary>
         [FromForm(Name = "args")]
-        public JobParametersModel Parameters { get; set; }
+        public RestJobParametersModel Parameters { get; set; }
         
         internal IFormFile Image { get; set; }
 
         public Dictionary<string, string[]> Validate()
         {
-            
             var errors = new Dictionary<string, string[]>();
 
             string[] arr(string item) => new string[] { item };
@@ -44,8 +48,8 @@ namespace WatneyAstrometry.WebApi.Models
 
                 if (!useFitsHeaders)
                 {
-                    if((p?.Ra == null || p.Dec == null || p.FieldRadius == null))
-                        errors.Add("useFitsHeaders", arr($"ra, dec and fieldRadius must be provided when useFitsHeaders is false"));
+                    if((p?.Ra == null || p.Dec == null || p.MaxFieldRadius == null || p.MinFieldRadius == null))
+                        errors.Add("useFitsHeaders", arr($"ra, dec, minRadius and maxRadius must be provided when useFitsHeaders is false"));
                 }
             }
 

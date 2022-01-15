@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Repositories;
 

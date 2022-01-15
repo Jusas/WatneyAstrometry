@@ -8,6 +8,7 @@ using WatneyAstrometry.Core.StarDetection;
 using WatneyAstrometry.ImageReaders;
 using WatneyAstrometry.WebApi.Exceptions;
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Repositories;
 using WatneyAstrometry.WebApi.Utils;
 
@@ -26,7 +27,7 @@ public class JobManager : IJobManager
         _logger = logger;
     }
 
-    public async Task<JobModel> PrepareJob(JobFormUnifiedModel jobFormModel, IDictionary<string, object> metadata = null)
+    public async Task<JobModel> PrepareJob(NewJobInputModel newJobFormModel, IDictionary<string, object> metadata = null)
     {
         await Task.Yield();
 
@@ -38,9 +39,9 @@ public class JobManager : IJobManager
             Id = jobGeneratedId,
             NumericId = jobGeneratedId.GetHashCode(),
             Status = JobStatus.Queued,
-            Parameters = jobFormModel.Parameters
+            Parameters = newJobFormModel.Parameters
         };
-        AnalyzeAndExtractStars(jobFormModel.Image, jobModel, metadata);
+        AnalyzeAndExtractStars(newJobFormModel.Image, jobModel, metadata);
         
         await _jobRepository.Insert(jobModel).ConfigureAwait(false);
         _queueManager.Enqueue(jobModel.Id);
@@ -97,7 +98,8 @@ public class JobManager : IJobManager
                         var fits = (FitsImage)image;
                         model.Parameters.NearbyParameters.Ra = fits.Metadata.CenterPos.Ra;
                         model.Parameters.NearbyParameters.Dec = fits.Metadata.CenterPos.Dec;
-                        model.Parameters.NearbyParameters.FieldRadius = fits.Metadata.ViewSize.DiameterDeg * 0.5;
+                        model.Parameters.NearbyParameters.MaxFieldRadius = fits.Metadata.ViewSize.DiameterDeg * 0.5;
+                        model.Parameters.NearbyParameters.MinFieldRadius = model.Parameters.NearbyParameters.MaxFieldRadius;
                     }
                     catch (Exception e)
                     {
@@ -133,13 +135,25 @@ public class JobManager : IJobManager
             _logger.LogTrace($"Image dimensions: {model.ImageWidth}x{model.ImageHeight}");
 
             // Metadata transformations
+            // This comes from the compatibility API, when the radius was input using ScaleUnits == "arcsecperpix"
             if (metadata != null && metadata.ContainsKey("CalculateFieldRadiusFromArcSecsPerPixel") && model.Parameters.Mode == "nearby")
             {
-                double appValue = (double)metadata["CalculateFieldRadiusFromArcSecsPerPixel"];
-                var radiusArcsecs = Math.Sqrt(model.ImageWidth * model.ImageWidth + model.ImageHeight * model.ImageHeight) * 0.5 * appValue;
+                double[] appValues = (double[])metadata["CalculateFieldRadiusFromArcSecsPerPixel"];
+                
+                var radiusArcsecs = Math.Sqrt(model.ImageWidth * model.ImageWidth + model.ImageHeight * model.ImageHeight) * 0.5 * appValues[0];
                 var radiusDeg = radiusArcsecs / 3600.0;
-                model.Parameters.NearbyParameters.FieldRadius = radiusDeg;
-                _logger.LogTrace($"Calculated image field radius from arcsecperpixel: {radiusDeg:F} deg");
+                model.Parameters.NearbyParameters.MaxFieldRadius = radiusDeg;
+                model.Parameters.NearbyParameters.MinFieldRadius = radiusDeg;
+                _logger.LogTrace($"Calculated image max field radius from arcsecperpixel: {radiusDeg:F} deg");
+
+                if (appValues.Length == 2)
+                {
+                    radiusArcsecs = Math.Sqrt(model.ImageWidth * model.ImageWidth + model.ImageHeight * model.ImageHeight) * 0.5 * appValues[1];
+                    radiusDeg = radiusArcsecs / 3600.0;
+                    model.Parameters.NearbyParameters.MinFieldRadius = radiusDeg;
+                    _logger.LogTrace($"Calculated image min field radius from arcsecperpixel: {radiusDeg:F} deg");
+                }
+                
             }
 
             _logger.LogTrace("Detecting stars");

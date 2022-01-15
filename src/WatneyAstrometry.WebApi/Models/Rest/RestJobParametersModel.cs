@@ -1,21 +1,13 @@
-﻿// Copyright (c) Jussi Saarivirta.
-// Licensed under the Apache License, Version 2.0.
-
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
+using WatneyAstrometry.WebApi.Models.Domain;
 
-namespace WatneyAstrometry.WebApi.Models;
+namespace WatneyAstrometry.WebApi.Models.Rest;
 
-public class JobParametersModel
+public class RestJobParametersModel //: IValidatableObject
 {
-    //public enum SolveMode
-    //{
-    //    Blind,
-    //    Nearby
-    //}
-
     /// <summary>
     /// Maximum number of stars to use from the image. When not given, the solver decides itself.
     /// When given, the solver uses this number. In cases of very high star count present in the image (wide-field images), the solve may fail if this number is not set high enough.
@@ -23,7 +15,6 @@ public class JobParametersModel
     /// A high number (> 800) would however also affect performance due to the high number of calculations, and this gets especially noticeable with blind solves.
     /// The hard limit in the solver is set to 800.
     /// </summary>
-    [Range(0, 800)]
     [FromForm(Name = "maxStars")]
     public int? MaxStars { get; set; }
 
@@ -34,7 +25,6 @@ public class JobParametersModel
     /// to get the answer faster. Less work is performed in scanning, which makes it faster. Recommended (and default) value to use is 4 but some images may well solve
     /// faster with higher values. Too high values will however result in time wasted in scanning and making the solve actually slower.
     /// </summary>
-    [Range(0, 16)]
     [FromForm(Name = "sampling")]
     public int? Sampling { get; set; }
 
@@ -42,7 +32,6 @@ public class JobParametersModel
     /// Include this many lower quad density passes in search (compared to image quad density).
     /// For practical purposes this is limited to 0 .. 3.
     /// </summary>
-    [Range(0, 3)]
     [DefaultValue((uint)1)]
     [FromForm(Name = "lowerDensityOffset")]
     public uint? LowerDensityOffset { get; set; }
@@ -51,20 +40,64 @@ public class JobParametersModel
     /// Include this many higher quad density passes in search (compared to image quad density).
     /// For practical purposes this is limited to 0 .. 3.
     /// </summary>
-    [Range(0, 3)]
     [DefaultValue((uint)1)]
     [FromForm(Name = "higherDensityOffset")]
     public uint? HigherDensityOffset { get; set; }
-
-
+    
+    /// <summary>
+    /// Solver mode. Supported values are: 'nearby', 'blind'
+    /// </summary>
     [FromForm(Name = "mode")]
     [Required]
     [RegularExpression("^(blind|nearby)$")]
     public string Mode { get; set; }
 
+    /// <summary>
+    /// The parameters for nearby solving operation.
+    /// </summary>
     [FromForm(Name = "nearby")]
-    public NearbyOptions NearbyParameters { get; set; }
+    public RestNearbyOptions NearbyParameters { get; set; }
 
+    /// <summary>
+    /// The parameters for blind solving operation.
+    /// </summary>
     [FromForm(Name = "blind")]
-    public BlindOptions BlindParameters { get; set; }
+    public RestBlindOptions BlindParameters { get; set; }
+    
+
+
+    public class Mappings : AutoMapper.Profile
+    {
+        public Mappings()
+        {
+            // Explicit mappings.
+
+            CreateMap<JobParametersModel, RestJobParametersModel>()
+                .ForMember(dest => dest.BlindParameters, x => x.MapFrom(src => src.BlindParameters))
+                .ForMember(dest => dest.NearbyParameters, x => x.MapFrom(src => src.NearbyParameters))
+                .ForMember(dest => dest.Mode, x => x.MapFrom(src => src.Mode))
+                .ForMember(dest => dest.HigherDensityOffset, x => x.MapFrom(src => src.HigherDensityOffset))
+                .ForMember(dest => dest.LowerDensityOffset, x => x.MapFrom(src => src.LowerDensityOffset))
+                .ForMember(dest => dest.MaxStars, x => x.MapFrom(src => src.MaxStars))
+                .ForMember(dest => dest.Sampling, x => x.MapFrom(src => src.Sampling))
+                ;
+
+            CreateMap<RestJobParametersModel, JobParametersModel>()
+                .ForMember(dest => dest.BlindParameters, x => x.MapFrom(src => src.BlindParameters))
+                .ForMember(dest => dest.NearbyParameters, x => x.MapFrom(src => src.NearbyParameters))
+                .ForMember(dest => dest.Mode, x => x.MapFrom(src => src.Mode))
+                .ForMember(dest => dest.HigherDensityOffset, x => x.MapFrom(src => src.HigherDensityOffset))
+                .ForMember(dest => dest.LowerDensityOffset, x => x.MapFrom(src => src.LowerDensityOffset))
+                .ForMember(dest => dest.MaxStars, x => x.MapFrom(src => src.MaxStars))
+                .ForMember(dest => dest.Sampling, x => x.MapFrom(src => src.Sampling))
+                ;
+
+
+        }
+    }
+
+    //public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    //{
+    //    validationContext.
+    //}
 }

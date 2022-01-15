@@ -7,17 +7,23 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 using WatneyAstrometry.WebApi.Controllers.Watney;
-using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Services;
 using WcsFitsWriter = WatneyAstrometry.WebApi.Utils.WcsFitsWriter;
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 {
+    /// <summary>
+    /// Astrometry.net compatibility API.
+    /// Allows the use of Watney through the documented nova.astrometry.net interface, see: [http://astrometry.net/doc/net/api.html](http://astrometry.net/doc/net/api.html).
+    /// Note that some options will be ignored when they do not fit the Watney option model.
+    /// The main 'canonical' Watney API is located under /api/watney.
+    /// </summary>
     [Route("api")]
     [ApiController]
+    [ApiVersionNeutral]
     [AllowAnonymous]
     public class AstrometryNetCompatController : ControllerBase
     {
@@ -103,6 +109,32 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         }
 
 
+        private NearbyOptions ConstructNearbyOptions(UploadModel data)
+        {
+            var options = new NearbyOptions
+            {
+                Ra = data.CenterRa,
+                Dec = data.CenterDec,
+                UseFitsHeaders = false,
+                SearchRadius = data.SearchRadius
+            };
+
+            if (data.FieldRadius.Length == 2)
+            {
+                options.MaxFieldRadius = data.FieldRadius[0];
+                options.MinFieldRadius = data.FieldRadius[1];
+                options.IntermediateFieldRadiusSteps = data.IntermediateFieldRadiusSteps;
+            }
+            else
+            {
+                options.MaxFieldRadius = data.FieldRadius[0];
+                options.MinFieldRadius = data.FieldRadius[0];
+            }
+
+            return options;
+
+        }
+
         [HttpPost]
         [Route("upload")]
         public async Task<IActionResult> FileUpload([FromForm(Name = "request-json")] string upload, IFormFile file)
@@ -149,25 +181,18 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
                 // Use blind solve if we don't get coordinates and field radius.
                 var mode = "blind";
-                if (data.CenterDec != null && data.CenterRa != null && data.ScaleType != null) // TODO: we really need a blind area-bound search.
+                if (data.CenterDec != null && data.CenterRa != null && data.ScaleType != null) 
                 {
                     mode = "nearby";
                 }
 
-                var jobModel = new JobFormUnifiedModel()
+                var jobModel = new NewJobInputModel()
                 {
                     Image = file,
                     Parameters = new JobParametersModel
                     {
                         Mode = mode,
-                        NearbyParameters = mode == "nearby" ? new NearbyOptions
-                        {
-                            Ra = data.CenterRa,
-                            Dec = data.CenterDec,
-                            UseFitsHeaders = false,
-                            FieldRadius = data.FieldRadius,
-                            SearchRadius = data.SearchRadius
-                        } : null,
+                        NearbyParameters = mode == "nearby" ? ConstructNearbyOptions(data) : null,
                         BlindParameters = mode == "blind" ? new BlindOptions
                         {
                             MaxRadius = 16, // These are perhaps decent defaults.
@@ -281,20 +306,13 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     mode = "nearby";
                 }
 
-                var jobModel = new JobFormUnifiedModel()
+                var jobModel = new NewJobInputModel()
                 {
                     Image = formFile,
                     Parameters = new JobParametersModel
                     {
                         Mode = mode,
-                        NearbyParameters = mode == "nearby" ? new NearbyOptions
-                        {
-                            Ra = data.CenterRa,
-                            Dec = data.CenterDec,
-                            UseFitsHeaders = false,
-                            FieldRadius = data.FieldRadius,
-                            SearchRadius = data.SearchRadius
-                        } : null,
+                        NearbyParameters = mode == "nearby" ? ConstructNearbyOptions(data) : null,
                         BlindParameters = mode == "blind" ? new BlindOptions
                         {
                             MaxRadius = 16, // These are perhaps decent defaults.

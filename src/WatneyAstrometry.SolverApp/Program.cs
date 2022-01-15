@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
@@ -237,6 +238,17 @@ namespace WatneyAstrometry.SolverApp
             return strategy;
         }
 
+        private static uint? ParseIntermediateFieldRadiusSteps(string input)
+        {
+            if (input == null)
+                return 0;
+
+            if (input == "auto")
+                return null;
+            
+            return uint.Parse(input, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+        }
+
         private static NearbySearchStrategy ParseStrategy(NearbyOptions options)
         {
             EquatorialCoords center = new EquatorialCoords(0, 0);
@@ -248,7 +260,7 @@ namespace WatneyAstrometry.SolverApp
                 MaxNegativeDensityOffset = options.LowerDensityOffset,
                 MaxPositiveDensityOffset = options.HigherDensityOffset,
                 UseParallelism = options.UseParallelism,
-                SearchAreaRadius = options.SearchRadius
+                SearchAreaRadiusDegrees = options.SearchRadius
             };
             
 
@@ -303,7 +315,23 @@ namespace WatneyAstrometry.SolverApp
                     }
                 }
 
-                strategyOptions.ScopeFieldRadius = options.FieldRadius;
+                var fieldRadiusMinMaxRegex = new Regex(@"^(\d+\.*\d*)-(\d+\.*\d*)$");
+                if (!string.IsNullOrEmpty(options.FieldRadiusMinMax) &&
+                    fieldRadiusMinMaxRegex.IsMatch(options.FieldRadiusMinMax))
+                {
+                    var val1 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Captures[0].Value, 
+                        CultureInfo.InvariantCulture);
+                    var val2 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Captures[1].Value,
+                        CultureInfo.InvariantCulture);
+                    strategyOptions.MaxFieldRadiusDegrees = val1 > val2 ? val1 : val2;
+                    strategyOptions.MinFieldRadiusDegrees = val1 < val2 ? val1 : val2;
+
+                    strategyOptions.IntermediateFieldRadiusSteps =
+                        ParseIntermediateFieldRadiusSteps(options.IntermediateFieldRadiusSteps);
+                }
+                else
+                    strategyOptions.MaxFieldRadiusDegrees = options.FieldRadius;
+
                 strategy = new NearbySearchStrategy(center, strategyOptions);
                 return strategy;
             }
@@ -326,7 +354,7 @@ namespace WatneyAstrometry.SolverApp
                     }
 
                     center = fitsImage.Metadata.CenterPos;
-                    strategyOptions.ScopeFieldRadius = fitsImage.Metadata.ViewSize != null
+                    strategyOptions.MaxFieldRadiusDegrees = fitsImage.Metadata.ViewSize != null
                         ? (float)fitsImage.Metadata.ViewSize.DiameterDeg * 0.5f
                         : options.FieldRadius;
 
@@ -401,11 +429,23 @@ namespace WatneyAstrometry.SolverApp
             var errors = new List<string>();
             errors.AddRange(ValidateGeneric(options));
 
+            var fieldRadiusMinMaxRegex = new Regex(@"^\d+\.*\d*-\d+\.*\d*$");
+            var fieldRadiusStepsRegex = new Regex(@"^(auto|\d+)$");
+
             if (options.UseManualParams)
             {
                 if (string.IsNullOrEmpty(options.Ra)) errors.Add("--ra: parameter was not provided.");
                 if (string.IsNullOrEmpty(options.Dec)) errors.Add("--dec: parameter was not provided.");
-                if (options.FieldRadius <= 0) errors.Add("--field-radius: was not provided.");
+
+                var hasValidMinMax = !string.IsNullOrEmpty(options.FieldRadiusMinMax) &&
+                    fieldRadiusMinMaxRegex.IsMatch(options.FieldRadiusMinMax);
+
+                if (!string.IsNullOrEmpty(options.IntermediateFieldRadiusSteps) && !fieldRadiusStepsRegex.IsMatch(options.IntermediateFieldRadiusSteps))
+                {
+                    errors.Add("--field-radius-steps: invalid value, valid values are: a number or string 'auto'");
+                }
+
+                if (options.FieldRadius <= 0 && !hasValidMinMax) errors.Add("--field-radius or --field-radius-range: was not provided.");
                 if (errors.Any())
                     errors.Insert(0, "Manual input flag was selected, but:");
             }

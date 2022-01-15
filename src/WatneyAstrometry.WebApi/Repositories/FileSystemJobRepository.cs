@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Repositories;
 

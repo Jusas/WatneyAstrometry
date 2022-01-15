@@ -14,7 +14,7 @@ namespace WatneyAstrometry.Core
         /// <summary>
         /// The proposed image radius.
         /// </summary>
-        public float RadiusDegrees;
+        public double RadiusDegrees;
 
         /// <summary>
         /// The proposed image center coordinate.

@@ -7,13 +7,13 @@ namespace WatneyAstrometry.SolverApp
     [Verb("blind", HelpText = "Perform blind solve.")]
     public class BlindOptions : GenericOptions
     {
-        [Option("min-radius", Required = true, Default = 1.0f,
+        [Option("min-radius", Required = true, Default = 1.0,
             HelpText = "The minimum field radius (in degrees) the solver may use in search. Must be > 0.")]
-        public float MinRadius { get; set; }
+        public double MinRadius { get; set; }
 
-        [Option("max-radius", Required = true, Default = 8.0f,
+        [Option("max-radius", Required = true, Default = 8.0,
             HelpText = "The maximum field radius (in degrees) the solver may use in search. Must be <= 30. Search starts at max radius, and radius is divided by 2 until min-radius is reached.")]
-        public float MaxRadius { get; set; }
+        public double MaxRadius { get; set; }
 
         [Option("east-first", Required = false, Default = true,
             HelpText = "Scan Eastern side of the sky first.")]

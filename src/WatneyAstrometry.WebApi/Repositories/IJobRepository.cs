@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using WatneyAstrometry.WebApi.Models;
+using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Repositories;
 
