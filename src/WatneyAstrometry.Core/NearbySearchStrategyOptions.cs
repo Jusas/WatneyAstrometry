@@ -34,8 +34,8 @@ namespace WatneyAstrometry.Core
             get => _maxFieldRadiusDegrees;
             set
             {
-                if(value <= 0 || _maxFieldRadiusDegrees > 30)
-                    throw new Exception("MaxFieldRadiusDegrees should be > 0 and <= 30");
+                if(value <= 0)
+                    throw new Exception("MaxFieldRadiusDegrees should be > 0");
                 _maxFieldRadiusDegrees = value;
             }
         }

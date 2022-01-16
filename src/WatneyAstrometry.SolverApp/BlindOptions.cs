@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using CommandLine;
 using CommandLine.Text;
+using WatneyAstrometry.Core;
 
 namespace WatneyAstrometry.SolverApp
 {
@@ -8,11 +9,12 @@ namespace WatneyAstrometry.SolverApp
     public class BlindOptions : GenericOptions
     {
         [Option("min-radius", Required = true, Default = 1.0,
-            HelpText = "The minimum field radius (in degrees) the solver may use in search. Must be > 0.")]
+            HelpText = "The minimum field radius (in degrees) the solver may use in search. Must be >= 0.1")] // ConstraintValues.MinRecommendedFieldRadius
         public double MinRadius { get; set; }
 
         [Option("max-radius", Required = true, Default = 8.0,
-            HelpText = "The maximum field radius (in degrees) the solver may use in search. Must be <= 30. Search starts at max radius, and radius is divided by 2 until min-radius is reached.")]
+            HelpText = "The maximum field radius (in degrees) the solver may use in search. Must be <= 16. " + // ConstraintValues.MaxRecommendedFieldRadius
+                       "Search starts at max radius, and radius is divided by 2 until min-radius is reached.")]
         public double MaxRadius { get; set; }
 
         [Option("east-first", Required = false, Default = true,

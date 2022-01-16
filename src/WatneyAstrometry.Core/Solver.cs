@@ -184,11 +184,18 @@ namespace WatneyAstrometry.Core
 
             int maxStars;
             if (options?.UseMaxStars != null)
+            {
                 maxStars = options.UseMaxStars.Value;
+                if (maxStars > ConstraintValues.MaxRecommendedStars)
+                {
+                    _logger.Write($"Warn: max stars parameter over the recommended value " +
+                        $"of {ConstraintValues.MaxRecommendedStars}, this may cause slow solves");
+                }
+            }
             else
                 maxStars = 0.33 * stars.Count <= 300
-                    ? 300
-                    : (int)Math.Min(0.33 * stars.Count, 800);
+                    ? 300 // at least 300 stars
+                    : (int)Math.Min(0.33 * stars.Count, 1000);
             
 
             var chosenDetectedStars = TakeBrightest(stars, maxStars);

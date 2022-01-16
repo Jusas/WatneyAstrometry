@@ -319,9 +319,9 @@ namespace WatneyAstrometry.SolverApp
                 if (!string.IsNullOrEmpty(options.FieldRadiusMinMax) &&
                     fieldRadiusMinMaxRegex.IsMatch(options.FieldRadiusMinMax))
                 {
-                    var val1 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Captures[0].Value, 
+                    var val1 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Groups[1].Value, 
                         CultureInfo.InvariantCulture);
-                    var val2 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Captures[1].Value,
+                    var val2 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Groups[2].Value,
                         CultureInfo.InvariantCulture);
                     strategyOptions.MaxFieldRadiusDegrees = val1 > val2 ? val1 : val2;
                     strategyOptions.MinFieldRadiusDegrees = val1 < val2 ? val1 : val2;
@@ -330,7 +330,10 @@ namespace WatneyAstrometry.SolverApp
                         ParseIntermediateFieldRadiusSteps(options.IntermediateFieldRadiusSteps);
                 }
                 else
+                {
+                    strategyOptions.MinFieldRadiusDegrees = options.FieldRadius;
                     strategyOptions.MaxFieldRadiusDegrees = options.FieldRadius;
+                }
 
                 strategy = new NearbySearchStrategy(center, strategyOptions);
                 return strategy;
@@ -398,14 +401,14 @@ namespace WatneyAstrometry.SolverApp
             var errors = new List<string>();
             errors.AddRange(ValidateGeneric(options));
 
-            if (options.MinRadius <= 0)
+            if (options.MinRadius <= ConstraintValues.MinRecommendedFieldRadius)
             {
-                errors.Add("--min-radius: value must be > 0");
+                errors.Add($"--min-radius: value must be > {ConstraintValues.MinRecommendedFieldRadius}");
             }
 
-            if (options.MaxRadius > 30)
+            if (options.MaxRadius > ConstraintValues.MaxRecommendedFieldRadius)
             {
-                errors.Add("--max-radius: value must be <= 30");
+                errors.Add($"--max-radius: value must be <= {ConstraintValues.MaxRecommendedFieldRadius}");
             }
 
             if (options.MinRadius > options.MaxRadius)
@@ -429,7 +432,7 @@ namespace WatneyAstrometry.SolverApp
             var errors = new List<string>();
             errors.AddRange(ValidateGeneric(options));
 
-            var fieldRadiusMinMaxRegex = new Regex(@"^\d+\.*\d*-\d+\.*\d*$");
+            var fieldRadiusMinMaxRegex = new Regex(@"^(\d+\.*\d*)-(\d+\.*\d*)$");
             var fieldRadiusStepsRegex = new Regex(@"^(auto|\d+)$");
 
             if (options.UseManualParams)
@@ -446,6 +449,22 @@ namespace WatneyAstrometry.SolverApp
                 }
 
                 if (options.FieldRadius <= 0 && !hasValidMinMax) errors.Add("--field-radius or --field-radius-range: was not provided.");
+
+                // Validate that min-max is within recommended range.
+                if (hasValidMinMax)
+                {
+                    var val1 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Groups[1].Value,
+                        CultureInfo.InvariantCulture);
+                    var val2 = double.Parse(fieldRadiusMinMaxRegex.Match(options.FieldRadiusMinMax).Groups[2].Value,
+                        CultureInfo.InvariantCulture);
+                    var max = val1 > val2 ? val1 : val2;
+                    var min = val1 < val2 ? val1 : val2;
+                    if(max > ConstraintValues.MaxRecommendedFieldRadius)
+                        errors.Add($"--field-radius-range: value over max recommended radius value of {ConstraintValues.MaxRecommendedFieldRadius}");
+                    if (min < ConstraintValues.MinRecommendedFieldRadius)
+                        errors.Add($"--field-radius-range: value less than min recommended radius value of {ConstraintValues.MinRecommendedFieldRadius}");
+                }
+
                 if (errors.Any())
                     errors.Insert(0, "Manual input flag was selected, but:");
             }

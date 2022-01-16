@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Microsoft.AspNetCore.Mvc;
+using WatneyAstrometry.Core;
 
 namespace WatneyAstrometry.WebApi.Models.Rest
 {
@@ -45,11 +46,19 @@ namespace WatneyAstrometry.WebApi.Models.Rest
 
                 if (p.SearchRadius == null)
                     errors.Add("searchRadius", arr("searchRadius must be set for nearby solves"));
+                else if(p.SearchRadius.Value > ConstraintValues.MaxRecommendedNearbySearchRadius)
+                    errors.Add("searchRadius", arr($"searchRadius should be <= {ConstraintValues.MaxRecommendedNearbySearchRadius}"));
 
                 if (!useFitsHeaders)
                 {
                     if((p?.Ra == null || p.Dec == null || p.MaxFieldRadius == null || p.MinFieldRadius == null))
                         errors.Add("useFitsHeaders", arr($"ra, dec, minRadius and maxRadius must be provided when useFitsHeaders is false"));
+                    
+                    if(p.MaxFieldRadius != null && p.MaxFieldRadius > ConstraintValues.MaxRecommendedFieldRadius)
+                        errors.Add("maxRadius", arr($"maxRadius should be <= {ConstraintValues.MaxRecommendedFieldRadius}"));
+
+                    if (p.MinFieldRadius != null && p.MinFieldRadius < ConstraintValues.MinRecommendedFieldRadius)
+                        errors.Add("minRadius", arr($"minRadius should be >= {ConstraintValues.MinRecommendedFieldRadius}"));
                 }
             }
 
@@ -58,10 +67,19 @@ namespace WatneyAstrometry.WebApi.Models.Rest
                 var p = Parameters.BlindParameters;
                 if (p?.MaxRadius == null)
                     errors.Add("maxRadius", arr("maxRadius must be set when solve mode is blind"));
+                else if(p.MaxRadius.Value > ConstraintValues.MaxRecommendedFieldRadius)
+                    errors.Add("maxRadius", arr($"maxRadius should be <= {ConstraintValues.MaxRecommendedFieldRadius}"));
                 if (p?.MinRadius == null)
                     errors.Add("minRadius", arr("minRadius must be set when solve mode is blind"));
+                else if(p.MinRadius < ConstraintValues.MinRecommendedFieldRadius)
+                    errors.Add("minRadius", arr($"minRadius should be >= {ConstraintValues.MinRecommendedFieldRadius}"));
 
             }
+
+            if(Parameters.HigherDensityOffset > ConstraintValues.MaxRecommendedDensityOffset)
+                errors.Add("higherDensityOffset", arr($"higherDensityOffset should be kept <= {ConstraintValues.MaxRecommendedDensityOffset} for performance reasons"));
+            if (Parameters.LowerDensityOffset > ConstraintValues.MaxRecommendedDensityOffset)
+                errors.Add("lowerDensityOffset", arr($"lowerDensityOffset should be kept <= {ConstraintValues.MaxRecommendedDensityOffset} for performance reasons"));
 
             return errors;
 

@@ -20,11 +20,14 @@ namespace WatneyAstrometry.SolverApp
         public string Dec { get; set; }
 
         [Option('f', "field-radius", SetName = "manual-params", Required = false,
-            HelpText = "The (telescope) field radius (in degrees) to use. Mutually exclusive with the --field-radius-range parameter.")]
+            HelpText = "The (telescope) field radius (in degrees) to use. Mutually exclusive with the --field-radius-range parameter. " +
+                       "Value should be between 0.1 .. 16.")] // ConstraintValues.MinRecommendedFieldRadius and MaxRecommendedFieldRadius
         public double FieldRadius { get; set; }
 
         [Option('f', "field-radius-range", SetName = "manual-params", Required = false,
-            HelpText = "The (telescope) field radius (in degrees) to use as a min-max range. Separate the values with a dash, e.g. '4-2.5'. The order of those two values does not matter. If this argument is set, it will override --field-radius.")]
+            HelpText = "The (telescope) field radius (in degrees) to use as a min-max range. Separate the values with a dash, " +
+                       "e.g. '4-2.5'. The order of those two values does not matter. If this argument is set, it will override --field-radius. " +
+                       "Range should be set between 0.1 .. 16.")] // ConstraintValues.MinRecommendedFieldRadius and MaxRecommendedFieldRadius
         public string FieldRadiusMinMax { get; set; }
 
         [Option('n', "field-radius-steps", SetName = "manual-params", Required = false, Default = "0",
