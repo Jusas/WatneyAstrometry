@@ -109,7 +109,16 @@ namespace WatneyAstrometry.Core.Types
         public PlateConstants PlateConstants { get; internal set; }
 
         private readonly int _imageW;
+        /// <summary>
+        /// The input image width in pixels.
+        /// </summary>
+        public int ImageWidth => _imageW;
+
         private readonly int _imageH;
+        /// <summary>
+        /// The input image height in pixels.
+        /// </summary>
+        public int ImageHeight => _imageH;
 
         /// <summary>
         /// Empty constructor, for (de)serialization.

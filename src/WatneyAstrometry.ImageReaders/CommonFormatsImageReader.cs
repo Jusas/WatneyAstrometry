@@ -113,8 +113,10 @@ namespace WatneyAstrometry.ImageReaders
                     {
                         using (var monoImage = image.CloneAs<L8>())
                         using (var tempFileStream = new FileStream(tempFile, FileMode.Truncate, FileAccess.Write))
+                        {
                             WriteImageBytesToStream(monoImage, tempFileStream);
-                        
+                        }
+
                         bitsPerPixel = 8;
                     }
                     if (pngMetadata.BitDepth == PngBitDepth.Bit16)

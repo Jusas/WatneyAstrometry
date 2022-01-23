@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -26,14 +27,23 @@ namespace WatneyAstrometry.SolverApp
 
         private static ParserResult<object> _parserResult;
         private static Configuration _configuration;
+        private static IVerboseLogger _verboseLogger;
+        private static bool _benchmarkMode = false;
 
-        
+        private static Stopwatch _starDetectionStopwatch = new();
+        private static Stopwatch _solveProcessStopwatch = new();
+        private static Stopwatch _imageReadStopwatch = new();
+        private static Stopwatch _quadFormationStopwatch = new();
+
         public static void Main(string[] args)
         {
             // Enforce this, otherwise help texts will vary depending on culture and we don't want that.
             // Is this a bug in the command line parser 2.8?
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
             
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var parser = new CommandLine.Parser(config =>
             {
                 config.HelpWriter = null;
@@ -46,6 +56,16 @@ namespace WatneyAstrometry.SolverApp
                 .WithParsed<NearbyOptions>(RunNearbySolve)
                 .WithNotParsed(errors => ErrorAction(_parserResult, errors, null));
 
+            stopwatch.Stop();
+            if (_benchmarkMode)
+            {
+                Console.WriteLine($"IMAGEREAD_DURATION: {_imageReadStopwatch.Elapsed.TotalSeconds}");
+                Console.WriteLine($"STARDETECTION_DURATION: {_starDetectionStopwatch.Elapsed.TotalSeconds}");
+                Console.WriteLine($"QUADFORMATION_DURATION: {_quadFormationStopwatch.Elapsed.TotalSeconds}");
+                Console.WriteLine($"SOLVE_DURATION: {_solveProcessStopwatch.Elapsed.TotalSeconds}");
+                Console.WriteLine($"FULL_DURATION: {stopwatch.Elapsed.TotalSeconds}");
+            }
+            
             Environment.Exit(0);
         }
 
@@ -63,10 +83,9 @@ namespace WatneyAstrometry.SolverApp
 
         private static IVerboseLogger GetLogger(GenericOptions options)
         {
-            IVerboseLogger logger = null;
             if (options.LogToStdout || !string.IsNullOrEmpty(options.LogToFile))
             {
-                logger = new DefaultVerboseLogger(new DefaultVerboseLogger.Options
+                _verboseLogger = new DefaultVerboseLogger(new DefaultVerboseLogger.Options
                 {
                     Enabled = true,
                     WriteToFile = !string.IsNullOrEmpty(options.LogToFile),
@@ -75,7 +94,7 @@ namespace WatneyAstrometry.SolverApp
                 });
             }
 
-            return logger;
+            return _verboseLogger;
         }
 
         private static SolverOptions ParseSolverOptions(GenericOptions options)
@@ -84,7 +103,7 @@ namespace WatneyAstrometry.SolverApp
             if (options.MaxStars > 0)
                 solverOpts.UseMaxStars = options.MaxStars;
 
-            if (options.Sampling > 1)
+            if (options.Sampling >= 1)
                 solverOpts.UseSampling = options.Sampling;
 
             return solverOpts;
@@ -101,6 +120,7 @@ namespace WatneyAstrometry.SolverApp
             var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
+            solver.OnSolveProgress += BenchmarkProgressHandler;
 
             var solverOptions = ParseSolverOptions(options);
             var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
@@ -110,8 +130,7 @@ namespace WatneyAstrometry.SolverApp
 
             var result = solveTask.Result;
             SaveOutput(result, options, options.ExtendedOutput);
-
-            Environment.Exit(0);
+            
         }
 
         private static void RunNearbySolve(NearbyOptions options)
@@ -125,6 +144,7 @@ namespace WatneyAstrometry.SolverApp
             var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
+            solver.OnSolveProgress += BenchmarkProgressHandler;
 
             var solverOptions = ParseSolverOptions(options);
             var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
@@ -134,8 +154,28 @@ namespace WatneyAstrometry.SolverApp
 
             var result = solveTask.Result;
             SaveOutput(result, options, options.ExtendedOutput);
+            
+        }
 
-            Environment.Exit(0);
+        private static void BenchmarkProgressHandler(SolverStep step)
+        {
+            if(step == SolverStep.SolveProcessStarted)
+                _solveProcessStopwatch.Start();
+            else if(step == SolverStep.SolveProcessFinished)
+                _solveProcessStopwatch.Stop();
+            else if(step == SolverStep.StarDetectionStarted)
+                _starDetectionStopwatch.Start();
+            else if(step == SolverStep.StarDetectionFinished)
+                _starDetectionStopwatch.Stop();
+            else if(step == SolverStep.ImageReadStarted)
+                _imageReadStopwatch.Start();
+            else if(step == SolverStep.ImageReadFinished)
+                _imageReadStopwatch.Stop();
+            else if(step == SolverStep.QuadFormationStarted)
+                _quadFormationStopwatch.Start();
+            else if(step == SolverStep.QuadFormationFinished)
+                _quadFormationStopwatch.Stop();
+
         }
 
         private static void SaveOutput(SolveResult result, GenericOptions options, bool extended)
@@ -157,10 +197,14 @@ namespace WatneyAstrometry.SolverApp
 
             if (extended)
             {
+                outputData.Add("starsDetected", result.StarsDetected);
+                outputData.Add("starsUsed", result.StarsUsedInSolve);
                 outputData.Add("timeSpent", result.TimeSpent.ToString());
                 outputData.Add("searchIterations", result.AreasSearched);
                 if (result.Success)
                 {
+                    outputData.Add("imageWidth", result.Solution.ImageWidth);
+                    outputData.Add("imageHeight", result.Solution.ImageHeight);
                     outputData.Add("searchRunCenter", result.SearchRun.Center.ToString());
                     outputData.Add("searchRunRadius", result.SearchRun.RadiusDegrees);
                     outputData.Add("quadMatches", result.MatchedQuads);
@@ -200,6 +244,19 @@ namespace WatneyAstrometry.SolverApp
                 if(!string.IsNullOrEmpty(directory))
                     Directory.CreateDirectory(Path.GetDirectoryName(options.OutFile));
                 File.WriteAllText(options.OutFile, outputText, Encoding.ASCII);
+            }
+
+            if (result.Success && !string.IsNullOrEmpty(options.WcsFile))
+            {
+                var directory = Path.GetDirectoryName(options.WcsFile);
+                if (!string.IsNullOrEmpty(directory))
+                    Directory.CreateDirectory(Path.GetDirectoryName(options.WcsFile));
+                using (var wcsStream = new FileStream(options.WcsFile, FileMode.Create))
+                {
+                    var wcsWriter = new WcsFitsWriter(wcsStream);
+                    wcsWriter.WriteWcsFile(result.Solution.FitsHeaders, result.Solution.ImageWidth, result.Solution.ImageHeight);
+                }
+                
             }
         }
 
@@ -393,6 +450,8 @@ namespace WatneyAstrometry.SolverApp
                 errors.Add("image is not in a supported format");
             }
 
+            _benchmarkMode = options.Benchmark;
+
             return errors;
         }
 
@@ -519,11 +578,14 @@ namespace WatneyAstrometry.SolverApp
 
             
         }
+
+        // Just for ordering the parameters
         private static int NearbyOptionComparison(ComparableOption x, ComparableOption y)
         {
             var nearbyOrder = new List<string>
             {
-                "use-config", "image", "out", "out-format", "manual", "use-fits-headers", "ra", "dec", "field-radius", "search-radius",
+                "use-config", "image", "out", "out-format", "manual", "use-fits-headers", "ra", "dec", "field-radius", 
+                "field-radius-range", "field-radius-steps", "search-radius",
                 "lower-density-offset", "higher-density-offset", "use-parallelism"
             };
 
@@ -534,6 +596,7 @@ namespace WatneyAstrometry.SolverApp
 
         }
 
+        // Just for ordering the parameters
         private static int BlindOptionComparison(ComparableOption x, ComparableOption y)
         {
             var blindOrder = new List<string>

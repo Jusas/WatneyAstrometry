@@ -35,6 +35,15 @@ namespace WatneyAstrometry.Core.Types
         /// </summary>
         public int MatchedQuads { get; set; } = 0;
 
+        /// <summary>
+        /// How many stars were detected or given as input to the solver.
+        /// </summary>
+        public int StarsDetected { get; set; } = 0;
+        /// <summary>
+        /// How many stars were used by the solver to form quads.
+        /// </summary>
+        public int StarsUsedInSolve { get; set; } = 0;
+
         internal SolveDiagnosticsData DiagnosticsData { get; set; }
 
         //// Get the actual matches.

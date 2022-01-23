@@ -31,6 +31,10 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "Output file. If not set, output will be printed to stdout.")]
         public string OutFile { get; set; }
 
+        [Option('w', "wcs", Required = false,
+            HelpText = "Output filename for WCS coordinates. If given, a FITS file containing WCS headers will be produced.")]
+        public string WcsFile { get; set; }
+
         [Option('x', "lower-density-offset", Required = false, Default = (uint)1,
             HelpText = "Include this many lower quad density passes in search (compared to image quad density).")]
         public uint LowerDensityOffset { get; set; }
@@ -50,6 +54,10 @@ namespace WatneyAstrometry.SolverApp
         [Option("log-file", Required = false, Default = "",
             HelpText = "Verbose logging. Give a filename to print verbose log lines into a file.")]
         public string LogToFile { get; set; }
+
+        [Option("benchmark", Required = false, Default = false,
+            HelpText = "Benchmark mode, prints some output to stdout.")]
+        public bool Benchmark { get; set; }
 
 
 

@@ -6,11 +6,18 @@
     <Authors>Jussi Saarivirta</Authors>
     <Company />
     <Product>Watney Astrometric Solver</Product>
-    <Version>0.10.0</Version>
+    <Version>1.0.0</Version>
     <PackageId>WatneyAstrometrySolver</PackageId>
     <AssemblyName>watney-solve</AssemblyName>
     <RootNamespace>WatneyAstrometry.SolverApp</RootNamespace>
+    <PublishReadyToRun>true</PublishReadyToRun> 
+    <PublishSingleFile>true</PublishSingleFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PublishReadyToRunExclude Include="SixLabors.ImageSharp.dll" /> <!-- This need to be here; PublishReadyToRun somehow breaks things in ImageSharp -->
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />

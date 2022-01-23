@@ -58,7 +58,7 @@ jobLifetime: '00:10:00'
 # If the field cannot be solved in this time, the solve task will be automatically
 # aborted and the job will be marked as canceled.
 # ================================================================================
-solverTimeoutValue: '00:02:00'
+solverTimeoutValue: '00:00:30'
 
 
 # ================================================================================
@@ -67,7 +67,7 @@ solverTimeoutValue: '00:02:00'
 # Executing too many blind solves concurrently is generally not recommended.
 # Note that load balancing between jobs is not guaranteed.
 # ================================================================================
-allowedConcurrentSolves: 2
+allowedConcurrentSolves: 5
 
 
 # ================================================================================

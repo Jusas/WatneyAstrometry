@@ -14,3 +14,6 @@ builds/cli/binaries/
 builds/api/binaries
 src/WatneyAstrometry.WebApi/config.yml
 src/WatneyAstrometry.WebApi/apidoc.xml
+benchmarking/blind.csv
+benchmarking/results
+benchmarking/testimages/

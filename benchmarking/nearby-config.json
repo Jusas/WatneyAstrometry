@@ -1,0 +1,22 @@
+{
+    "mode": "nearby",
+    "sampling": [1],
+    "images": [
+        "./testimages/m31.jpg",
+        "./testimages/m81.png",
+        "./testimages/ic1795.fits",
+        "./testimages/m106.fits",
+        "./testimages/ngc7331.fits",
+        "./testimages/veil1.fits"
+    ],
+	"imageParams": [
+		{ "ra": 9, "dec": 40, "field": "2.5-1", "steps": 1 },
+		{ "ra": 146, "dec": 68, "field": "1.0-0.5", "steps": 1 },
+		{ "ra": 35, "dec": 61, "field": "1.5-0.5", "steps": 1 },
+		{ "ra": 184, "dec": 45, "field": "2-0.5", "steps": 1 },
+		{ "ra": 337, "dec": 32, "field": "1.5-0.5", "steps": 1 },
+		{ "ra": 312, "dec": 30, "field": "2-1", "steps": 1 }
+	],
+    "output": "./nearby.csv"
+    
+}

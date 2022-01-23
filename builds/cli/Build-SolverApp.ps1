@@ -7,6 +7,7 @@ $project = "$PSScriptRoot/../../src/WatneyAstrometry.SolverApp";
 $targets = @(
   'osx-x64',
   'linux-arm64',
+  'linux-arm',
   'linux-x64',
   'win-x64'
 );
@@ -15,8 +16,7 @@ foreach($target in $targets) {
   $outputDir = "$PSScriptRoot/binaries/$target";
   $packageDir = "$outputDir/package";
   
-  dotnet publish -r $target -c Release -p:PublishTrimmed=true -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true --self-contained true `
+  dotnet publish -r $target -c Release --self-contained true `
 	-o $outputDir $project;
 	
   Remove-Item -Force -Recurse -Path $packageDir -ErrorAction Ignore;

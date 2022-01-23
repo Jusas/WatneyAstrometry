@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 
 namespace WatneyAstrometry.Core.Types
@@ -33,5 +34,6 @@ namespace WatneyAstrometry.Core.Types
 
         // Quad density per square deg
         public int DetectedQuadDensity { get; set; }
+        
     }
 }

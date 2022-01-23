@@ -7,11 +7,12 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 using WatneyAstrometry.WebApi.Controllers.Watney;
 using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Services;
-using WcsFitsWriter = WatneyAstrometry.WebApi.Utils.WcsFitsWriter;
+using WcsFitsWriter = WatneyAstrometry.Core.Fits.WcsFitsWriter;
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 {
@@ -540,10 +541,17 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
             var stream = new MemoryStream();
             var wcsWriter = new WcsFitsWriter(stream);
-            wcsWriter.WriteWcsFile(job.Solution, job.ImageWidth, job.ImageHeight);
+            wcsWriter.WriteWcsFile(ToCoreSolution(job), job.ImageWidth, job.ImageHeight);
             
             stream.Seek(0, SeekOrigin.Begin);
             return File(stream, "application/fits", "wcs.fits");
+        }
+
+        private Solution.FitsHeaderFields ToCoreSolution(JobModel job)
+        {
+            var w = job.Solution.FitsWcs;
+            return new Solution.FitsHeaderFields(w.Cdelt1, w.Cdelt2, w.Crota1, w.Crota2, w.Cd1_1, w.Cd2_1, w.Cd1_2,
+                w.Cd2_2, w.Crval1, w.Crval2, w.Crpix1, w.Crpix2);
         }
 
         // To comply with Nova also supporting POST

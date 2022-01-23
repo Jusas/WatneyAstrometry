@@ -1,0 +1,14 @@
+{
+    "mode": "blind",
+    "sampling": [16, 8, 4, 2, 1],
+    "images": [
+        "./testimages/m31.jpg",
+        "./testimages/m81.png",
+        "./testimages/ic1795.fits",
+        "./testimages/m106.fits",
+        "./testimages/ngc7331.fits",
+        "./testimages/veil1.fits"
+    ],
+    "output": "./blind.csv"
+    
+}

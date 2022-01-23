@@ -41,7 +41,7 @@ namespace WatneyAstrometry.Core.StarDetection
         internal IReadOnlyList<StarPixelBin> StarBins => _starBins;
 
         public IStarDetectionFilter DetectionFilter { get; set; } = new DefaultStarDetectionFilter();
-
+        
         public long PixelValueRangeStart => 0;
 
         public DefaultStarDetector()
@@ -80,6 +80,11 @@ namespace WatneyAstrometry.Core.StarDetection
             var pixelCount = _imageMetadata.ImageWidth * _imageMetadata.ImageHeight;
             var pixelSum = _histogram.Sum(x => x.Key * x.Value);
             var pixelAvg = pixelSum / pixelCount;
+
+            // Too dark or broken image.
+            if (pixelAvg == 0)
+                return new List<ImageStar>();
+
             double diffSquared = _histogram.Sum(x => (x.Key - pixelAvg) * (x.Key - pixelAvg) * x.Value);
             double stdDev = Math.Sqrt(diffSquared / pixelCount);
 
@@ -97,12 +102,13 @@ namespace WatneyAstrometry.Core.StarDetection
 
             _starBins = DetectionFilter.ApplyFilter(_starBins, _imageMetadata);
 
-            return _starBins.Select(x =>
+            var detectedStars = _starBins.Select(x =>
             {
                 var starProps = x.GetCenterPixelPosAndRelativeBrightness();
                 return new ImageStar(starProps.PixelPosX, starProps.PixelPosY, starProps.BrightnessValue, starProps.starSize);
             }).ToList();
-
+            
+            return detectedStars;
 
 
         }

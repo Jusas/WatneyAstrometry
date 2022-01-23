@@ -1,11 +1,10 @@
 ﻿using System.Globalization;
+using System.IO;
 using System.Text;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.Types;
-using WatneyAstrometry.WebApi.Models;
-using WatneyAstrometry.WebApi.Models.Domain;
 
-namespace WatneyAstrometry.WebApi.Utils
+namespace WatneyAstrometry.Core.Fits
 {
     /// <summary>
     /// Writes a FITS file that holds WCS coordinates in
@@ -24,20 +23,20 @@ namespace WatneyAstrometry.WebApi.Utils
         /// <summary>
         /// Write a solution WCS contents into the assigned stream.
         /// </summary>
-        /// <param name="solution"></param>
+        /// <param name="fitsHeaders"></param>
         /// <param name="imageDimensions"></param>
-        public void WriteWcsFile(JobSolutionProperties solution, IImageDimensions imageDimensions)
+        public void WriteWcsFile(Solution.FitsHeaderFields fitsHeaders, IImageDimensions imageDimensions)
         {
-            WriteWcsFile(solution, imageDimensions.ImageWidth, imageDimensions.ImageHeight);
+            WriteWcsFile(fitsHeaders, imageDimensions.ImageWidth, imageDimensions.ImageHeight);
         }
 
         /// <summary>
         /// Write a solution WCS contents into the assigned stream.
         /// </summary>
-        /// <param name="solution"></param>
+        /// <param name="fitsHeaders"></param>
         /// <param name="imageW"></param>
         /// <param name="imageH"></param>
-        public void WriteWcsFile(JobSolutionProperties solution, int imageW, int imageH)
+        public void WriteWcsFile(Solution.FitsHeaderFields fitsHeaders, int imageW, int imageH)
         {
             // See https://fits.gsfc.nasa.gov/standard40/fits_standard40aa-le.pdf
 
@@ -51,16 +50,16 @@ namespace WatneyAstrometry.WebApi.Utils
             WriteRecord("EQUINOX", 2000, "Equatorial coords definition year");
             WriteRecord("LONPOLE", 180.0, "no comment");
             WriteRecord("LATPOLE", 0.0, "no comment");
-            WriteRecord("CRVAL1", solution.FitsWcs.Crval1, comment: "RA of reference pixel");
-            WriteRecord("CRVAL2", solution.FitsWcs.Crval2, comment: "DEC of reference pixel");
-            WriteRecord("CRPIX1", solution.FitsWcs.Crpix1, comment: "X of reference pixel");
-            WriteRecord("CRPIX2", solution.FitsWcs.Crpix2, comment: "Y of reference pixel");
+            WriteRecord("CRVAL1", fitsHeaders.CRVAL1, comment: "RA of reference pixel");
+            WriteRecord("CRVAL2", fitsHeaders.CRVAL2, comment: "DEC of reference pixel");
+            WriteRecord("CRPIX1", fitsHeaders.CRPIX1, comment: "X of reference pixel");
+            WriteRecord("CRPIX2", fitsHeaders.CRPIX2, comment: "Y of reference pixel");
             WriteRecord("CUNIT1", "deg", "degrees");
             WriteRecord("CUNIT2", "deg", "degrees");
-            WriteRecord("CD1_1", solution.FitsWcs.Cd1_1, "cd matrix");
-            WriteRecord("CD1_2", solution.FitsWcs.Cd1_2, "cd matrix");
-            WriteRecord("CD2_1", solution.FitsWcs.Cd2_1, "cd matrix");
-            WriteRecord("CD2_2", solution.FitsWcs.Cd2_2, "cd matrix");
+            WriteRecord("CD1_1", fitsHeaders.CD1_1, "cd matrix");
+            WriteRecord("CD1_2", fitsHeaders.CD1_2, "cd matrix");
+            WriteRecord("CD2_1", fitsHeaders.CD2_1, "cd matrix");
+            WriteRecord("CD2_2", fitsHeaders.CD2_2, "cd matrix");
             WriteRecord("IMAGEW", imageW, "Image width in pixels");
             WriteRecord("IMAGEH", imageH, "Image height in pixels");
             WritePureComment("WCS header created by Watney Astrometry");

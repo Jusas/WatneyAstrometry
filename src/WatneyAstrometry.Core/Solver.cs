@@ -38,7 +38,13 @@ namespace WatneyAstrometry.Core
         private int _iterations = 0;
 
         private IVerboseLogger _logger;
-        
+
+        public delegate void SolveProgressHandler(SolverStep step);
+        /// <summary>
+        /// Event that is triggered as we enter different steps in the solving process.
+        /// </summary>
+        public event SolveProgressHandler OnSolveProgress;
+
         public Solver(IVerboseLogger logger = null)
         {
             _logger = logger ?? new NullVerboseLogger();
@@ -121,9 +127,19 @@ namespace WatneyAstrometry.Core
             if(!_imageReaderFactories.ContainsKey(filenameExtension))
                 throw new Exception($"No ImageReader for file extension '{filenameExtension}' was found, unable to process image");
 
+            OnSolveProgress?.Invoke(SolverStep.ImageReadStarted);
+
             var reader = _imageReaderFactories[filenameExtension].factory.Invoke();
             var image = reader.FromFile(filename);
-            
+
+            if(image.Metadata?.ViewSize != null)
+                _logger.Write($"Image field radius: {0.5 * image.Metadata.ViewSize.DiameterDeg}");
+
+            if(image.Metadata?.CenterPos != null)
+                _logger.Write($"Image center coordinate: {image.Metadata.CenterPos.ToStringRounded(3)}");
+
+            OnSolveProgress?.Invoke(SolverStep.ImageReadFinished);
+
             return await SolveFieldAsync(image, strategy, options, cancellationToken);
         }
 
@@ -138,8 +154,24 @@ namespace WatneyAstrometry.Core
             else
                 starDetector = _starDetectorFactory.Invoke();
 
+            OnSolveProgress?.Invoke(SolverStep.StarDetectionStarted);
+
             var detectedStars = starDetector.DetectStars(image);
-            _logger.Write($"Detected {detectedStars.Count} from the image");
+            _logger.Write($"Detected {detectedStars.Count} stars from the image");
+
+            OnSolveProgress?.Invoke(SolverStep.StarDetectionFinished);
+
+            if (detectedStars.Count == 0)
+                return new SolveResult()
+                {
+                    Success = false,
+                    AreasSearched = 0,
+                    DiagnosticsData = new SolveDiagnosticsData()
+                    {
+                        DetectedQuadDensity = 0,
+                        DetectedStars = detectedStars
+                    }
+                };
 
             return await SolveFieldAsync(image.Metadata, detectedStars, strategy, options, cancellationToken);
         }
@@ -173,6 +205,8 @@ namespace WatneyAstrometry.Core
             _logger.Write("Image parsed, starting the solve");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
+
+            OnSolveProgress?.Invoke(SolverStep.SolveProcessStarted);
             
             // Max stars:
             // Take minimum of 300 stars. 
@@ -197,23 +231,45 @@ namespace WatneyAstrometry.Core
                     ? 300 // at least 300 stars
                     : (int)Math.Min(0.33 * stars.Count, 1000);
             
+            // No stars? No game.
+            if(stars.Count == 0)
+                return new SolveResult()
+                {
+                    Success = false,
+                    AreasSearched = 0,
+                    DiagnosticsData = new SolveDiagnosticsData()
+                    {
+                        DetectedQuadDensity = 0,
+                        DetectedStars = stars
+                    }
+                };
 
             var chosenDetectedStars = TakeBrightest(stars, maxStars);
 
             _logger.Write($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
+
+            // Note: this can take time if the factory method is actually reading the database files
+            // at this moment, or not if the quad database has already been initialized.
+            _logger.Write($"Initializing quad database");
             IQuadDatabase quadDb;
             if (_quadDatabaseFactoryAsync != null)
                 quadDb = await _quadDatabaseFactoryAsync.Invoke();
             else
-                quadDb = _quadDatabaseFactory.Invoke(); 
-            
+                quadDb = _quadDatabaseFactory.Invoke();
+
+            _logger.Write($"Quad database is ready");
 
             _tentativeMatches = 0;
             _iterations = 0;
             
+
+            OnSolveProgress?.Invoke(SolverStep.QuadFormationStarted);
+
             // Form quads from image stars
             var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
             _logger.Write($"Formed {imageStarQuads.Length} quads from the chosen stars");
+
+            OnSolveProgress?.Invoke(SolverStep.QuadFormationFinished);
 
             var completionCts = new CancellationTokenSource();
             var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(completionCts.Token, cancellationToken);
@@ -366,6 +422,8 @@ namespace WatneyAstrometry.Core
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = successfulSolveResult ?? new SolveResult();
                     diagnosticsData.MatchInstances = result.DiagnosticsData?.MatchInstances;
+                    result.StarsDetected = stars.Count;
+                    result.StarsUsedInSolve = chosenDetectedStars.Count;
                     result.DiagnosticsData = diagnosticsData;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
@@ -385,6 +443,8 @@ namespace WatneyAstrometry.Core
                 {
                     result = r;
                     diagnosticsData.MatchInstances = r.DiagnosticsData.MatchInstances;
+                    result.StarsDetected = stars.Count;
+                    result.StarsUsedInSolve = chosenDetectedStars.Count;
                     result.DiagnosticsData = diagnosticsData;
                     result.TimeSpent = stopwatch.Elapsed;
                     result.AreasSearched = _iterations;
@@ -509,6 +569,8 @@ namespace WatneyAstrometry.Core
                     stopwatch.Stop();
                     _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = new SolveResult();
+                    result.StarsDetected = stars.Count;
+                    result.StarsUsedInSolve = chosenDetectedStars.Count;
                     result.DiagnosticsData = diagnosticsData;
                     result.AreasSearched = _iterations;
                     result.TimeSpent = stopwatch.Elapsed;
@@ -519,6 +581,7 @@ namespace WatneyAstrometry.Core
                 
             }
 
+            OnSolveProgress?.Invoke(SolverStep.SolveProcessFinished);
 
             return result;
             
