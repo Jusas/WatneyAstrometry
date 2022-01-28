@@ -59,6 +59,22 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             return (true, "");
         }
 
+        /// <summary>
+        /// Log in. If authentication is enabled, uses the API key. If authentication is disabled, any api key value will be accepted.
+        /// See: http://astrometry.net/doc/net/api.html#session-key
+        /// </summary>
+        /// <param name="login">
+        /// <para>
+        /// <code>
+        /// request-json={"apikey": "XXXXXX"}
+        /// </code>
+        /// </para>
+        /// <para>
+        /// In Swagger, just enter the JSON <code>{"apikey": "XXXXXX"}</code>
+        /// </para>
+        /// See: http://astrometry.net/doc/net/api.html#session-key
+        /// </param>
+        /// <returns></returns>
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
         [Route("login")]
@@ -136,6 +152,13 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
         }
 
+        /// <summary>
+        /// Upload an image file (jpg, png, fits).
+        /// See: http://astrometry.net/doc/net/api.html#submitting-a-file
+        /// </summary>
+        /// <param name="upload"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("upload")]
         public async Task<IActionResult> FileUpload([FromForm(Name = "request-json")] string upload, IFormFile file)
@@ -234,7 +257,11 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
 
 
-
+        /// <summary>
+        /// Upload using a URL to an image.
+        /// </summary>
+        /// <param name="upload"></param>
+        /// <returns></returns>
         [HttpPost]
         [Consumes("application/x-www-form-urlencoded")]
         [Route("url_upload")]
@@ -353,6 +380,12 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         }
 
 
+        /// <summary>
+        /// Get the submission information.
+        /// See: http://astrometry.net/doc/net/api.html#getting-submission-status
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("submissions/{id}")]
         public async Task<IActionResult> GetSubmission([FromRoute]int id)
@@ -396,14 +429,24 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Get the submission information.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("submissions/{id}")]
         public async Task<IActionResult> GetSubmissionViaPost([FromRoute] int id)
             => await GetSubmission(id);
 
 
-
+        /// <summary>
+        /// Get job information.
+        /// See: http://astrometry.net/doc/net/api.html#getting-job-status
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("jobs/{id}")]
         public async Task<IActionResult> GetJob([FromRoute] int id)
@@ -437,14 +480,24 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             return statusString;
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Get job information.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("jobs/{id}")]
         public async Task<IActionResult> GetJobViaPost([FromRoute] int id)
             => await GetJob(id);
 
 
-
+        /// <summary>
+        /// Get the calibration (result).
+        /// See: http://astrometry.net/doc/net/api.html#getting-job-results-calibration
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("jobs/{id}/calibration")]
         public async Task<IActionResult> GetCalibration([FromRoute] int id)
@@ -475,14 +528,22 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             });
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Get the calibration (result).
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
         [HttpPost]
         [Route("jobs/{id}/calibration")]
         public async Task<IActionResult> GetCalibrationViaPost([FromRoute] int id)
             => await GetCalibration(id);
 
 
-
+        /// <summary>
+        /// Get job information.
+        /// See: http://astrometry.net/doc/net/api.html#getting-job-results
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("jobs/{id}/info")]
         public async Task<IActionResult> GetJobInfo([FromRoute] int id)
@@ -520,13 +581,24 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             });
         }
 
-        // To comply with Nova also supporting POST
+
+        /// <summary>
+        /// Get job information.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("jobs/{id}/info")]
         public async Task<IActionResult> GetJobInfoViaPost([FromRoute] int id)
             => await GetJobInfo(id);
 
-
+        /// <summary>
+        /// Returns the WCS file if the job was successful.
+        /// See: http://astrometry.net/doc/net/api.html#getting-job-results-results-files
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("/wcs_file/{id}")]
         public async Task<IActionResult> GetWcsFile([FromRoute] int id)
@@ -554,7 +626,12 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 w.Cd2_2, w.Crval1, w.Crval2, w.Crpix1, w.Crpix2);
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Returns the WCS file if the job was successful.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpPost]
         [Route("/wcs_file/{id}")]
         public async Task<IActionResult> GetWcsFileViaPost([FromRoute] int id)
@@ -562,8 +639,11 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 
 
 
-
-
+        /// <summary>
+        /// Objects in field; always returns an empty list.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("jobs/{id}/objects_in_field")]
         public async Task<IActionResult> GetObjectsInField([FromRoute] int id)
@@ -575,14 +655,19 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             });
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Objects in field; always returns an empty list.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
         [HttpPost]
         [Route("jobs/{id}/objects_in_field")]
         public async Task<IActionResult> GetObjectsInFieldViaPost([FromRoute] int id)
             => await GetObjectsInField(id);
 
 
-        
+        /// <summary>
+        /// Annotations; always returns an empty list.
+        /// </summary>
         [HttpGet]
         [Route("jobs/{id}/annotations")]
         public async Task<IActionResult> GetAnnotationsInField([FromRoute] int id)
@@ -594,14 +679,19 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             });
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Annotations; always returns an empty list.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
         [HttpPost]
         [Route("jobs/{id}/annotations")]
         public async Task<IActionResult> GetAnnotationsInFieldViaPost([FromRoute] int id)
             => await GetAnnotationsInField(id);
 
-        
-        
+
+        /// <summary>
+        /// Tags; always returns an empty list.
+        /// </summary>
         [HttpGet]
         [Route("jobs/{id}/tags")]
         public async Task<IActionResult> GetTagsInField([FromRoute] int id)
@@ -613,14 +703,19 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             });
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Tags; always returns an empty list.
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
         [HttpPost]
         [Route("jobs/{id}/tags")]
         public async Task<IActionResult> GetTagsInFieldViaPost([FromRoute] int id)
             => await GetTagsInField(id);
 
-        
-        
+
+        /// <summary>
+        /// Job log; not available, returns a "no log".
+        /// </summary>
         [HttpGet]
         [Route("/joblog/{id}")]
         public async Task<IActionResult> GetLogs([FromRoute] int id)
@@ -629,7 +724,10 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             return Ok("no log");
         }
 
-        // To comply with Nova also supporting POST
+        /// <summary>
+        /// Job log; not available, returns a "no log".
+        /// Method added to comply with Nova also supporting POST.
+        /// </summary>
         [HttpPost]
         [Route("/joblog/{id}")]
         public async Task<IActionResult> GetLogsViaPost([FromRoute] int id)

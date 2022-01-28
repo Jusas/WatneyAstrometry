@@ -13,7 +13,7 @@ public class JobModel
     public int NumericId { get; set; }
 
     public JobParametersModel Parameters { get; set; }
-    public List<ImageStar> Stars { get; set; }
+    public List<ImageStar> Stars { get; set; } = new();
     public JobStatus Status { get; set; }
     public int ImageWidth { get; set; }
     public int ImageHeight { get; set; }
@@ -21,5 +21,6 @@ public class JobModel
     public DateTimeOffset Updated { get; set; }
     public DateTimeOffset? SolveStarted { get; set; }
     public string OriginalFilename { get; set; }
+    public int? StarsUsed { get; set; }
     
 }

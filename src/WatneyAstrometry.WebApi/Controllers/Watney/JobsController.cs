@@ -5,6 +5,8 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using WatneyAstrometry.Core.Fits;
+using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Models.Rest;
 using WatneyAstrometry.WebApi.Services;
@@ -128,14 +130,51 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
         [HttpDelete("{id}")]
         public async Task<IActionResult> Cancel(string id)
         {
-            // TODO response code filter to always produce ApiInternalErrorResponse on 500
             await _jobManager.CancelJob(id);
             return Ok(new CancelJobResponse
             {
                 Message = $"Job {id} was signaled cancellation if it was queued or running"
             });
         }
-        
+
+        /// <summary>
+        /// Retrieves the WCS FITS headers file for the solution, if the job was successful.
+        /// </summary>
+        /// <param name="id">The job ID</param>
+        /// <returns></returns>
+        [HttpGet("{id}/wcs")]
+        [ProducesResponseType(statusCode: 200, type: typeof(FileStreamResult))]
+        public async Task<IActionResult> GetWcs(string id)
+        {
+            var job = await _jobManager.GetJob(id);
+
+            if (job == null)
+                return NotFound(new ApiNotFoundResponse
+                {
+                    Message = $"Job {id} was not found"
+                });
+
+            if (job.Solution == null || job.Solution.FitsWcs == null)
+                return NotFound(new ApiNotFoundResponse
+                {
+                    Message = $"Solution for job {id} is not available"
+                });
+
+            var stream = new MemoryStream();
+            var wcsWriter = new WcsFitsWriter(stream);
+            wcsWriter.WriteWcsFile(ToCoreSolution(job), job.ImageWidth, job.ImageHeight);
+
+            stream.Seek(0, SeekOrigin.Begin);
+            return File(stream, "application/fits", "wcs.fits");
+        }
+
+
+        private Solution.FitsHeaderFields ToCoreSolution(JobModel job)
+        {
+            var w = job.Solution.FitsWcs;
+            return new Solution.FitsHeaderFields(w.Cdelt1, w.Cdelt2, w.Crota1, w.Crota2, w.Cd1_1, w.Cd2_1, w.Cd1_2,
+                w.Cd2_2, w.Crval1, w.Crval2, w.Crpix1, w.Crpix2);
+        }
 
     }
 }

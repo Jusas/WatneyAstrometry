@@ -212,7 +212,7 @@ public class SolverProcessManager : ISolverProcessManager
 
         if (_jobCancellationTokens[job.Id].IsCancellationRequested)
         {
-            await SetJobCancelled(job);
+            await SetJobCancelled(job, null);
         }
 
         try
@@ -224,7 +224,7 @@ public class SolverProcessManager : ISolverProcessManager
             if (solverResult.Canceled)
             {
                 _logger.LogTrace($"Job {job.Id} was canceled");
-                await SetJobCancelled(job);
+                await SetJobCancelled(job, solverResult);
                 return;
             }
 
@@ -254,6 +254,7 @@ public class SolverProcessManager : ISolverProcessManager
         try
         {
             job.Status = JobStatus.Failure;
+            job.StarsUsed = solverResult.StarsUsedInSolve;
             job.Solution = new JobSolutionProperties
             {
                 TimeSpent = solverResult.TimeSpent.TotalSeconds,
@@ -275,6 +276,7 @@ public class SolverProcessManager : ISolverProcessManager
         {
             var s = solverResult.Solution;
             var f = s.FitsHeaders;
+            job.StarsUsed = solverResult.StarsUsedInSolve;
             job.Solution = new JobSolutionProperties
             {
                 Dec = s.PlateCenter.Dec,
@@ -329,11 +331,12 @@ public class SolverProcessManager : ISolverProcessManager
         }
     }
 
-    private async Task SetJobCancelled(JobModel job)
+    private async Task SetJobCancelled(JobModel job, SolveResult solverResult)
     {
         try
         {
             job.Status = JobStatus.Canceled;
+            job.StarsUsed = solverResult?.StarsUsedInSolve;
             await _jobRepository.Update(job);
         }
         catch (Exception e)
@@ -341,5 +344,7 @@ public class SolverProcessManager : ISolverProcessManager
             _logger.LogError(e, $"Failed to update job {job.Id} status to Canceled: " + e.Message);
         }
     }
+
+    
 
 }

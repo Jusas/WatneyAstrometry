@@ -22,7 +22,7 @@ public class RestJobModel
     /// <summary>
     /// Job status. Possible values are: Queued, Solving, Success, Failure, Error, Timeout, Canceled
     /// </summary>
-    public JobStatus Status { get; set; }
+    public string Status { get; set; }
 
     /// <summary>
     /// Image width in pixels.
@@ -54,6 +54,16 @@ public class RestJobModel
     /// </summary>
     public string OriginalFilename { get; set; }
 
+    /// <summary>
+    /// The number of detected stars.
+    /// </summary>
+    public int? StarsDetected { get; set; }
+
+    /// <summary>
+    /// The number of stars used by the solver. This will be available once the solver job has ended.
+    /// </summary>
+    public int? StarsUsed { get; set; }
+
 
     public class Mappings : AutoMapper.Profile
     {
@@ -64,12 +74,14 @@ public class RestJobModel
                 .ValidateMemberList(MemberList.Destination)
                 .ForMember(dest => dest.Id, x => x.MapFrom(src => src.Id))
                 .ForMember(dest => dest.Parameters, x => x.MapFrom(src => src.Parameters))
-                .ForMember(dest => dest.Status, x => x.MapFrom(src => src.Status))
+                .ForMember(dest => dest.Status, x => x.MapFrom(src => src.Status.ToString()))
                 .ForMember(dest => dest.ImageHeight, x => x.MapFrom(src => src.ImageHeight))
                 .ForMember(dest => dest.ImageWidth, x => x.MapFrom(src => src.ImageWidth))
                 .ForMember(dest => dest.Solution, x => x.MapFrom(src => src.Solution))
-                .ForMember(dest => dest.Updated, x => x.MapFrom(src => src.ImageWidth))
+                .ForMember(dest => dest.Updated, x => x.MapFrom(src => src.Updated))
                 .ForMember(dest => dest.SolveStarted, x => x.MapFrom(src => src.SolveStarted))
+                .ForMember(dest => dest.OriginalFilename, x => x.MapFrom(src => src.OriginalFilename))
+                .ForMember(dest => dest.StarsDetected, x => x.MapFrom(src => src.Stars.Count))
                 .ForMember(dest => dest.OriginalFilename, x => x.MapFrom(src => src.OriginalFilename))
                 ;
 
