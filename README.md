@@ -19,8 +19,8 @@ Alongside the solver library two apps are provided for plate solving:
 
 - watney-solve (CLI solver): [See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)
 - watney-api (API solver): [See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)
-- WatneyAstrometry.Core: _to be published in NuGet.org_
-- WatneyAstrometry.ImageReaders: _to be published in NuGet.org_
+- WatneyAstrometry.Core Nuget: https://www.nuget.org/packages/WatneyAstrometry.Core
+- WatneyAstrometry.ImageReaders Nuget: https://www.nuget.org/packages/WatneyAstrometry.ImageReaders
 
 # The Sources
 
