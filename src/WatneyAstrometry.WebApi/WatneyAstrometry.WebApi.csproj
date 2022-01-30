@@ -7,6 +7,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <DocumentationFile>apidoc.xml</DocumentationFile>
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <AssemblyName>watney-api</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
