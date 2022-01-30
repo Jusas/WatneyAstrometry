@@ -15,6 +15,8 @@ Alongside the solver library two apps are provided for plate solving:
 - CLI Solver App (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64, arm and arm64 and Mac OSX x64.
 - API Solver App (watney-api) if provided for plate solving via REST API. The API also contains Astrometry.net compatibility API, allowing it to be used as a substitute to nova.astrometry.net online solver.
 
+See Watney in action: **https://watney-astrometry.net**
+
 # Downloads
 
 - watney-solve (CLI solver): [See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)
