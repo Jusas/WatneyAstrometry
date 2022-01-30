@@ -1,5 +1,8 @@
 # Watney Astrometry Engine
 
+[![Wiki](https://img.shields.io/badge/docs-in%20wiki-green.svg?style=flat)](https://github.com/Jusas/WatneyAstrometry/wiki) 
+[![Nuget](https://img.shields.io/nuget/v/WatneyAstrometry.Core.svg)](https://www.nuget.org/packages/WatneyAstrometry.Core/) 
+
 ![Logo](docs/images/logo-front.png)
 
 # Introduction
