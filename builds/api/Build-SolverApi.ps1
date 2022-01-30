@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop";
 $project = "$PSScriptRoot/../../src/WatneyAstrometry.WebApi";
 $targets = @(
   'osx-x64',
+  'linux-arm',
   'linux-arm64',
   'linux-x64',
   'win-x64'
@@ -27,7 +28,11 @@ foreach($target in $targets) {
     $exe = $exe + '.exe'
   }
 
-  $configFile = "$outputDir/config.template.yml";
+  $configFiles = @{
+    "$outputDir/config.template.yml"="$packageDir/config.yml";
+	"$outputDir/apikeys.yml"="$packageDir/apikeys.yml";
+	"$outputDir/appsettings.json"="$packageDir/appsettings.json";
+  };
   $noticeFiles = @(
     "$PSScriptRoot/notices/LICENSE",
 	"$PSScriptRoot/notices/NOTICE",
@@ -35,10 +40,13 @@ foreach($target in $targets) {
   );
 	
   Copy-Item -Path $exe -Destination $packageDir;
-  Copy-Item -Path $configFile -Destination "$packageDir/config.yml";
   
   foreach($f in $noticeFiles) {
     Copy-Item -Path $f -Destination $packageDir;
+  }
+  
+  foreach($c in $configFiles.GetEnumerator()) {    
+    Copy-Item -Path $($c.Name) -Destination $($c.Value)
   }
   
 }

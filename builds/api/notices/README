@@ -1,21 +1,23 @@
-Watney Astrometry Solver App v0.10.0
+Watney Astrometry Solver API App v1.0.0
 https://github.com/Jusas/WatneyAstrometry
+https://watney-astrometry.net
 
-Copyright 2021 Jussi Saarivirta
+Copyright 2021, 2022 Jussi Saarivirta
 Licensed under the Apache License, Version 2.0
 
 The Watney Astrometric Solver is a tool for astrophotography applications and
 can be used to solve the RA, Dec coordinates, the field size, rotation and
 other things from the images. 
 
-Note: this is an early release, and may be a bit unpolished with documentation
-a bit lacking. Sorry!
+The API app this package contains provides the solver functionality via a 
+REST API. The REST API contains both the Watney canonical API and the
+Astrometry.net compatibility API.
 
 
 INSTALLATION
 ===============================================================================
 
-The executable included in the package is a self contained .NET 5 application.
+The executable included in the package is a self contained .NET 6 application.
 Therefore it has no external library dependencies. Simply extract the package
 to a directory of your choosing.
 
@@ -24,7 +26,7 @@ These can be downloaded from the project Github page, under releases:
 https://github.com/Jusas/WatneyAstrometry/releases
 
 Extract the database files to any directory of your choosing, and configure
-the database directory from the configuration file, watney-solve-config.yml.
+the database directory from the configuration file, config.yml.
 
 
 OPERATION
@@ -32,88 +34,40 @@ OPERATION
 
 Short version, run:
 
-watney-solve blind
-watney-solve nearby
+./watney-api
 
-This will display the help for the modes in its entirety.
+This will start the Watney API and it starts to listen to requests in HTTP port
+5000.
 
-So, the solver CLI application has two main modes: blind and nearby solve.
+The standard configuration relating to solving is defined in config.yml.
+To enable more verbose logging, or change any standard ASP.NET 6 API 
+configuration settings you can create appsettings.json file, and define your
+configuration there.
 
-Blind solving requires minimal parameters to operate, and is designed to
-solve fields when no initial image center coordinate is known. Since it
-needs to scan the sky thoroughly, it is noticeably slower than nearby solves.
+Example of enabling default log level to trace with appsettings.json:
 
-Nearby solving requires either FITS headers with preliminary coordinates
-(RA, DEC, OBJCTRA, OBJCTDEC, RA_OBJ, DEC_OBJ) and enough information to
-determing the field size (PIXSIZE1, PIXSIZE2, FOCALLEN), or alternatively
-those parameters can be specified via command line parameters. Nearby solve
-simply tries to search the vicinity of the preliminary center coordinates to
-find a solution and only needs to scan a small, well defined area and therefore
-is a fast operation to perform.
-
-
-OUTPUT
-===============================================================================
-
-The CLI solver can output both JSON and TSV (tab separated values), and can
-write the output to STDOUT or to a file. If no errors occur, the application 
-exits with exit code 0. Upon error, the application exits with exit code 1.
-
-Sample (extended mode) outputs:
-
-JSON:
 {
-  "success": true,
-  "ra": 10.72299915196355,
-  "dec": 41.25029564995445,
-  "fieldRadius": 1.866763408932861,
-  "orientation": -61.80792177064422,
-  "pixScale": 2.3966090050459403,
-  "timeSpent": "00:00:00.4603011",
-  "searchIterations": 462,
-  "searchRunCenter": "[9, 40]",
-  "searchRunRadius": 8.0,
-  "quadMatches": 38,
-  "fieldWidth": 2.9817810371113245,
-  "fieldHeight": 2.246820942230569,
-  "fits_cd1_1": 0.0003143407174862974,
-  "fits_cd1_2": -0.0005869689220223322,
-  "fits_cd2_1": 0.0005869606767134883,
-  "fits_cd2_2": 0.00031462549494420955,
-  "fits_cdelt1": 0.0006658325034704721,
-  "fits_cdelt2": 0.0006659742618817543,
-  "fits_crota1": -61.80792177064422,
-  "fits_crota2": -61.82918494019049,
-  "fits_crpix1": 2239.2920056275666,
-  "fits_crpix2": 1686.9820240599433,
-  "fits_crval1": 10.723135271949342,
-  "fits_crval2": 41.25046139017943
+  "Logging": {
+    "LogLevel": {
+      "Default": "Trace",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  }
 }
 
-TSV:
-success	true
-ra	10.72299915196355
-dec	41.25029564995445
-fieldRadius	1.8667634089328617
-orientation	-61.80792177064422
-pixScale	2.396609005045941
-timeSpent	00:00:00.4616321
-searchIterations	462
-searchRunCenter	[9, 40]
-searchRunRadius	8
-quadMatches	38
-fieldWidth	2.9817810371113254
-fieldHeight	2.24682094223057
-fits_cd1_1	0.0003143407174862974
-fits_cd1_2	-0.0005869689220223322
-fits_cd2_1	0.0005869606767134883
-fits_cd2_2	0.00031462549494420955
-fits_cdelt1	0.0006658325034704721
-fits_cdelt2	0.0006659742618817543
-fits_crota1	-61.80792177064422
-fits_crota2	-61.82918494019049
-fits_crpix1	2239.292005627565
-fits_crpix2	1686.9820240599424
-fits_crval1	10.723135271949342
-fits_crval2	41.25046139017943
+To run the service on a different port, you may use the --urls argument:
 
+./watney-api --urls="http://localhost:5090"
+
+
+CONFIGURATION
+===============================================================================
+
+The main configuration is defined in config.yml.
+It's quite well documented there.
+
+
+DOCUMENTATION
+===============================================================================
+
+Please refer to the Wiki pages, https://github.com/Jusas/WatneyAstrometry/wiki

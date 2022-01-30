@@ -3,12 +3,14 @@ Copyright 2021, 2022 Jussi Saarivirta
 
 Licensed under Apache License 2.0, see LICENSE.
 
-Includes library SixLabors.ImageSharp v1.0.3 under Apache License 2.0
+Includes library SixLabors.ImageSharp v1.0.4 under Apache License 2.0
 https://github.com/SixLabors/ImageSharp
 
 
 
+
 Includes YamlDotNet 11.2.1
+https://github.com/aaubry/YamlDotNet
 
 Copyright (c) 2008, 2009, 2010, 2011, 2012, 2013, 2014 Antoine Aubry and contributors
 
@@ -34,6 +36,7 @@ SOFTWARE.
 
 
 Includes Newtonsoft.Json 13.0.1
+https://www.newtonsoft.com/json
 
 The MIT License (MIT)
 
@@ -50,6 +53,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 Includes CommandLineParser 2.8.0
+https://github.com/commandlineparser/commandline
 
 The MIT License (MIT)
 
