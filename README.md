@@ -9,7 +9,7 @@
 
 The Watney Astrometry Engine (hereafter Watney or WatneyAstrometry) is an astrometric solver as a .NET/C# library. It was built mainly for amateur astrophotography. Its implementation is based on the same basic algorithm that Han Kleijn's ASTAP implemented (and is [described in more detail here](http://www.hnsky.org/astap_astrometric_solving.htm). While the solving algorithm uses the same principles, that is probably where the similarities end. 
 
-The solver was designed from the beginning as a library with no dependencies. It is implemented as a .NET Standard 2.0 library. This provides compatibility with both .NET Framework and .NET Core 2.0 and later as well as .NET 6. This way if anyone wants to embed Watney to their .NET based apps, very little effort is required. _The library will be published as a NuGet package in the near future_.
+The solver was designed from the beginning as a library with no dependencies. It is implemented as a .NET Standard 2.0 library and published as a Nuget package. The netstandard 2.0 profile provides compatibility with both .NET Framework and .NET Core 2.0 and later as well as .NET 6. This way if anyone wants to embed Watney to their .NET based apps, very little effort is required.
 
 Alongside the solver library two apps are provided for plate solving:
 - CLI Solver App (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64, arm and arm64 and Mac OSX x64.
