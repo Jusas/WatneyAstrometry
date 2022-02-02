@@ -35,7 +35,7 @@ Most of the documentation will be written [into the Wiki](https://github.com/Jus
 | WatneyAstrometry.GaiaStarExtractor | A star extractor that reads Gaia2 catalog files (*.csv.gz) and extracts the minimum required data set from them for further processing. |
 | WatneyAstrometry.GaiaQuadDatabaseCreator | The program that builds the star quad database files for the solver to use, from the star extractor's stars. |
 | WatneyAstrometry.ImageReaders | Image readers as a library, providing support for reading common image formats. |
-| WatneyAstrometry.ImageReaders | Unit tests for the image readers. |
+| WatneyAstrometry.ImageReaders.Tests | Unit tests for the image readers. |
 | WatneyAstrometry.SolverApp | The CLI app that provides a basic command line interface for solving images. |
 | WatneyAstrometry.WebApi | The API app that provides REST interface to the solver. |
 
