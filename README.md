@@ -19,8 +19,8 @@ See Watney in action: **https://watney-astrometry.net**
 
 # Downloads
 
-- watney-solve (CLI solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)**
-- watney-api (API solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)**
+- watney-solve (CLI solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)** and **[Quickstart Guide here](https://github.com/Jusas/WatneyAstrometry/wiki/Quickstart-Guide)**
+- watney-api (API solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)** and **[Quickstart Guide here](https://github.com/Jusas/WatneyAstrometry/wiki/API-Quickstart-Guide)**
 - WatneyAstrometry.Core Nuget: https://www.nuget.org/packages/WatneyAstrometry.Core
 - WatneyAstrometry.ImageReaders Nuget: https://www.nuget.org/packages/WatneyAstrometry.ImageReaders
 
