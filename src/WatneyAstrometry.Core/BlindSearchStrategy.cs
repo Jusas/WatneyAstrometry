@@ -42,6 +42,9 @@ namespace WatneyAstrometry.Core
             UseParallelism = Options.UseParallelism;
             if (Options.MinRadiusDegrees > Options.StartRadiusDegrees)
                 throw new Exception("MinRadiusDegrees must be <= StartRadiusDegrees");
+            if (Options.MinRadiusDegrees <= 0 || Options.StartRadiusDegrees <= 0)
+                throw new Exception("MinRadiusDegrees and StartRadiusDegrees must be > 0!");
+
             DensityOffsets = new int[Options.MaxNegativeDensityOffset + Options.MaxPositiveDensityOffset + 1];
             for (int i = -(int)Options.MaxNegativeDensityOffset, n = 0; i <= Options.MaxPositiveDensityOffset; i++, n++)
                 DensityOffsets[n] = i;

@@ -57,6 +57,9 @@ namespace WatneyAstrometry.Core
         public IEnumerable<SearchRun> GetSearchQueue()
         {
 
+            if (Options.MaxFieldRadiusDegrees <= 0)
+                throw new Exception("MaxFieldRadiusDegrees must be > 0!");
+
             IEnumerable<double> radiiToTry;
             if(Options.MinFieldRadiusDegrees <= 0)
                 radiiToTry = new double[] { Options.MaxFieldRadiusDegrees };
