@@ -16,6 +16,7 @@ using CommandLine.Text;
 using Newtonsoft.Json;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.Fits;
+using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.QuadDb;
 using WatneyAstrometry.Core.Types;
@@ -38,6 +39,8 @@ namespace WatneyAstrometry.SolverApp
         private static Stopwatch _imageReadStopwatch = new();
         private static Stopwatch _quadFormationStopwatch = new();
 
+        private static Stream _stdinStream;
+
         public static void Main(string[] args)
         {
             // Enforce this, otherwise help texts will vary depending on culture and we don't want that.
@@ -46,6 +49,24 @@ namespace WatneyAstrometry.SolverApp
             
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
+
+            using var imageMemStream = new MemoryStream();
+
+            // If we have an input stream, read it.
+            if (args.Contains("--from-stdin"))
+            {
+                using (var inputStream = Console.OpenStandardInput())
+                {
+                    var buf = new byte[4096];
+                    int read = 0;
+                    while((read = inputStream.Read(buf, 0, 4096)) > 0)
+                        imageMemStream.Write(buf, 0, read);
+
+                    imageMemStream.Seek(0, SeekOrigin.Begin);
+                    //inputStream.CopyToAsync(imageMemStream);
+                    _stdinStream = imageMemStream;
+                }
+            }
 
             var parser = new CommandLine.Parser(config =>
             {
@@ -112,21 +133,47 @@ namespace WatneyAstrometry.SolverApp
             return solverOpts;
         }
 
+        private static IImage GetImageFromStdin(GenericOptions options, bool isFits)
+        {
+            var commonFormatsImageReader = new CommonFormatsImageReader();
+            var defaultFitsReader = new DefaultFitsReader();
+
+            IImage image = null;
+            if (options.ImageFromStdin && _stdinStream != null)
+            {
+                image = isFits 
+                    ? defaultFitsReader.FromStream(_stdinStream) 
+                    : commonFormatsImageReader.FromStream(_stdinStream);
+            }
+
+            return image;
+        }
+
         private static void RunBlindSolve(BlindOptions options)
         {
-            Validate(options);
+            Validate(options, out bool isFits);
             LoadConfiguration(options);
 
             var strategy = ParseStrategy(options);
             var quadDatabase = new CompactQuadDatabase();
-            
+
+            // If image source is not from stdin, returns null.
+            var image = GetImageFromStdin(options, isFits);
+
             var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
             solver.OnSolveProgress += BenchmarkProgressHandler;
 
             var solverOptions = ParseSolverOptions(options);
-            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
+
+            var solveTask = Task.Run(async () =>
+            {
+                return image == null
+                    ? await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
+                        CancellationToken.None)
+                    : await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+            });
             solveTask.Wait();
             
             quadDatabase.Dispose();
@@ -138,19 +185,28 @@ namespace WatneyAstrometry.SolverApp
 
         private static void RunNearbySolve(NearbyOptions options)
         {
-            Validate(options);
+            Validate(options, out bool isFits);
             LoadConfiguration(options);
 
             var strategy = ParseStrategy(options);
-
             var quadDatabase = new CompactQuadDatabase();
+
+            // If image source is not from stdin, returns null.
+            var image = GetImageFromStdin(options, isFits);
+
             var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
             solver.OnSolveProgress += BenchmarkProgressHandler;
 
             var solverOptions = ParseSolverOptions(options);
-            var solveTask = Task.Run(async () => await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None));
+            var solveTask = Task.Run(async () =>
+            {
+                return image == null
+                    ? await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
+                        CancellationToken.None)
+                    : await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+            });
             solveTask.Wait();
 
             quadDatabase.Dispose();
@@ -324,13 +380,6 @@ namespace WatneyAstrometry.SolverApp
             };
             
 
-            if (!File.Exists(options.ImageFilename))
-            {
-                parseErrors.Add("--image: the file does not exist.");
-                ErrorAction(_parserResult, new Error[0], parseErrors);
-                Environment.Exit(1);
-            }
-
             if (options.UseManualParams)
             {
                 if (options.Ra.Trim().Contains(' '))
@@ -404,7 +453,12 @@ namespace WatneyAstrometry.SolverApp
                 DefaultFitsReader fitsReader = new DefaultFitsReader();
                 try
                 {
-                    var fitsImage = fitsReader.FromFile(options.ImageFilename);
+                    IImage fitsImage = null;
+                    if (options.ImageFromStdin)
+                        fitsImage = fitsReader.FromStream(_stdinStream);
+                    else
+                        fitsImage = fitsReader.FromFile(options.ImageFilename);
+
                     if(fitsImage.Metadata.CenterPos == null)
                         parseErrors.Add("FITS RA, DEC was not available in headers, manual coordinates required.");
                     if(fitsImage.Metadata.ViewSize == null && options.FieldRadius == 0)
@@ -439,29 +493,44 @@ namespace WatneyAstrometry.SolverApp
         }
 
 
-        private static List<string> ValidateGeneric(GenericOptions options)
+        private static List<string> ValidateGeneric(GenericOptions options, out bool isFits)
         {
             var errors = new List<string>();
             if(!new [] {"tsv", "json"}.Contains(options.OutFormat))
                 errors.Add("--out-format: must be either json or tsv");
 
-            // Check that we can support this image file type.
-            var isSupported = DefaultFitsReader.IsSupported(options.ImageFilename) ||
-                              CommonFormatsImageReader.IsSupported(options.ImageFilename);
-            if (!isSupported)
-            {
-                errors.Add("image is not in a supported format");
-            }
+            if(!options.ImageFromStdin && string.IsNullOrEmpty(options.ImageFilename))
+                errors.Add("Either --image <filename> or --from-stdin must be provided");
 
+            // Check that we can support this image file type.
+
+            if (options.ImageFromStdin && _stdinStream == null)
+            {
+                errors.Add("image expected from stdin but not received");
+                isFits = false;
+            }
+            else if (options.ImageFromStdin)
+            {
+                isFits = DefaultFitsReader.IsSupported(_stdinStream);
+                if(!isFits && !CommonFormatsImageReader.IsSupported(_stdinStream))
+                    errors.Add("image is not in a supported format");
+            }
+            else
+            {
+                isFits = DefaultFitsReader.IsSupported(options.ImageFilename);
+                if (!isFits && !CommonFormatsImageReader.IsSupported(options.ImageFilename))
+                    errors.Add("image is not in a supported format");
+            }
+            
             _benchmarkMode = options.Benchmark;
 
             return errors;
         }
 
-        private static void Validate(BlindOptions options)
+        private static void Validate(BlindOptions options, out bool isFits)
         {
             var errors = new List<string>();
-            errors.AddRange(ValidateGeneric(options));
+            errors.AddRange(ValidateGeneric(options, out isFits));
 
             if (options.MinRadius <= ConstraintValues.MinRecommendedFieldRadius)
             {
@@ -485,14 +554,14 @@ namespace WatneyAstrometry.SolverApp
             }
         }
 
-        private static void Validate(NearbyOptions options)
+        private static void Validate(NearbyOptions options, out bool isFits)
         {
             // Extra validation is required, since CommandLineParser grouping and required params
             // don't mix well. --ra, --dec and --field-radius should be required if --manual is set.
             // Also a bunch of other validations need to be made...
 
             var errors = new List<string>();
-            errors.AddRange(ValidateGeneric(options));
+            errors.AddRange(ValidateGeneric(options, out isFits));
 
             var fieldRadiusMinMaxRegex = new Regex(@"^(\d+\.*\d*)-(\d+\.*\d*)$");
             var fieldRadiusStepsRegex = new Regex(@"^(auto|\d+)$");

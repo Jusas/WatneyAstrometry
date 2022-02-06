@@ -10,9 +10,12 @@ namespace WatneyAstrometry.SolverApp
         [Option("use-config", Required = false, HelpText = "Path to configuration file. By default tries to load watney-solve-config.yml in the same directory where the solver is.")]
         public string ConfigPath { get; set; }
 
-        [Option('i', "image", Required = true,
+        [Option('i', "image", Required = false,
             HelpText = "The image file to solve.")]
         public string ImageFilename { get; set; }
+
+        [Option("from-stdin", Required = false, Default = false, HelpText = "Read image from stdin. If this is true, the --image parameter is ignored.")]
+        public bool ImageFromStdin { get; set; }
 
         [Option("max-stars", Required = false, Default = 0, HelpText = "Maximum number of stars to use from the image. When not given, the solver decides itself. " +
             "When given, the solver uses this number. In cases of very high star count present in the image (wide-field images), the solve may fail if this number is not set high enough. " +
