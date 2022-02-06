@@ -58,7 +58,9 @@ namespace WatneyAstrometry.Core
         {
 
             IEnumerable<double> radiiToTry;
-            if (Options.MaxFieldRadiusDegrees == Options.MinFieldRadiusDegrees)
+            if(Options.MinFieldRadiusDegrees <= 0)
+                radiiToTry = new double[] { Options.MaxFieldRadiusDegrees };
+            else if (Options.MaxFieldRadiusDegrees == Options.MinFieldRadiusDegrees)
                 radiiToTry = new double[] {Options.MinFieldRadiusDegrees};
             else
                 radiiToTry = new double[]
