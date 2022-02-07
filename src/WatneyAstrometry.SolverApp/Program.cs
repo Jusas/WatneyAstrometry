@@ -40,6 +40,18 @@ namespace WatneyAstrometry.SolverApp
         private static Stopwatch _quadFormationStopwatch = new();
 
         private static Stream _stdinStream;
+        private static XyList _xyList;
+
+
+        internal enum InputType
+        {
+            Unknown,
+            FitsFromFile,
+            FitsFromStdin,
+            CommonImageFromFile,
+            CommonImageFromStdin,
+            Xyls
+        }
 
         public static void Main(string[] args)
         {
@@ -53,7 +65,7 @@ namespace WatneyAstrometry.SolverApp
             using var imageMemStream = new MemoryStream();
 
             // If we have an input stream, read it.
-            if (args.Contains("--from-stdin"))
+            if (args.Contains("--xyls-stdin") || args.Contains("--image-stdin"))
             {
                 using (var inputStream = Console.OpenStandardInput())
                 {
@@ -149,17 +161,10 @@ namespace WatneyAstrometry.SolverApp
             return image;
         }
 
-        private static void RunBlindSolve(BlindOptions options)
+        private static void RunSolve(ISearchStrategy strategy, GenericOptions options, InputType inputType)
         {
-            Validate(options, out bool isFits);
-            LoadConfiguration(options);
-
-            var strategy = ParseStrategy(options);
             var quadDatabase = new CompactQuadDatabase();
-
-            // If image source is not from stdin, returns null.
-            var image = GetImageFromStdin(options, isFits);
-
+            
             var solver = new Solver(GetLogger(options))
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
@@ -169,50 +174,57 @@ namespace WatneyAstrometry.SolverApp
 
             var solveTask = Task.Run(async () =>
             {
-                return image == null
-                    ? await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
-                        CancellationToken.None)
-                    : await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                if (inputType is InputType.CommonImageFromFile or InputType.FitsFromFile)
+                    return await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None);
+
+                if (inputType == InputType.CommonImageFromStdin)
+                {
+                    var commonFormatsImageReader = new CommonFormatsImageReader();
+                    var image = commonFormatsImageReader.FromStream(_stdinStream);
+                    return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                }
+
+                if (inputType == InputType.FitsFromStdin)
+                {
+                    var defaultFitsReader = new DefaultFitsReader();
+                    var image = defaultFitsReader.FromStream(_stdinStream);
+                    return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                }
+
+                if (inputType == InputType.Xyls)
+                {
+                    return await solver.SolveFieldAsync(_xyList, _xyList.Stars, strategy, solverOptions,
+                        CancellationToken.None);
+                }
+
+                return null;
             });
             solveTask.Wait();
-            
+
             quadDatabase.Dispose();
 
             var result = solveTask.Result;
             SaveOutput(result, options, options.ExtendedOutput);
+
+        }
+
+        private static void RunBlindSolve(BlindOptions options)
+        {
+            Validate(options, out InputType inputType);
+            LoadConfiguration(options);
+
+            var strategy = ParseStrategy(options);
+            RunSolve(strategy, options, inputType);
             
         }
 
         private static void RunNearbySolve(NearbyOptions options)
         {
-            Validate(options, out bool isFits);
+            Validate(options, out InputType inputType);
             LoadConfiguration(options);
 
             var strategy = ParseStrategy(options);
-            var quadDatabase = new CompactQuadDatabase();
-
-            // If image source is not from stdin, returns null.
-            var image = GetImageFromStdin(options, isFits);
-
-            var solver = new Solver(GetLogger(options))
-                .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
-                .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
-            solver.OnSolveProgress += BenchmarkProgressHandler;
-
-            var solverOptions = ParseSolverOptions(options);
-            var solveTask = Task.Run(async () =>
-            {
-                return image == null
-                    ? await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
-                        CancellationToken.None)
-                    : await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
-            });
-            solveTask.Wait();
-
-            quadDatabase.Dispose();
-
-            var result = solveTask.Result;
-            SaveOutput(result, options, options.ExtendedOutput);
+            RunSolve(strategy, options, inputType);
             
         }
 
@@ -453,6 +465,7 @@ namespace WatneyAstrometry.SolverApp
                 DefaultFitsReader fitsReader = new DefaultFitsReader();
                 try
                 {
+                    
                     IImage fitsImage = null;
                     if (options.ImageFromStdin)
                         fitsImage = fitsReader.FromStream(_stdinStream);
@@ -492,34 +505,108 @@ namespace WatneyAstrometry.SolverApp
             return null;
         }
 
+        private static (int w, int h) ParseXylsImageSize(string s)
+        {
+            if (s == null)
+                return default;
 
-        private static List<string> ValidateGeneric(GenericOptions options, out bool isFits)
+            var regex = new Regex(@"^(\d+)x(\d+)$");
+            var match = regex.Match(s);
+            if (!match.Success)
+                return default;
+
+            var w = int.Parse(match.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+            var h = int.Parse(match.Groups[2].Value, NumberStyles.Integer, CultureInfo.InvariantCulture);
+
+            if (w == 0 || h == 0)
+                return default;
+
+            return (w, h);
+        }
+
+        private static List<string> ValidateGeneric(GenericOptions options, out InputType inputType)
         {
             var errors = new List<string>();
             if(!new [] {"tsv", "json"}.Contains(options.OutFormat))
                 errors.Add("--out-format: must be either json or tsv");
 
-            if(!options.ImageFromStdin && string.IsNullOrEmpty(options.ImageFilename))
-                errors.Add("Either --image <filename> or --from-stdin must be provided");
+            inputType = InputType.Unknown;
 
-            // Check that we can support this image file type.
+            var imageSize = ParseXylsImageSize(options.XylsImageSize);
 
-            if (options.ImageFromStdin && _stdinStream == null)
+            if (options.XylsFromStdin || !string.IsNullOrEmpty(options.XylsFilename))
             {
-                errors.Add("image expected from stdin but not received");
-                isFits = false;
+                if (imageSize == default)
+                    errors.Add("a valid size in --xyls-imagesize must be provided");
             }
-            else if (options.ImageFromStdin)
+
+            if (options.ImageFromStdin || options.XylsFromStdin)
             {
-                isFits = DefaultFitsReader.IsSupported(_stdinStream);
-                if(!isFits && !CommonFormatsImageReader.IsSupported(_stdinStream))
+                if (_stdinStream == null)
+                {
+                    errors.Add("image expected from stdin but not received");
+                    return errors;
+                }
+            }
+
+            if (options.ImageFromStdin)
+            {
+                var isFits = DefaultFitsReader.IsSupported(_stdinStream);
+                if (isFits)
+                    inputType = InputType.FitsFromStdin;
+                else if (CommonFormatsImageReader.IsSupported(_stdinStream))
+                    inputType = InputType.CommonImageFromStdin;
+                else
                     errors.Add("image is not in a supported format");
+            }
+            else if (options.XylsFromStdin)
+            {
+                _xyList = XyList.FromStream(_stdinStream);
+                if (_xyList == null)
+                {
+                    errors.Add("could not read x,y list, the format was not the " +
+                        "expected FITS with binary extension and x,y,mag list of floats.");
+                    return errors;
+                }
+
+                inputType = InputType.Xyls;
+
+                _xyList.ImageHeight = imageSize.h;
+                _xyList.ImageWidth = imageSize.w;
             }
             else
             {
-                isFits = DefaultFitsReader.IsSupported(options.ImageFilename);
-                if (!isFits && !CommonFormatsImageReader.IsSupported(options.ImageFilename))
-                    errors.Add("image is not in a supported format");
+                if (!string.IsNullOrEmpty(options.ImageFilename))
+                {
+                    var isFits = DefaultFitsReader.IsSupported(options.ImageFilename);
+                    if (isFits)
+                        inputType = InputType.FitsFromFile;
+                    else if (CommonFormatsImageReader.IsSupported(options.ImageFilename))
+                        inputType = InputType.CommonImageFromFile;
+
+                    if(inputType == InputType.Unknown)
+                        errors.Add("image is not in a supported format");
+                }
+
+                if (!string.IsNullOrEmpty(options.XylsFilename))
+                {
+                    using (var stream = File.OpenRead(options.XylsFilename))
+                    {
+                        _xyList = XyList.FromStream(stream);
+                    }
+
+                    if (_xyList == null)
+                    {
+                        errors.Add("could not read x,y list, the format was not the " +
+                                   "expected FITS with binary extension and x,y,mag list of floats.");
+                        return errors;
+                    }
+
+                    inputType = InputType.Xyls;
+
+                    _xyList.ImageHeight = imageSize.h;
+                    _xyList.ImageWidth = imageSize.w;
+                }
             }
             
             _benchmarkMode = options.Benchmark;
@@ -527,10 +614,10 @@ namespace WatneyAstrometry.SolverApp
             return errors;
         }
 
-        private static void Validate(BlindOptions options, out bool isFits)
+        private static void Validate(BlindOptions options, out InputType inputType)
         {
             var errors = new List<string>();
-            errors.AddRange(ValidateGeneric(options, out isFits));
+            errors.AddRange(ValidateGeneric(options, out inputType));
 
             if (options.MinRadius <= ConstraintValues.MinRecommendedFieldRadius)
             {
@@ -554,14 +641,14 @@ namespace WatneyAstrometry.SolverApp
             }
         }
 
-        private static void Validate(NearbyOptions options, out bool isFits)
+        private static void Validate(NearbyOptions options, out InputType inputType)
         {
             // Extra validation is required, since CommandLineParser grouping and required params
             // don't mix well. --ra, --dec and --field-radius should be required if --manual is set.
             // Also a bunch of other validations need to be made...
 
             var errors = new List<string>();
-            errors.AddRange(ValidateGeneric(options, out isFits));
+            errors.AddRange(ValidateGeneric(options, out inputType));
 
             var fieldRadiusMinMaxRegex = new Regex(@"^(\d+\.*\d*)-(\d+\.*\d*)$");
             var fieldRadiusStepsRegex = new Regex(@"^(auto|\d+)$");
@@ -601,7 +688,14 @@ namespace WatneyAstrometry.SolverApp
             }
             else
             {
-                if (!options.UseFitsHeaders) errors.Add("either --use-fits-headers or --manual flag should be selected.");
+                // No image; xyls, so we don't have headers to work with!
+                if (!options.ImageFromStdin && string.IsNullOrEmpty(options.ImageFilename))
+                {
+                    errors.Add("cannot use --use-fits-headers when operating with X,Y list.");
+                }
+
+                if (!options.UseFitsHeaders) 
+                    errors.Add("either --use-fits-headers or --manual flag should be selected.");
             }
 
             if (errors.Any())

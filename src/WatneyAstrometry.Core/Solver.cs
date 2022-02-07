@@ -346,7 +346,7 @@ namespace WatneyAstrometry.Core
                                 searchQueue = areaBatches[areaBatchIndex];
                                 
                                 _logger.Write(
-                                    $"Starting search tasks in parallel, {currentSubSetIndex + 1}/{numSubSets}");
+                                    $"Starting search tasks in parallel. Running sampling subset {currentSubSetIndex + 1}/{numSubSets}");
 
                                 var searchTasks = searchQueue.Select(searchRun => Task.Run(async () =>
                                     await TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,

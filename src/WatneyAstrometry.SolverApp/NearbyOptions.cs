@@ -91,6 +91,16 @@ namespace WatneyAstrometry.SolverApp
                     SearchRadius = 10,
                     UseManualParams = true
                 });
+                yield return new Example("Solve from X,Y list", new NearbyOptions
+                {
+                    XylsFilename = "m31.xyls",
+                    XylsImageSize = "1200x700",
+                    Ra = "10.7",
+                    Dec = "41",
+                    SearchRadius = 10,
+                    FieldRadius = 2,
+                    UseManualParams = true
+                });
             }
         }
 

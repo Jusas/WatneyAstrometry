@@ -48,16 +48,23 @@ namespace WatneyAstrometry.SolverApp
                 yield return new Example("Basic scenario, with defaults", new BlindOptions
                 {
                     ImageFilename = "andromeda.png",
-                    MinRadius = 0.5f,
-                    MaxRadius = 8.0f
+                    MinRadius = 0.5,
+                    MaxRadius = 8.0
                 });
                 yield return new Example("Southern hemisphere, west first", new BlindOptions
                 {
                     SouthFirst = true,
                     WestFirst = true,
                     ImageFilename = "andromeda.png",
-                    MinRadius = 0.5f,
-                    MaxRadius = 8.0f
+                    MinRadius = 0.5,
+                    MaxRadius = 8.0
+                });
+                yield return new Example("Solve from X,Y list", new BlindOptions
+                {
+                    XylsFilename = "m31.xyls",
+                    XylsImageSize = "1200x700",
+                    MinRadius = 0.5,
+                    MaxRadius = 8.0
                 });
             }
         }

@@ -11,11 +11,24 @@ namespace WatneyAstrometry.SolverApp
         public string ConfigPath { get; set; }
 
         [Option('i', "image", Required = false,
-            HelpText = "The image file to solve.")]
+            HelpText = "The image file to solve.", Group = "input")]
         public string ImageFilename { get; set; }
 
-        [Option("from-stdin", Required = false, Default = false, HelpText = "Read image from stdin. If this is true, the --image parameter is ignored.")]
+        [Option("image-stdin", Required = false, Default = false, HelpText = "Read image from stdin. If this is true, the --image parameter is ignored.", Group = "input")]
         public bool ImageFromStdin { get; set; }
+        
+        [Option("xyls", Required = false, HelpText = "X,Y list file (stars), a .xyls file to solve. " +
+            "A .xyls file is a FITS file with a binary table, which can for example be created using SExtractor. " +
+            "When used, you must also provide the --xyls-imagesize parameter.", Group = "input")]
+        public string XylsFilename { get; set; }
+        
+        [Option("xyls-stdin", Required = false, Default = false, HelpText = "Read X,Y list file from stdin. " +
+            "A .xyls file is a FITS file with a binary table, which can for example be created using SExtractor. " +
+            "If this is true, the --image parameter is ignored.", Group = "input")]
+        public bool XylsFromStdin { get; set; }
+        
+        [Option("xyls-imagesize", Required = false, HelpText = "The image size in pixels <X>x<Y>. Example: --xyls-imagesize 800x600")]
+        public string XylsImageSize { get; set; }
 
         [Option("max-stars", Required = false, Default = 0, HelpText = "Maximum number of stars to use from the image. When not given, the solver decides itself. " +
             "When given, the solver uses this number. In cases of very high star count present in the image (wide-field images), the solve may fail if this number is not set high enough. " +
