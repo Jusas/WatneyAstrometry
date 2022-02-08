@@ -1,6 +1,7 @@
 name: 'Bleeding edge CI builds for watney-solve CLI app'
 
 on:
+  workflow_dispatch:
   push:
     branches:    
       - 'main'
