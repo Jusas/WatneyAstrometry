@@ -1,0 +1,19 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+
+## [1.1.0] - 2022-02-06
+
+### Fixed
+
+- WatneyAstrometry.Core v1.0.1 fix: in nearby solves the min-max range is now 
+  correctly checked, so that min radius can never be entered as 0.
+
+
+
+## [1.0.0] - 2022-01-30
+
+- First release.
+

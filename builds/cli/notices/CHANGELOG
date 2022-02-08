@@ -1,0 +1,33 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+
+## [1.1.0] - 2022-02-07
+
+### Added
+
+- The parameter '--image-stdin' allows reading image from standard input stream,
+  meaning that you can for example use piping to pass the image instead of
+  using the '--image' parameter which reads the image from a file.
+
+- Support for .xyls files (x,y lists).
+  New parameters are: --xyls, --xyls-stdin, --xyls-imagesize.
+  The --image* and --xyls* parameters are mutually exclusive,
+  and --xyls and --xyls-stdin always requires --xyls-imagesize to be set as 
+  well.
+
+### Fixed
+
+- WatneyAstrometry.Core v1.0.1 fix: in nearby solves the min-max range is now 
+  correctly checked, so that min radius can never be entered as 0.
+  This bug existed in 1.0.0 which caused the CLI solver to always fail
+  when using the '--use-fits-headers' parameter.
+  
+
+
+## [1.0.0] - 2022-01-30
+
+- First release.
+

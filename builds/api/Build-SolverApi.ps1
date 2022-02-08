@@ -36,7 +36,8 @@ foreach($target in $targets) {
   $noticeFiles = @(
     "$PSScriptRoot/notices/LICENSE",
 	"$PSScriptRoot/notices/NOTICE",
-	"$PSScriptRoot/notices/README"
+	"$PSScriptRoot/notices/README",
+	"$PSScriptRoot/notices/CHANGELOG"	
   );
 	
   Copy-Item -Path $exe -Destination $packageDir;
