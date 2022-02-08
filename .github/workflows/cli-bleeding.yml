@@ -45,7 +45,7 @@ jobs:
       run: sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
 
     - name: Build all architectures
-      run: for a in $OSARCHS_ALL; do dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true src/TestApp/TestApp.csproj -o $PKG_PREFIX-$a/ && cp builds/cli/notices/* $PKG_PREFIX-$a; done     
+      run: for a in $OSARCHS_ALL; do dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj -o $PKG_PREFIX-$a/ && cp builds/cli/notices/* $PKG_PREFIX-$a; done     
 
     - name: Install zip
       uses: montudor/action-zip@v1
