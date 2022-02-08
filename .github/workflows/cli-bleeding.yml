@@ -1,0 +1,64 @@
+name: 'Bleeding edge CI builds for watney-solve CLI app'
+
+on:
+  push:
+    branches:    
+      - 'main'
+  pull_request:
+    branches:    
+      - 'main'
+    paths:
+      - 'src/WatneyAstrometry.SolverApp/**'
+      - 'src/WatneyAstrometry.Core/**'
+      - 'src/WatneyAstrometry.ImageReaders/**'
+
+env:
+  PKG_PREFIX: 'watney-solve-bleeding'
+  PKG_PREFIX_LATEST: 'watney-solve-bleeding-latest'
+  OSARCHS_ALL: win-x64 linux-x64 linux-arm64 linux-arm osx-x64
+  OSARCHS_WIN: win-x64
+  OSARCHS_OTHER: linux-x64 linux-arm64 linux-arm osx-x64
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set build vars
+      id: buildvars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)" && echo "::set-output name=buildtime::$(date +'%Y%m%d_%H%M')"
+    
+    - name: Set package name vars
+      id: pkgnames
+      run: echo "::set-output name=prefix::${{ env.PKG_PREFIX }}-${{ steps.buildvars.outputs.buildtime }}-${{ steps.buildvars.outputs.sha_short }}"
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+
+    - name: Replace commit hash in readmes
+      run: sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
+
+    - name: Build all architectures
+      run: for a in $OSARCHS_ALL; do dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true src/TestApp/TestApp.csproj -o $PKG_PREFIX-$a/ && cp builds/cli/notices/* $PKG_PREFIX-$a; done     
+
+    - name: Install zip
+      uses: montudor/action-zip@v1
+
+    - name: Zip windows binaries
+      run: for a in $OSARCHS_WIN; do zip -r ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-latest-$a.zip; done
+
+    - name: Tar linux and osx binaries
+      run: for a in $OSARCHS_OTHER; do tar -czf ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-latest-$a.tar.gz; done
+
+    - uses: pyTooling/Actions/releaser/composite@main
+      name: Releaser
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: '${{ env.PKG_PREFIX }}-*'
+        tag: 'bleeding-cli'
+        
