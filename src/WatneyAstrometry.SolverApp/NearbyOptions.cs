@@ -15,11 +15,11 @@ namespace WatneyAstrometry.SolverApp
         public bool UseManualParams { get; set; }
 
         [Option('r', "ra", Required = false, SetName = "manual-params",
-            HelpText = "The search center in RA coordinate (either decimal or hours minutes seconds).")]
+            HelpText = "The search center in RA coordinate (either decimal degrees  dd.dddd, e.g. 125.556  or in \"hh mm ss.ss\", e.g. \"17 05 23.5\").")]
         public string Ra { get; set; }
 
         [Option('d', "dec", Required = false, SetName = "manual-params",
-            HelpText = "The search center in Dec coordinate (either decimal or degrees minutes seconds).")]
+            HelpText = "The search center in Dec coordinate (either decimal degrees (+/-)dd.dddd, e.g. -45.667  or in \"(+/-)dd mm ss.ss\", e.g. \"-76 06 13.12\" or \"41 16 8\").")]
         public string Dec { get; set; }
 
         [Option('f', "field-radius", SetName = "manual-params", Required = false,
@@ -42,7 +42,7 @@ namespace WatneyAstrometry.SolverApp
         public bool UseFitsHeaders { get; set; }
 
         [Option('s', "search-radius", Required = true,
-            HelpText = "The search radius (deg), the solver search will cover this area around the center coordinate.")]
+            HelpText = "The search radius (degrees), the solver search will cover this area around the center coordinate.")]
         public double SearchRadius { get; set; }
 
         [Option('p', "use-parallelism", Required = false, Default = false,
