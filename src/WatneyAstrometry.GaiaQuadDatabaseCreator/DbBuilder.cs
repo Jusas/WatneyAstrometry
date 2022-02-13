@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.GaiaQuadDatabaseCreator
@@ -15,13 +16,25 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
     public class DbBuilder
     {
         private string _sourceFilesDir;
-        private QuadDatabaseCellFile[] _quadCells;
+        private List<QuadDatabaseCellFile> _quadCells;
         private string _outputDir;
         private int _starsPerSqDeg;
         //private double _starsPerDegree;
         private readonly float _passFactor;
         private readonly int _startPassIndex;
         private readonly int _endPassIndex;
+
+        public const string DataSourcePrefix = "gaia2";
+
+        private QuadDatabaseIndexFile _databaseIndexFile;
+
+        private List<string> _processedCells = new();
+
+        private string BuildStatusFileName => Path.Combine(_outputDir, 
+            $"buildstatus-{_startPassIndex:00}-{_endPassIndex:00}-{_starsPerSqDeg}.json");
+
+        private string StatsFileName => Path.Combine(_outputDir,
+            $"stats-{_startPassIndex:00}-{_endPassIndex:00}-{_starsPerSqDeg}.txt");
 
         public DbBuilder(Program.Options options)
         {
@@ -35,6 +48,10 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             _startPassIndex = options.StartPass;
             _endPassIndex = options.EndPass;
             _passFactor = (float) options.PassFactor;
+            
+            var indexFilename = Path.Combine(_outputDir, 
+                $"{DataSourcePrefix}-{_startPassIndex:00}-{_endPassIndex:00}-{options.StarsPerSqDeg}.qdbindex");
+            _databaseIndexFile = new QuadDatabaseIndexFile(indexFilename, !options.NoResume);
 
             var files = Directory.GetFiles(_sourceFilesDir, "*.stars");
 
@@ -46,8 +63,10 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     var matchingStarFile = files.FirstOrDefault(x => x.EndsWith($"{cell.CellId}.stars"));
                     if (matchingStarFile == null)
                         throw new Exception($"No star file found for sky sphere segment {cell.CellId}");
-                    quadCells.Add(new QuadDatabaseCellFile(cell, options.StarsPerSqDeg, options.PassFactor,
-                        _startPassIndex, _endPassIndex, matchingStarFile));
+                    var cellOutputFilename =
+                        $"{DataSourcePrefix}-{cell.CellId}-{_startPassIndex:00}-{_endPassIndex:00}-{options.StarsPerSqDeg}.qdb";
+                    quadCells.Add(new QuadDatabaseCellFile(_databaseIndexFile, cell, options.StarsPerSqDeg, options.PassFactor,
+                        _startPassIndex, _endPassIndex, matchingStarFile, cellOutputFilename));
                 }
             }
             else
@@ -56,18 +75,34 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                 var matchingStarFile = files.FirstOrDefault(x => x.EndsWith($"{cell.CellId}.stars"));
                 if (matchingStarFile == null)
                     throw new Exception($"No star file found for sky sphere segment {cell.CellId}");
-                quadCells.Add(new QuadDatabaseCellFile(cell, options.StarsPerSqDeg, options.PassFactor, _startPassIndex, _endPassIndex,
-                    matchingStarFile));
+                var cellOutputFilename =
+                    $"{DataSourcePrefix}-{cell.CellId}-{_startPassIndex:00}-{_endPassIndex:00}-{options.StarsPerSqDeg}.qdb";
+                quadCells.Add(new QuadDatabaseCellFile(_databaseIndexFile, cell, options.StarsPerSqDeg, options.PassFactor, _startPassIndex, _endPassIndex,
+                    matchingStarFile, cellOutputFilename));
 
             }
 
-            _quadCells = quadCells.ToArray();
+            _quadCells = quadCells;
+
+            if (!options.NoResume)
+            {
+                var alreadyProcessed = ReadStatusFromJson();
+                if (alreadyProcessed.Any())
+                {
+                    _processedCells = alreadyProcessed;
+                    _quadCells.RemoveAll(c => alreadyProcessed.Contains(c.CellReference.CellId));
+                }
+            }
+
         }
 
-        public void Build(int threads)
+        public void Build(int threads, CancellationToken cancellationToken)
         {
-            Console.WriteLine($"Building star database cells from source file '{_sourceFilesDir}'.");
+            Console.WriteLine($"Building star database cells from source files in '{_sourceFilesDir}'.");
             Console.WriteLine($"Working with {threads} threads...");
+
+            if(_processedCells.Any())
+                Console.WriteLine("Continuing where last stopped, already processed cells: " + string.Join(", ", _processedCells));
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -77,13 +112,19 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
             var lockObj = new object();
             int progress = 0;
-            int max = _quadCells.Length;
+            int max = _quadCells.Count;
             long quadCount = 0;
+
             
-            Parallel.For(0, _quadCells.Length, new ParallelOptions() { MaxDegreeOfParallelism = threads },
+            Parallel.For(0, _quadCells.Count, new ParallelOptions() { MaxDegreeOfParallelism = threads },
                 (idx) =>
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                        return;
+
                     var cellFile = _quadCells[idx];
+                    Console.WriteLine($"{cellFile.CellReference.CellId}: Reading star source to memory...");
+
                     using (var stream = new FileStream(cellFile.StarSourceFile, FileMode.Open, FileAccess.Read))
                     {
                         var sourceStarCount = stream.Length / starByteSize;
@@ -91,6 +132,9 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
                         for (var i = 0; i < batchesToRead; i++)
                         {
+                            if (cancellationToken.IsCancellationRequested)
+                                return;
+
                             var buf = new byte[readBatchCount * starByteSize];
                             var bytesRead = stream.Read(buf, 0, buf.Length);
 
@@ -109,7 +153,10 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                                 advance += starByteSize;
                             }
                         }
-                        
+
+                        if (cancellationToken.IsCancellationRequested)
+                            return;
+
                         cellFile.Serialize(_outputDir);
                         _quadCells[idx] = null;
 
@@ -117,6 +164,8 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                         Interlocked.Add(ref quadCount, cellFile.QuadCount);
                         lock (lockObj)
                         {
+                            _processedCells.Add(cellFile.CellReference.CellId);
+                            SaveStatusAsJson();
                             Console.WriteLine($"Progress: {progress} / {max}");
                         }
 
@@ -132,22 +181,36 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                 });
 
             
-            //Console.WriteLine($"Serializing into quad cell files using {threads} threads...");
-            //Parallel.ForEach(_quadCells, new ParallelOptions() {MaxDegreeOfParallelism = threads},
-            //    (cellFile, state, idx) => { cellFile.Serialize(_outputDir, _passes, _passFactor); });
 
             stopwatch.Stop();
 
-            Console.WriteLine($"Serializing completed in {stopwatch.Elapsed}");
-
-            var statsFile = Path.Combine(_outputDir, $"stats-{_startPassIndex:00}-{_endPassIndex:00}-{_starsPerSqDeg}.txt");
+            if (cancellationToken.IsCancellationRequested)
+                Console.WriteLine("Cancellation was signaled! Job stopped!");
+            else
+                Console.WriteLine($"Serializing completed in {stopwatch.Elapsed}");
+            
             var stats = new[]
             {
                 $"Total formed quads: {quadCount}",
                 $"Extraction took {stopwatch.Elapsed}"
             };
-            File.WriteAllLines(statsFile, stats);
+            File.WriteAllLines(StatsFileName, stats);
 
+        }
+
+
+        private List<string> ReadStatusFromJson()
+        {
+            if (!File.Exists(BuildStatusFileName))
+                return new List<string>();
+
+            return JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(BuildStatusFileName));
+        }
+
+        private void SaveStatusAsJson()
+        {
+            var processedJson = JsonConvert.SerializeObject(_processedCells);
+            File.WriteAllText(BuildStatusFileName, processedJson);
         }
     }
 }
