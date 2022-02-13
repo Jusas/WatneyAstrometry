@@ -57,32 +57,58 @@ namespace WatneyAstrometry.Core.Types
         };
 
         private static List<Cell> _cells;
+        private static Cell[,] _cellsArray;
 
         public static IReadOnlyList<Cell> Cells
         {
             get
             {
-                if (_cells == null)
-                {
-                    lock (_mutex)
-                    {
-                        _cells = new List<Cell>();
-                        for (var b = 0; b < LatitudeBands.Count; b++)
-                        {
-                            var band = LatitudeBands[b];
-                            var cellWidth = CellWidths[b];
-                            for (int raLeft = 0, c = 0; raLeft < 360; raLeft += cellWidth, c++)
-                            {
-                                var bounds = new RaDecBounds(raLeft, raLeft + cellWidth, band.L2, band.L1);
-                                _cells.Add(new Cell(bounds, b, c));
-                            }
-                        }
-                    }
-                }
-
                 return _cells;
             }
+            //get
+            //{
+            //    if (_cells == null)
+            //    {
+            //        lock (_mutex)
+            //        {
+            //            _cells = new List<Cell>();
+            //            for (var b = 0; b < LatitudeBands.Count; b++)
+            //            {
+            //                var band = LatitudeBands[b];
+            //                var cellWidth = CellWidths[b];
+            //                for (int raLeft = 0, c = 0; raLeft < 360; raLeft += cellWidth, c++)
+            //                {
+            //                    var bounds = new RaDecBounds(raLeft, raLeft + cellWidth, band.L2, band.L1);
+            //                    _cells.Add(new Cell(bounds, b, c));
+            //                }
+            //            }
+            //        }
+            //    }
+
+            //    return _cells;
+            //}
         }
+
+        static SkySegmentSphere()
+        {
+            _cells = new List<Cell>();
+            
+            for (var b = 0; b < LatitudeBands.Count; b++)
+            {
+                var band = LatitudeBands[b];
+                var cellWidth = CellWidths[b];
+                for (int raLeft = 0, c = 0; raLeft < 360; raLeft += cellWidth, c++)
+                {
+                    var bounds = new RaDecBounds(raLeft, raLeft + cellWidth, band.L2, band.L1);
+                    var cell = new Cell(bounds, b, c);
+                    _cells.Add(cell);
+                }
+            }
+            _cellsArray = new Cell[_cells.Max(x => x.BandIndex)+1, _cells.Max(x => x.CellIndex)+1];
+            foreach (var cell in _cells)
+                _cellsArray[cell.BandIndex, cell.CellIndex] = cell;
+        }
+
         
         public static Cell GetCellAt(EquatorialCoords location)
         {
@@ -99,6 +125,11 @@ namespace WatneyAstrometry.Core.Types
             var cellIndex = (int)(location.Ra / CellWidths[latIndex]);
 
             return Cells.First(c => c.BandIndex == latIndex && c.CellIndex == cellIndex);
+        }
+
+        public static Cell GetCellByBandAndCellIndex(int band, int cell)
+        {
+            return _cellsArray[band, cell];
         }
 
         public static Cell GetCellById(string cellId)

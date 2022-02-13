@@ -13,7 +13,8 @@ namespace WatneyAstrometry.Core.Types
         public int BandIndex { get; internal set; }
         public int CellIndex { get; internal set; }
 
-        public string CellId => $"b{BandIndex:00}c{CellIndex:00}";
+        private string _cellId;
+        public string CellId => _cellId ?? (_cellId = $"b{BandIndex:00}c{CellIndex:00}");
 
         public static string GetCellId(int band, int cell) => $"b{band:00}c{cell:00}";
         

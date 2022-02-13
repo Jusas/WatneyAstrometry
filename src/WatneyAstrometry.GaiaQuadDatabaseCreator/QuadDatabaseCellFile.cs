@@ -15,15 +15,13 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 {
     public class QuadDatabaseCellFile : IDisposable
     {
-        private readonly string _prefix = "gaia2";
-        
         private List<Star> _allStars = new List<Star>();
         private readonly List<Star>[][] _subCellStars;
         public int QuadCount { get; private set; } = 0;
         public string StarSourceFile { get; private set; }
 
         private const string FileIdentifier = "WATNEYQDB";
-        public const int FormatVersion = 2;
+        public const int FormatVersion = 3;
 
         public class Star
         {
@@ -47,24 +45,18 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
         public class Quad
         {
-            public ushort[] Ratios;
+            public byte[] Ratios;
             public float LargestDistance;
             public EquatorialCoords CenterPoint;
             public Star[] Stars;
             
-            public byte[] GetBytes() =>
-                BitConverter.GetBytes(Ratios[0])
-                    .Concat(BitConverter.GetBytes(Ratios[1]))
-                    .Concat(BitConverter.GetBytes(Ratios[2]))
-                    .Concat(BitConverter.GetBytes(Ratios[3]))
-                    .Concat(BitConverter.GetBytes(Ratios[4]))
-                    .Concat(BitConverter.GetBytes(LargestDistance))
-                    .Concat(BitConverter.GetBytes((float)CenterPoint.Ra))
-                    .Concat(BitConverter.GetBytes((float)CenterPoint.Dec))
-                    .ToArray();
+            public byte[] GetBytes() => Ratios
+                .Concat(BitConverter.GetBytes(LargestDistance))
+                .Concat(BitConverter.GetBytes((float)CenterPoint.Ra))
+                .Concat(BitConverter.GetBytes((float)CenterPoint.Dec))
+                .ToArray();
 
-            //public static int Size => /*ratios*/ sizeof(float) * 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
-            public static int Size => /*ratios*/ sizeof(ushort) * 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
+            public static int Size => /*ratios*/ sizeof(byte) * 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
 
             /// <summary>
             /// For duplicate detection.
@@ -100,21 +92,25 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
         private bool _disposing = false;
         private readonly int _startPassIndex;
         private readonly int _endPassIndex;
+        private readonly string _cellOutputFilename;
 
         private RaDecBounds[][] _subDivisionBounds;
+        private readonly QuadDatabaseIndexFile _index;
 
-        public QuadDatabaseCellFile(Cell cell, int starsPerSquareDeg, float passFactor, int startPassIndex, int endPassIndex, string starSourceFile)
+        public QuadDatabaseCellFile(QuadDatabaseIndexFile index, Cell cell, int starsPerSquareDeg, float passFactor, int startPassIndex, int endPassIndex, string starSourceFile, string cellOutputFilename)
         {
             CellReference = cell;
             StarSourceFile = starSourceFile;
             _starsPerSqDegree = starsPerSquareDeg;
             _startPassIndex = startPassIndex;
             _endPassIndex = endPassIndex;
+            _cellOutputFilename = cellOutputFilename;
             _passFactor = passFactor;
             _numPasses = endPassIndex - startPassIndex + 1;
             _passSubDivisions = new int[_numPasses];
             _subDivisionBounds = new RaDecBounds[_numPasses][];
             _subCellStars = new List<Star>[_numPasses][];
+            _index = index;
             
 
             for (var i = 0; i < _numPasses; i++)
@@ -253,21 +249,21 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     stars[starIndexC].RaDec
                 });
 
-                var shortRatios = new ushort[5];
-                shortRatios[0] = (ushort) (ratios[0] * 100000 / 2.0);
-                shortRatios[1] = (ushort) (ratios[1] * 100000 / 2.0);
-                shortRatios[2] = (ushort) (ratios[2] * 100000 / 2.0);
-                shortRatios[3] = (ushort) (ratios[3] * 100000 / 2.0);
-                shortRatios[4] = (ushort) (ratios[4] * 100000 / 2.0);
-
+                var byteRatios = new byte[5];
+                byteRatios[0] = (byte)Math.Round(ratios[0] * 255, MidpointRounding.AwayFromZero);
+                byteRatios[1] = (byte)Math.Round(ratios[1] * 255, MidpointRounding.AwayFromZero);
+                byteRatios[2] = (byte)Math.Round(ratios[2] * 255, MidpointRounding.AwayFromZero);
+                byteRatios[3] = (byte)Math.Round(ratios[3] * 255, MidpointRounding.AwayFromZero);
+                byteRatios[4] = (byte)Math.Round(ratios[4] * 255, MidpointRounding.AwayFromZero);
+                
                 var quad = new Quad
                 {
                     CenterPoint = centerPoint,
                     LargestDistance = (float) largestDistance,
-                    Ratios = shortRatios,
+                    Ratios = byteRatios,
                     Stars = quadStars
                 };
-                //var quad = (ratios, largestDistance, quadStars, centerPoint);
+
                 quads.Add(quad);
             }
 
@@ -294,38 +290,8 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             
         }
 
-        private void WriteHeaderData(Stream stream, List<PassWithSubCells> passesWithSubCells)
+        private void WriteIndexData(List<PassWithSubCells> passesWithSubCells, Stream stream)
         {
-            var c = CultureInfo.InvariantCulture;
-            
-            // This header is just for show; it's human readable, and can show the file content at a glance.
-            // The machine reads the binary data instead.
-            var header = new
-            {
-                FileFormatVersion = $"{FormatVersion}",
-                Description = "Star quads formed from Gaia2 catalog stars",
-                CellId = CellReference.CellId,
-                StartPass = _startPassIndex,
-                EndPass = _endPassIndex,
-                PassFactor = _passFactor,
-                StarsPerSqDeg = _starsPerSqDegree,
-                SourceDataSet = "Gaia2",
-                RaBounds = $"[{CellReference.Bounds.RaLeft.ToString(c)}, {CellReference.Bounds.RaRight.ToString(c)}]",
-                DecBounds = $"[{CellReference.Bounds.DecBottom.ToString(c)}, {CellReference.Bounds.DecTop.ToString(c)}]"
-            };
-
-            // Write file identifier.
-            stream.Write(Encoding.ASCII.GetBytes(FileIdentifier));
-
-            // Write version number.
-            stream.Write(BitConverter.GetBytes(FormatVersion));
-
-            // Write header information.
-            stream.Write(Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(header, Formatting.Indented)));
-
-            // Write null character; data begins after this.
-            stream.WriteByte(0);
-
             // Write band and cell index.
             stream.Write(BitConverter.GetBytes(CellReference.BandIndex));
             stream.Write(BitConverter.GetBytes(CellReference.CellIndex));
@@ -372,6 +338,13 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
         private void WriteQuadData(Stream stream, List<PassWithSubCells> passesWithSubCells)
         {
+            // Write version header to cell file, for backwards compatibility.
+            // Write file identifier.
+            stream.Write(Encoding.ASCII.GetBytes(FileIdentifier));
+
+            // Write version number.
+            stream.Write(BitConverter.GetBytes(FormatVersion));
+            
             for (var pass = 0; pass < _numPasses; pass++)
             {
                 for (var subCellIndex = 0; subCellIndex < passesWithSubCells[pass].SubCellCount; subCellIndex++)
@@ -383,6 +356,8 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     }
                 }
             }
+
+            return;
         }
 
         public void Serialize(string outputDir)
@@ -410,7 +385,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                         _allStars[i].IsSelected = true;
                 
                 // In parallel, form quads per each SubCell.
-                Parallel.For(0, numSubCells, (subCellIdx, state) =>
+                Parallel.For(0, numSubCells, new ParallelOptions() {MaxDegreeOfParallelism = 4}, (subCellIdx, state) =>
                 {
                     var starList = _subCellStars[pass][subCellIdx];
                     var subCellSelectedStars = starList.Where(s => s.IsSelected).ToArray();
@@ -423,13 +398,13 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                         _allStars[i].IsSelected = false;
             }
 
-            var filename = Path.Combine(outputDir, $"{_prefix}-{CellReference.CellId}-{_startPassIndex:00}-{_endPassIndex:00}-{_starsPerSqDegree}.qdb");
+            var filename = Path.Combine(outputDir, _cellOutputFilename);
 
-            Console.WriteLine($"{CellReference.CellId}: Writing output");
+            Console.WriteLine($"{CellReference.CellId}: Writing output to " + filename);
             using (var stream = new FileStream(filename, FileMode.Create))
             {
-                WriteHeaderData(stream, passesWithSubCells);
                 WriteQuadData(stream, passesWithSubCells);
+                _index.AppendCellToIndex(_cellOutputFilename, (indexStream) => WriteIndexData(passesWithSubCells, indexStream));
             }
 
             QuadCount = passesWithSubCells.Sum(p => p.QuadCount);

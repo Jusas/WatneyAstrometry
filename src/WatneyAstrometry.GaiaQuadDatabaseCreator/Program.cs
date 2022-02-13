@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Threading;
 using CommandLine;
 
 namespace WatneyAstrometry.GaiaQuadDatabaseCreator
@@ -10,11 +11,10 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
     public class Program
     {
 
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+
         public class Options
         {
-            //[Option('f', "fieldsize", Required = true, HelpText = "Field diameter in degrees for which sized images this data set gets optimized for", Default = 1.0)]
-            //public double FieldSize { get; set; }
-
             // Base stars per degree. Each pass (Passes) creates a pass with PassFactor * stars  (stars, PassFactor*stars, PassFactor*PassFactor*stars, etc) of which we make quads.
 
             [Option('s', "stars", Required = true, HelpText = "Stars per square degree", Default = 20)] // Density (stars per deg) = stars / resolution
@@ -38,8 +38,13 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             [Option('x', "passfactor", Required = false, HelpText = "Base factor to use when increasing number of stars per pass. This number gets raised to the power [pass], i.e. passfactor^passNumber. Defaults to sqrt(2).", Default = 1.4142135623730950488016887242097f)]
             public float PassFactor { get; set; } = (float)Math.Sqrt(2);
 
-            [Option('c', "cell", Required = false, HelpText = "Only generate a single cell, e.g. 'b00c00'", Default = "")]
+            [Option('c', "cell", Required = false, HelpText = "Only generate a single cell, e.g. 'b00c00'. This is for debug purposes only.", Default = "")]
             public string SelectedCell { get; set; } = "";
+
+            [Option("no-resume", Required = false, Default = false, HelpText = "By default we resume from position where processing was canceled if the flag is set. This flag allows " +
+                "for canceling the job mid-way if needed, and then to continue later from that spot. If set to false, it forces the rebuilding of the entire database. The status is tracked " +
+                "using a JSON file written to the output directory.")]
+            public bool NoResume { get; set; }
         }
 
         static void Run(Options options)
@@ -50,22 +55,23 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                 Console.WriteLine($"Creating directory {options.OutputDir}");
                 Directory.CreateDirectory(options.OutputDir);
             }
-            // in reality, with parameters like -p 4 -x 0.85 we produce a nice range: 0.5 ==> 0.5..1,  1 ==> 1..2, 2 ==> 2..4, 4 ==> 4..8 and so on
-
-            //var fieldSquareSideLen = options.FieldSize * Math.Sin(Math.PI / 4);
-            //var starsPerSqDegree = (options.StarsPerSqDeg / (fieldSquareSideLen * fieldSquareSideLen));
-
-            Console.WriteLine($"Building quads from stars with target {options.StarsPerSqDeg} stars per sq degree");
-
-            //Console.WriteLine($"Building quads from stars with target field diameter of {options.FieldSize} degrees, approx density of {starsPerSqDegree:F1} stars per sq degree");
-
+            
+            Console.WriteLine($"Building quads from stars with starting density of {options.StarsPerSqDeg} stars per sq degree");
+            
             var builder = new DbBuilder(options);
-            builder.Build(options.Threads);
+            builder.Build(options.Threads, _cancellationTokenSource.Token);
 
         }
 
         static void Main(string[] args)
         {
+
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                Console.WriteLine("CTRL-C signaled! Stopping work...");
+                _cancellationTokenSource.Cancel();
+            };
 
             CommandLine.Parser.Default.ParseArguments<Options>(args)
                 .WithParsed(Run);

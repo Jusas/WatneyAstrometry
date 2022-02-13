@@ -13,7 +13,8 @@ namespace WatneyAstrometry.Core.QuadDb
     /// </summary>
     public class QuadDatabaseCellFileSet : IDisposable
     {
-        
+        // TODO internal or public?
+        // Group descriptors by cellId, and create a new CellFile per descriptor
         private class CellFilePassDensity
         {
             public float QuadsPerSqDeg { get; set; }
@@ -31,41 +32,33 @@ namespace WatneyAstrometry.Core.QuadDb
         public Cell CellReference { get; }
 
 
-        private QuadDatabaseCellFileSet(string cellId)
+        public static QuadDatabaseCellFileSet[] FromIndexes(QuadDatabaseCellFileIndex[] indexes)
+        {
+            var sets = new QuadDatabaseCellFileSet[SkySegmentSphere.Cells.Count];
+            var allCellFiles = indexes.SelectMany(i => i.CellFiles)
+                .GroupBy(i => i.Descriptor.CellId);
+
+            int n = 0;
+            foreach (var fileGroup in allCellFiles)
+            {
+                var set = new QuadDatabaseCellFileSet(fileGroup.Key, fileGroup.ToArray());
+                sets[n++] = set;
+            }
+
+            return sets;
+        }
+        
+
+
+
+        private QuadDatabaseCellFileSet(string cellId, QuadDatabaseCellFile[] sourceFiles)
         {
             CellReference = SkySegmentSphere.GetCellById(cellId);
             CellId = cellId;
+            _sourceFiles = sourceFiles;
+            Initialize();
         }
-        
 
-        /// <summary>
-        /// Read the files (*.qdb) into cell file sets (a set of files per cell).
-        /// </summary>
-        /// <param name="filenames"></param>
-        /// <returns></returns>
-        public static QuadDatabaseCellFileSet[] ReadDatabaseCellFiles(string[] filenames)
-        {
-            var cellFileSets = new Dictionary<string, QuadDatabaseCellFileSet>();
-
-            for (var i = 0; i < filenames.Length; i++)
-            {
-                var filename = filenames[i];
-                var cellFile = new QuadDatabaseCellFile(filename);
-                var cellFileSet = cellFileSets.ContainsKey(cellFile.FileDescriptor.CellId) 
-                    ? cellFileSets[cellFile.FileDescriptor.CellId] 
-                    : new QuadDatabaseCellFileSet(cellFile.FileDescriptor.CellId);
-                cellFileSet.AddCellFile(cellFile);
-                cellFileSets[cellFile.FileDescriptor.CellId] = cellFileSet;
-            }
-
-            var sets = cellFileSets.Values.ToArray();
-
-            for (var i = 0; i < sets.Length; i++)
-                sets[i].Initialize();
-
-            return cellFileSets.Values.ToArray();
-        }
-        
 
         private void Initialize()
         {
@@ -74,12 +67,12 @@ namespace WatneyAstrometry.Core.QuadDb
             var cellFilePassDensities = new List<CellFilePassDensity>();
 
             for (var i = 0; i < _sourceFiles.Length; i++)
-                for (var p = 0; p < _sourceFiles[i].FileDescriptor.Passes.Length; p++)
+                for (var p = 0; p < _sourceFiles[i].Descriptor.Passes.Length; p++)
                     cellFilePassDensities.Add(new CellFilePassDensity
                     {
                         FileIndex = i,
                         PassIndex = p,
-                        QuadsPerSqDeg = _sourceFiles[i].FileDescriptor.Passes[p].QuadsPerSqDeg
+                        QuadsPerSqDeg = _sourceFiles[i].Descriptor.Passes[p].QuadsPerSqDeg
                     });
 
             // Order by density, faster to access adjacent densities.
@@ -87,56 +80,8 @@ namespace WatneyAstrometry.Core.QuadDb
                 .OrderBy(x => x.QuadsPerSqDeg)
                 .ToArray();
         }
-
-        private void AddCellFile(QuadDatabaseCellFile cellFile)
-        {
-            _sourceFiles = _sourceFiles.Append(cellFile).ToArray();
-        }
         
-
-        /// <summary>
-        /// Loads all stars in the files into memory.
-        /// </summary>
-        public void LoadIntoMemory()
-        {
-            throw new NotImplementedException();
-            //_cachedQuads = new Dictionary<string, Dictionary<int, StarQuad[]>>(_sourceFiles.Length);
-            //foreach (var fn in _sourceFiles)
-            //    _cachedQuads[fn.Filename] = new Dictionary<int, StarQuad[]>();
-
-            //var singleQuadDataLen = /*ratios*/ sizeof(float) * 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
-
-
-            //Parallel.ForEach(_sourceFiles, delegate(QuadCellFile file, ParallelLoopState state)
-            //{
-            //    using (var stream = new FileStream(file.Filename, FileMode.Open, FileAccess.Read))
-            //    {
-            //        var cache = _cachedQuads[file.Filename];
-            //        for (var i = 0; i < file.SubCellInfos.Length; i++)
-            //        {
-            //            var subCellInfo = file.SubCellInfos[i];
-            //            stream.Seek(subCellInfo.DataStartPosition, SeekOrigin.Begin);
-            //            var buf = new byte[subCellInfo.DataLength];
-            //            stream.Read(buf, 0, buf.Length);
-
-            //            var quadCount = subCellInfo.DataLength / singleQuadDataLen;
-            //            var quads = new List<StarQuad>(quadCount);
-            //            int advance = 0;
-            //            for (var j = 0; j < quadCount; j++)
-            //            {
-            //                var quad = BytesToQuad(buf, advance);
-            //                quads.Add(quad);
-            //                advance += singleQuadDataLen;
-            //            }
-
-            //            cache.Add(i, quads.ToArray());
-            //        }
-            //    }
-            //});
-
-        }
-
-
+        
         /// <summary>
         /// Retrieves stars that are within specified angular distance.
         /// </summary>

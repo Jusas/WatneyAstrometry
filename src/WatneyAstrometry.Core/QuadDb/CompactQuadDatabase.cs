@@ -37,17 +37,13 @@ namespace WatneyAstrometry.Core.QuadDb
 
             if (!Directory.Exists(directoryPath))
                 throw new Exception($"Directory {directoryPath} does not exist, unable to load/use star database");
-            
-            var dbCellFiles = Directory.GetFiles(directoryPath, "*.qdb");
-            
-            _cellFileSets = QuadDatabaseCellFileSet.ReadDatabaseCellFiles(dbCellFiles);
+
+            var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
+            _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
             
             if (loadIntoMemory)
             {
-                Parallel.ForEach(_cellFileSets, file =>
-                {
-                    file.LoadIntoMemory();
-                });
+                throw new NotImplementedException("Loading to memory not supported yet");
             }
 
             return this;

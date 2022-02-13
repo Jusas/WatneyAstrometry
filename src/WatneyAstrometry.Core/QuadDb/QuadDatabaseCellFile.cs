@@ -17,139 +17,15 @@ namespace WatneyAstrometry.Core.QuadDb
     /// </summary>
     public class QuadDatabaseCellFile : IDisposable
     {
-        public const string FileIdentifier = "WATNEYQDB";
-        private static readonly int QuadDataLen = /*ratios*/ sizeof(ushort) * 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
+        public QuadDatabaseCellFileDescriptor Descriptor { get; private set; }
+        private static readonly int QuadDataLen = /*ratios*/ 5 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
 
         private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
 
-        public class SubCellInfo
+        
+        public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor)
         {
-            public EquatorialCoords Center { get; set; }
-            public int DataLengthBytes { get; set; }
-            public long DataStartPos { get; set; }
-        }
-
-        public class Pass
-        {
-            public float QuadsPerSqDeg { get; set; }
-            public int SubDivisions { get; set; }
-            public SubCellInfo[] SubCells { get; set; }
-            public double AvgSubCellRadius { get; set; }
-        }
-
-        public class Descriptor
-        {
-            public string CellId { get; set; }
-            public Pass[] Passes { get; set; }
-        }
-
-        public string Filename { get; private set; }
-        public Descriptor FileDescriptor { get; private set; }
-
-        public QuadDatabaseCellFile(string filename)
-        {
-            Filename = filename;
-            FileDescriptor = ReadDescriptor(filename);
-        }
-
-        /// <summary>
-        /// Read the 'header' of the file.
-        /// The header contains info about the passes and sub cells contained.
-        /// </summary>
-        /// <param name="filename"></param>
-        /// <returns></returns>
-        private Descriptor ReadDescriptor(string filename)
-        {
-            var descriptor = new Descriptor();
-            long dataStartPos = 0;
-            Cell cellReference;
-
-            using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
-            using (var reader = new BinaryReader(stream))
-            {
-
-                var fileIdBytes = Encoding.ASCII.GetBytes(FileIdentifier);
-
-                if (stream.Length < fileIdBytes.Length)
-                    throw new Exception("Invalid file format");
-
-                var idBuf = reader.ReadBytes(fileIdBytes.Length);
-                var idString = Encoding.ASCII.GetString(idBuf);
-                if (idString != FileIdentifier)
-                    throw new Exception($"Invalid file format: expected {FileIdentifier}");
-
-                // File format, check that this format is supported.
-                var fileFormatVersion = reader.ReadInt32();
-                if (fileFormatVersion != 2)
-                    throw new Exception("This file format version is not supported");
-                
-                // File starts with human readable header, skip it.
-                while (reader.ReadByte() != 0) ;
-
-                // Band and cell indices
-                var band = reader.ReadInt32();
-                var cell = reader.ReadInt32();
-                descriptor.CellId = Cell.GetCellId(band, cell);
-                cellReference = SkySegmentSphere.GetCellById(descriptor.CellId);
-
-                // Number of passes
-                int passCount = reader.ReadInt32();
-                descriptor.Passes = new Pass[passCount];
-
-                // For each pass, read: quadsPerSqDeg, number of SubCells
-                for (var p = 0; p < passCount; p++)
-                {
-                    var pass = new Pass();
-                    descriptor.Passes[p] = pass;
-                    pass.QuadsPerSqDeg = reader.ReadSingle();
-                    pass.SubDivisions = reader.ReadInt32();
-                    
-                    var numSubCells = reader.ReadInt32();
-                    pass.SubCells = new SubCellInfo[numSubCells];
-
-                    for (var sc = 0; sc < numSubCells; sc++)
-                    {
-                        var ra = reader.ReadSingle();
-                        var dec = reader.ReadSingle();
-                        var dataLength = reader.ReadInt32();
-
-                        var subCell = new SubCellInfo()
-                        {
-                            Center = new EquatorialCoords(ra, dec),
-                            DataLengthBytes = dataLength
-                        };
-                        pass.SubCells[sc] = subCell;
-                    }
-                }
-
-                dataStartPos = stream.Position;
-            }
-
-            for (var p = 0; p < descriptor.Passes.Length; p++)
-            {
-                var pass = descriptor.Passes[p];
-                for (var s = 0; s < pass.SubCells.Length; s++)
-                {
-                    pass.SubCells[s].DataStartPos = dataStartPos;
-                    dataStartPos += pass.SubCells[s].DataLengthBytes;
-                    
-                    if (pass.SubCells.Length == 1)
-                        pass.AvgSubCellRadius = 0.5 * EquatorialCoords.GetAngularDistanceBetween(
-                            new EquatorialCoords(cellReference.Bounds.RaLeft, cellReference.Bounds.DecTop),
-                            new EquatorialCoords(cellReference.Bounds.RaRight, cellReference.Bounds.DecBottom));
-                    else
-                    {
-                        var spanningDistance = EquatorialCoords.GetAngularDistanceBetween(
-                            pass.SubCells.First().Center,
-                            pass.SubCells.Last().Center);
-                        pass.AvgSubCellRadius = spanningDistance / (pass.SubDivisions - 1) / 2;
-                    }
-                }
-
-                
-            }
-
-            return descriptor;
+            Descriptor = descriptor;
         }
 
         /// <summary>
@@ -165,9 +41,9 @@ namespace WatneyAstrometry.Core.QuadDb
         public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads)
         {
             var foundQuads = new List<StarQuad>();
-            var subCellsInRange = new List<SubCellInfo>();
+            var subCellsInRange = new List<QuadDatabaseCellFileDescriptor.SubCellInfo>();
 
-            var pass = FileDescriptor.Passes[passIndex];
+            var pass = Descriptor.Passes[passIndex];
 
             // TODO: the higher the subset count, the more this gets called and it does add up.
             for (var p = 0; p < pass.SubCells.Length; p++)
@@ -188,7 +64,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             FileStream fileStream;
             if (!_fileStreamPool.TryDequeue(out fileStream))
-                fileStream = new FileStream(Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+                fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
 
             // TODO: filestream reads and seeks are taking the toll when using large subset count. Could potentially speed things up with caching at the cost of memory usage.
             for (var sc = 0; sc < subCellsInRangeArr.Length; sc++)
@@ -234,7 +110,8 @@ namespace WatneyAstrometry.Core.QuadDb
         /// </summary>
         /// <param name="buf"></param>
         /// <param name="offset"></param>
-        /// <param name="tentativeMatches"></param>
+        /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
+        /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
         /// <returns></returns>
         private static unsafe StarQuad BytesToQuadNew(byte[] buf, int offset, ImageStarQuad[] tentativeMatches)
         {
@@ -243,17 +120,17 @@ namespace WatneyAstrometry.Core.QuadDb
             // from blind solves by doing this.
 
             bool noMatching = tentativeMatches == null;
-            const float divider = 50_000.0f;
             fixed (byte* pBuf = buf)
             {
                 
-                ushort* pRatios = (ushort*)(pBuf + offset);
+                byte* pRatios = (byte*)(pBuf + offset);
 
                 if (noMatching)
                 {
-                    var ratios = new[] {pRatios[0] / divider, pRatios[1] / divider, pRatios[2] / divider, pRatios[3] / divider, pRatios[4] / divider};
+                    var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
 
-                    float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
+                    float* pFloats = (float*)(pBuf + offset + 5); // floats come after the 5 byte-sized ratios
+                    // TODO: if endianness demands array flipping...
                     var largestDist = pFloats[0];
                     var ra = pFloats[1];
                     var dec = pFloats[2];
@@ -264,18 +141,19 @@ namespace WatneyAstrometry.Core.QuadDb
 
                 for (var q = 0; q < tentativeMatches.Length; q++)
                 {
+                    // TODO: We're no longer setting tentativeMatches[q] to null and resetting the array in the calling method, why was this removed originally? Should inspect performance...
                     var imgQuad = tentativeMatches[q];
                     if (imgQuad != null
-                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / divider) - 1.0f) <= 0.01f
-                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / divider) - 1.0f) <= 0.01f
-                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / divider) - 1.0f) <= 0.01f
-                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / divider) - 1.0f) <= 0.01f
-                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / divider) - 1.0f) <= 0.01f
+                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / 255.0f) - 1.0f) <= 0.012f
+                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / 255.0f) - 1.0f) <= 0.012f
+                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / 255.0f) - 1.0f) <= 0.012f
+                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / 255.0f) - 1.0f) <= 0.012f
+                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / 255.0f) - 1.0f) <= 0.012f
                     )
                     {
-                        var ratios = new[] {pRatios[0] / divider, pRatios[1] / divider, pRatios[2] / divider, pRatios[3] / divider, pRatios[4] / divider};
+                        var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
 
-                        float* pFloats = (float*)(pBuf + offset + sizeof(ushort) * 5);
+                        float* pFloats = (float*)(pBuf + offset + 5);
                         var largestDist = pFloats[0];
                         var ra = pFloats[1];
                         var dec = pFloats[2];
