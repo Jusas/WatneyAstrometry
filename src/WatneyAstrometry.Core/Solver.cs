@@ -324,7 +324,12 @@ namespace WatneyAstrometry.Core
                             // Console.WriteLine($"Group {rg} - {runsByRadius[rg].Count}");
                             //searchQueue = runsByRadius[rg];
 
-                            var batchItemCount = 1000;
+                            var currentRadiusAreasCount = runsByRadius[rg].Count;
+                            //var batchItemCount = 1000;
+                            var batchItemCount =
+                                currentRadiusAreasCount < 3000 ? 1000 :
+                                currentRadiusAreasCount < 25000 ? 2500 :
+                                4000;
                             var areaBatches =
                                 new List<SearchRun>[(int)Math.Ceiling((double)runsByRadius[rg].Count / batchItemCount)];
                             for (var areaBatch = 0; areaBatch < areaBatches.Length; areaBatch++)
@@ -660,7 +665,7 @@ namespace WatneyAstrometry.Core
                 databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
                     searchRun.DensityOffsets, 1, 0, imageStarQuads);
 
-            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.012, minMatches);
+            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.010, minMatches);
 
             if (matchingQuads.Count >= minMatches)
             {
@@ -740,7 +745,7 @@ namespace WatneyAstrometry.Core
             var resolvedCenter = solution.PlateCenter;
             var densityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
             var databaseQuads = await quadDatabase.GetQuadsAsync(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads);
-            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.012, minMatches);
+            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.010, minMatches);
             if (matchingQuads.Count >= minMatches)
                 return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter), matchingQuads);
             return (null, null);

@@ -22,10 +22,12 @@ namespace WatneyAstrometry.Core.QuadDb
 
         private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
 
+        private readonly bool _bytesNeedReversing = false;
         
         public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor)
         {
             Descriptor = descriptor;
+            _bytesNeedReversing = descriptor.BytesNeedReversing;
         }
 
         /// <summary>
@@ -85,7 +87,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 advance = startIndex * QuadDataLen;
                 for (var q = startIndex; q < nextStartIndex; q++)
                 {
-                    var quad = BytesToQuadNew(dataBuf, advance, imageQuadsCopy);
+                    var quad = BytesToQuadNew(dataBuf, advance, imageQuadsCopy, _bytesNeedReversing);
                     if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
                         foundQuads.Add(quad);
                     advance += QuadDataLen;
@@ -103,7 +105,7 @@ namespace WatneyAstrometry.Core.QuadDb
             return foundQuads.ToArray();
             
         }
-        
+
 
         /// <summary>
         /// Read the bytes and spit out a quad.
@@ -112,8 +114,9 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="offset"></param>
         /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
         /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
+        /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
         /// <returns></returns>
-        private static unsafe StarQuad BytesToQuadNew(byte[] buf, int offset, ImageStarQuad[] tentativeMatches)
+        private static unsafe StarQuad BytesToQuadNew(byte[] buf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing)
         {
             // Optimized: we try to detect unfit quads as early as possible, and we try to
             // do as little work as possible in order to achieve that. We can shave off some seconds
@@ -125,15 +128,32 @@ namespace WatneyAstrometry.Core.QuadDb
                 
                 byte* pRatios = (byte*)(pBuf + offset);
 
+                float* pFloats = (float*)(pBuf + offset + 5); // floats come after the 5 byte-sized ratios
+                float largestDist;
+                float ra;
+                float dec;
+                
                 if (noMatching)
                 {
                     var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
-
-                    float* pFloats = (float*)(pBuf + offset + 5); // floats come after the 5 byte-sized ratios
-                    // TODO: if endianness demands array flipping...
-                    var largestDist = pFloats[0];
-                    var ra = pFloats[1];
-                    var dec = pFloats[2];
+                    
+                    if (bytesNeedReversing)
+                    {
+                        byte* pFloatBytes = (byte*)(pBuf + offset + 5);
+                        largestDist = BitConverter.ToSingle(
+                        new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
+                        ra = BitConverter.ToSingle(
+                            new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
+                        dec = BitConverter.ToSingle(
+                            new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
+                    }
+                    else
+                    {
+                        largestDist = pFloats[0];
+                        ra = pFloats[1];
+                        dec = pFloats[2];
+                    }
+                    
 
                     var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
                     return quad;
@@ -144,19 +164,31 @@ namespace WatneyAstrometry.Core.QuadDb
                     // TODO: We're no longer setting tentativeMatches[q] to null and resetting the array in the calling method, why was this removed originally? Should inspect performance...
                     var imgQuad = tentativeMatches[q];
                     if (imgQuad != null
-                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / 255.0f) - 1.0f) <= 0.012f
-                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / 255.0f) - 1.0f) <= 0.012f
-                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / 255.0f) - 1.0f) <= 0.012f
-                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / 255.0f) - 1.0f) <= 0.012f
-                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / 255.0f) - 1.0f) <= 0.012f
+                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / 255.0f) - 1.0f) <= 0.010f
+                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / 255.0f) - 1.0f) <= 0.010f
+                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / 255.0f) - 1.0f) <= 0.010f
+                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / 255.0f) - 1.0f) <= 0.010f
+                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / 255.0f) - 1.0f) <= 0.010f
                     )
                     {
                         var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
 
-                        float* pFloats = (float*)(pBuf + offset + 5);
-                        var largestDist = pFloats[0];
-                        var ra = pFloats[1];
-                        var dec = pFloats[2];
+                        if (bytesNeedReversing)
+                        {
+                            byte* pFloatBytes = (byte*)(pBuf + offset + 5);
+                            largestDist = BitConverter.ToSingle(
+                                new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
+                            ra = BitConverter.ToSingle(
+                                new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
+                            dec = BitConverter.ToSingle(
+                                new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
+                        }
+                        else
+                        {
+                            largestDist = pFloats[0];
+                            ra = pFloats[1];
+                            dec = pFloats[2];
+                        }
 
                         var quad = new StarQuad(ratios, largestDist, new EquatorialCoords(ra, dec));
                         return quad;

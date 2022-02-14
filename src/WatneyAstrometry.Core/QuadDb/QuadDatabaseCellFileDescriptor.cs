@@ -28,6 +28,8 @@ namespace WatneyAstrometry.Core.QuadDb
         public Pass[] Passes { get; set; }
         public string Filename { get; private set; }
 
+        public bool BytesNeedReversing { get; private set; }
+
         private QuadDatabaseCellFileDescriptor()
         {
         }
@@ -35,14 +37,14 @@ namespace WatneyAstrometry.Core.QuadDb
         public static QuadDatabaseCellFileDescriptor FromIndexStream(Stream indexDataStream, string directory, bool dataIsLittleEndian)
         {
             var descriptor = new QuadDatabaseCellFileDescriptor();
-            bool bytesNeedReversing = BitConverter.IsLittleEndian != dataIsLittleEndian;
-            descriptor.ReadFromStream(indexDataStream, bytesNeedReversing);
+            descriptor.BytesNeedReversing = BitConverter.IsLittleEndian != dataIsLittleEndian;
+            descriptor.ReadFromStream(indexDataStream);
             descriptor.Filename = Path.Combine(directory, descriptor.Filename);
             return descriptor;
         }
 
 
-        private void ReadFromStream(Stream stream, bool reverseBytes)
+        private void ReadFromStream(Stream stream)
         {
 
             var buf = new byte[255];
@@ -59,7 +61,7 @@ namespace WatneyAstrometry.Core.QuadDb
             // Band and cell indices + pass count
             stream.Read(buf, 0, 12);
 
-            if (reverseBytes)
+            if (BytesNeedReversing)
             {
                 Array.Reverse(buf, 0, 4);
                 Array.Reverse(buf, 4, 4);
@@ -88,7 +90,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
                 stream.Read(buf, 0, 12);
 
-                if (reverseBytes)
+                if (BytesNeedReversing)
                 {
                     Array.Reverse(buf, 0, 4);
                     Array.Reverse(buf, 4, 4);
@@ -104,7 +106,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 {
                     stream.Read(buf, 0, 12);
 
-                    if (reverseBytes)
+                    if (BytesNeedReversing)
                     {
                         Array.Reverse(buf, 0, 4);
                         Array.Reverse(buf, 4, 4);
