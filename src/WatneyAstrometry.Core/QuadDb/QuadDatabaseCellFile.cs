@@ -164,11 +164,11 @@ namespace WatneyAstrometry.Core.QuadDb
                     // TODO: We're no longer setting tentativeMatches[q] to null and resetting the array in the calling method, why was this removed originally? Should inspect performance...
                     var imgQuad = tentativeMatches[q];
                     if (imgQuad != null
-                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / 255.0f) - 1.0f) <= 0.010f
-                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / 255.0f) - 1.0f) <= 0.010f
-                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / 255.0f) - 1.0f) <= 0.010f
-                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / 255.0f) - 1.0f) <= 0.010f
-                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / 255.0f) - 1.0f) <= 0.010f
+                        && Math.Abs(imgQuad.Ratios[0] / (pRatios[0] / 255.0f) - 1.0f) <= 0.015f
+                        && Math.Abs(imgQuad.Ratios[1] / (pRatios[1] / 255.0f) - 1.0f) <= 0.015f
+                        && Math.Abs(imgQuad.Ratios[2] / (pRatios[2] / 255.0f) - 1.0f) <= 0.015f
+                        && Math.Abs(imgQuad.Ratios[3] / (pRatios[3] / 255.0f) - 1.0f) <= 0.015f
+                        && Math.Abs(imgQuad.Ratios[4] / (pRatios[4] / 255.0f) - 1.0f) <= 0.015f
                     )
                     {
                         var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };

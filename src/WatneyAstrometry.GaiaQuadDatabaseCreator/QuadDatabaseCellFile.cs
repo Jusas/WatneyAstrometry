@@ -49,7 +49,12 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             public float LargestDistance;
             public EquatorialCoords CenterPoint;
             public Star[] Stars;
-            
+
+            //BitConverter.GetBytes(Ratios[0])
+            //.Concat(BitConverter.GetBytes(Ratios[1]))
+            //.Concat(BitConverter.GetBytes(Ratios[2]))
+            //.Concat(BitConverter.GetBytes(Ratios[3]))
+            //.Concat(BitConverter.GetBytes(Ratios[4]))
             public byte[] GetBytes() => Ratios
                 .Concat(BitConverter.GetBytes(LargestDistance))
                 .Concat(BitConverter.GetBytes((float)CenterPoint.Ra))
@@ -249,13 +254,20 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     stars[starIndexC].RaDec
                 });
 
+                //var ushortRatios = new ushort[5];
+                //ushortRatios[0] = (ushort)Math.Round(ratios[0] * ushort.MaxValue, MidpointRounding.AwayFromZero);
+                //ushortRatios[1] = (ushort)Math.Round(ratios[1] * ushort.MaxValue, MidpointRounding.AwayFromZero);
+                //ushortRatios[2] = (ushort)Math.Round(ratios[2] * ushort.MaxValue, MidpointRounding.AwayFromZero);
+                //ushortRatios[3] = (ushort)Math.Round(ratios[3] * ushort.MaxValue, MidpointRounding.AwayFromZero);
+                //ushortRatios[4] = (ushort)Math.Round(ratios[4] * ushort.MaxValue, MidpointRounding.AwayFromZero);
+
                 var byteRatios = new byte[5];
                 byteRatios[0] = (byte)Math.Round(ratios[0] * 255, MidpointRounding.AwayFromZero);
                 byteRatios[1] = (byte)Math.Round(ratios[1] * 255, MidpointRounding.AwayFromZero);
                 byteRatios[2] = (byte)Math.Round(ratios[2] * 255, MidpointRounding.AwayFromZero);
                 byteRatios[3] = (byte)Math.Round(ratios[3] * 255, MidpointRounding.AwayFromZero);
                 byteRatios[4] = (byte)Math.Round(ratios[4] * 255, MidpointRounding.AwayFromZero);
-                
+
                 var quad = new Quad
                 {
                     CenterPoint = centerPoint,
