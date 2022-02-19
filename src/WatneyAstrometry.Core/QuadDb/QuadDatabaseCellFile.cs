@@ -23,10 +23,14 @@ namespace WatneyAstrometry.Core.QuadDb
         private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
 
         private readonly bool _bytesNeedReversing = false;
+
+        public int FileId => _fileId;
+        private readonly int _fileId;
         
-        public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor)
+        public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor, int fileId)
         {
             Descriptor = descriptor;
+            _fileId = fileId;
             _bytesNeedReversing = descriptor.BytesNeedReversing;
         }
 
@@ -40,77 +44,254 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="subSetIndex">The index of the quad subset we want to include.</param>
         /// <param name="imageQuads"></param>
         /// <returns></returns>
-        public StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads)
+        public unsafe StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex,
+            int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
-            var foundQuads = new List<StarQuad>();
-            //var subCellsInRange = new List<QuadDatabaseCellFileDescriptor.SubCellInfo>();
+            // Quads that get a match, and are within search distance
+            var matchingQuadsWithinRange = new List<StarQuad>();
+
+            // Quads that get a match
+            var matchingQuads = new List<StarQuad>();
+            
 
             var pass = Descriptor.Passes[passIndex];
             var subCellsInRangeArr = new QuadDatabaseCellFileDescriptor.SubCellInfo[pass.SubCells.Length];
+            var subCellsInRangeIndexesArr = new int[pass.SubCells.Length];
             var subCellsInRangeLen = 0;
 
-            // TODO: the higher the subset count, the more this gets called and it does add up.
             for (var p = 0; p < pass.SubCells.Length; p++)
             {
                 var subCell = pass.SubCells[p];
                 if (subCell.Center.GetAngularDistanceTo(center) - pass.AvgSubCellRadius < angularDistance)
                 {
-                    subCellsInRangeArr[subCellsInRangeLen++] = subCell;
+                    subCellsInRangeArr[subCellsInRangeLen] = subCell;
+                    subCellsInRangeIndexesArr[subCellsInRangeLen] = p;
+                    subCellsInRangeLen++;
                     //subCellsInRange.Add(subCell);
                 }
             }
 
-            //var subCellsInRangeArr = subCellsInRange.ToArray();
+            var thisFileCache = cache.Files[_fileId];
+            FileStream fileStream = null;
 
-            // Grab a copy; we will use this to reduce the amount of matching checks we need to make,
-            // by setting non-matching items to null. Not using a list, because initializing lists is
-            // expensive.
-            //var imageQuadsCopy = new ImageStarQuad[imageQuads.Length];
-            //Array.Copy(imageQuads, imageQuadsCopy, imageQuads.Length);
-            //var imageQuadsCopy = imageQuads?.ToArray();
-            
             // Pre-allocate, so that we don't need to allocate later down the road.
             var quadDataArray = new float[8];
 
-            FileStream fileStream;
-            if (!_fileStreamPool.TryDequeue(out fileStream))
-                fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-            // TODO: filestream reads and seeks are taking the toll when using large subset count. Could potentially speed things up with caching at the cost of memory usage.
             for (var sc = 0; sc < subCellsInRangeLen; sc++)
             {
-                fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
-                var dataBuf = new byte[subCellsInRangeArr[sc].DataLengthBytes];
-                fileStream.Read(dataBuf, 0, dataBuf.Length);
+                var subCellIdx = subCellsInRangeIndexesArr[sc];
+                
+                // Need to identify non-sampling cases, and maintain a separate cache for them;
+                // When sampling is used, we use a number of subsets (== sampling parameter value) and we
+                // cache the matching quads per subset. But when the final matching is done, we need to
+                // use all possible quads - but not all are cached yet, so we can't just grab them from
+                // all subsets and be done with it. Instead, maintain a separate cache for the non-sampled
+                // matching runs. It's just easier that way.
+                // Means we build and use the separate cache for non-sampled runs but that's fine.
+                bool samplingBeingUsed = numSubSets > 1;
+                StarQuad[] cachedQuads = null;
 
-                int advance = 0;
-                var quadCount = dataBuf.Length / QuadDataLen;
-                // We will split the quadCount to numSubSets, and pick the quads in our assigned subset.
-                var quadCountPerSubSet = quadCount / numSubSets;
-                var startIndex = quadCountPerSubSet * subSetIndex;
-                var nextStartIndex = subSetIndex == numSubSets - 1
-                    ? quadCount
-                    : startIndex + quadCountPerSubSet;
-
-                advance = startIndex * QuadDataLen;
-                for (var q = startIndex; q < nextStartIndex; q++)
+                if (!samplingBeingUsed)
                 {
-                    var quad = BytesToQuadNew(dataBuf, advance, imageQuads, _bytesNeedReversing, quadDataArray);
-                    if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
-                        foundQuads.Add(quad);
-                    advance += QuadDataLen;
-                    // Reset the array for next loop round.
-                    //if (imageQuadsCopy == null) continue;
-                    //for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
-                    //    imageQuadsCopy[iq] = imageQuads[iq];
+                    cachedQuads = thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet;
+                }
+                else if(thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset != null)
+                {
+                    cachedQuads = thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex];
                 }
                 
+                if (cachedQuads != null)
+                {
+                    foreach (var quad in cachedQuads)
+                    {
+                        if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+                            matchingQuadsWithinRange.Add(quad);
+                    }
+                }
+                else
+                {
+                    if (fileStream == null)
+                    {
+                        if (!_fileStreamPool.TryDequeue(out fileStream))
+                            fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+
+                    if (samplingBeingUsed && thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset == null)
+                    {
+                        // Should cause no concern with multi-threading, since we're not processing multiple subsets in parallel.
+                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset = new StarQuad[numSubSets][];
+                    }
+
+                    //cachedQuads = new StarQuad[numSubSets][]; 
+                    //thisFileCache.Passes[passIndex].SubCells[subCellIdx].SampledQuads = cachedQuads;
+                    
+
+                    byte[] subCellDataBytes = new byte[subCellsInRangeArr[sc].DataLengthBytes];
+                    fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
+                    fileStream.Read(subCellDataBytes, 0, subCellDataBytes.Length);
+                    
+                    fixed (byte* pSubCellDataBytes = subCellDataBytes)
+                    {
+                        int advance = 0;
+                        var quadCount = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
+                        // We will split the quadCount to numSubSets, and pick the quads in our assigned (sampling) subset.
+                        var quadCountPerSubSet = quadCount / numSubSets;
+                        var startIndex = quadCountPerSubSet * subSetIndex;
+                        var nextStartIndex = subSetIndex == numSubSets - 1
+                            ? quadCount
+                            : startIndex + quadCountPerSubSet;
+
+                        // In practise: advance is the "id" of the quad in the subcell (or we could just use the index q).
+                        // Without saving the full quad data, we could mark indexes as either match/no match/not yet checked (null).
+                        // Those that form a successful quad, we save the quad into a dictionary or something.
+
+                        advance = startIndex * QuadDataLen;
+                        for (var q = startIndex; q < nextStartIndex; q++)
+                        {
+                            var quad = BytesToQuadNew(pSubCellDataBytes, advance, imageQuads, _bytesNeedReversing, quadDataArray);
+                            
+                            if (quad != null)
+                                matchingQuads.Add(quad);
+                            if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+                                matchingQuadsWithinRange.Add(quad);
+
+                            advance += QuadDataLen;
+                            // Reset the array for next loop round.
+                            //if (imageQuadsCopy == null) continue;
+                            //for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
+                            //    imageQuadsCopy[iq] = imageQuads[iq];
+                        }
+                    }
+
+                    if (samplingBeingUsed)
+                    {
+                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex] =
+                            matchingQuads.ToArray();
+                    }
+                    else
+                    {
+                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet = 
+                            matchingQuads.ToArray();
+                    }
+
+                    
+                }
             }
 
-            _fileStreamPool.Enqueue(fileStream);
+            if(fileStream != null)
+                _fileStreamPool.Enqueue(fileStream);
+
+            return matchingQuadsWithinRange.ToArray();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            //var pass = Descriptor.Passes[passIndex];
+            //var subCellsInRangeArr = new QuadDatabaseCellFileDescriptor.SubCellInfo[pass.SubCells.Length];
+            //var subCellsInRangeLen = 0;
+
+            
+            //// TODO: the higher the subset count, the more this gets called and it does add up.
+            //for (var p = 0; p < pass.SubCells.Length; p++)
+            //{
+            //    var subCell = pass.SubCells[p];
+            //    if (subCell.Center.GetAngularDistanceTo(center) - pass.AvgSubCellRadius < angularDistance)
+            //    {
+            //        subCellsInRangeArr[subCellsInRangeLen++] = subCell;
+            //        //subCellsInRange.Add(subCell);
+            //    }
+            //}
+
+            ////var subCellsInRangeArr = subCellsInRange.ToArray();
+
+            //// Grab a copy; we will use this to reduce the amount of matching checks we need to make,
+            //// by setting non-matching items to null. Not using a list, because initializing lists is
+            //// expensive.
+            ////var imageQuadsCopy = new ImageStarQuad[imageQuads.Length];
+            ////Array.Copy(imageQuads, imageQuadsCopy, imageQuads.Length);
+            ////var imageQuadsCopy = imageQuads?.ToArray();
+            
+            //// Pre-allocate, so that we don't need to allocate later down the road.
+            //var quadDataArray = new float[8];
+
+            //FileStream fileStream;
+            //if (!_fileStreamPool.TryDequeue(out fileStream))
+            //    fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
             
 
-            return foundQuads.ToArray();
+            //for (var sc = 0; sc < subCellsInRangeLen; sc++)
+            //{
+            //    byte[] subCellDataBytes;
+            //    if (subCellsInRangeArr[sc].CachedBytes == null)
+            //    {
+            //        subCellDataBytes = new byte[subCellsInRangeArr[sc].DataLengthBytes];
+            //        fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
+            //        fileStream.Read(subCellDataBytes, 0, subCellDataBytes.Length);
+            //        subCellsInRangeArr[sc].CachedBytes = subCellDataBytes;
+            //    }
+            //    else
+            //    {
+            //        // No need to cache the bytes; we save the results instead, and mark the subcell as checked.
+            //        // If we run into a checked subcell, we can just go ahead and check the distances to successful
+            //        // quads and that's it.
+            //        // BUT: cannot save the results in the subcell; these are solve-specific results and must be
+            //        // storaged in some solve cache object. -> need a new class that is passed on to this method.
+            //        subCellDataBytes = subCellsInRangeArr[sc].CachedBytes;
+            //    }
+                
+            //    fixed (byte* pSubCellDataBytes = subCellDataBytes)
+            //    {
+            //        int advance = 0;
+            //        var quadCount = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
+            //        // We will split the quadCount to numSubSets, and pick the quads in our assigned (sampling) subset.
+            //        var quadCountPerSubSet = quadCount / numSubSets;
+            //        var startIndex = quadCountPerSubSet * subSetIndex;
+            //        var nextStartIndex = subSetIndex == numSubSets - 1
+            //            ? quadCount
+            //            : startIndex + quadCountPerSubSet;
+
+            //        // In practise: advance is the "id" of the quad in the subcell (or we could just use the index q).
+            //        // Without saving the full quad data, we could mark indexes as either match/no match/not yet checked (null).
+            //        // Those that form a successful quad, we save the quad into a dictionary or something.
+
+            //        advance = startIndex * QuadDataLen;
+            //        for (var q = startIndex; q < nextStartIndex; q++)
+            //        {
+            //            var quad = BytesToQuadNew(pSubCellDataBytes, advance, imageQuads, _bytesNeedReversing, quadDataArray);
+            //            if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+            //                foundQuads.Add(quad);
+            //            advance += QuadDataLen;
+            //            // Reset the array for next loop round.
+            //            //if (imageQuadsCopy == null) continue;
+            //            //for (var iq = 0; iq < imageQuadsCopy.Length; iq++)
+            //            //    imageQuadsCopy[iq] = imageQuads[iq];
+            //        }
+            //    }
+                
+
+            //}
+
+            
+
+            //_fileStreamPool.Enqueue(fileStream);
+            
+
+            //return foundQuads.ToArray();
             
         }
 
@@ -125,198 +306,195 @@ namespace WatneyAstrometry.Core.QuadDb
         /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
         /// <returns></returns>
-        private static unsafe StarQuad BytesToQuadNew(byte[] buf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
+        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
         {
             // Optimized: we try to detect unfit quads as early as possible, and we try to
             // do as little work as possible in order to achieve that. We can shave off some seconds
             // from blind solves by doing this.
 
             bool noMatching = tentativeMatches == null;
-            fixed (byte* pBuf = buf)
+
+            byte* pRatios = (byte*)(pBuf + offset);
+
+            float* pFloats = (float*)(pBuf + offset + 6); // floats come after the 5 byte-sized ratios
+                                                          //float largestDist;
+                                                          //float ra;
+                                                          //float dec;
+
+
+            //var ratiosUlong = BitConverter.ToUInt64(new byte[]
+            //{
+            //    pRatios[0],
+            //    pRatios[1],
+            //    pRatios[2],
+            //    pRatios[3],
+            //    pRatios[4],
+            //    pRatios[5],
+            //    0,
+            //    0
+            //}, 0);
+
+            //quadDataArray[0] = (1023 & ratiosUlong) * OnePer1023;
+            //quadDataArray[1] = (1023 & ratiosUlong >> 10) * OnePer1023;
+            //quadDataArray[2] = (1023 & ratiosUlong >> 20) * OnePer1023;
+            //quadDataArray[3] = (511 & ratiosUlong >> 30) * OnePer511;
+            //quadDataArray[4] = (511 & ratiosUlong >> 39) * OnePer511;
+
+            //var ratios = new float[]
+            //{
+            //    (1023 & ratiosUlong) * OnePer1023,
+            //    (1023 & ratiosUlong >> 10) * OnePer1023,
+            //    (1023 & ratiosUlong >> 20) * OnePer1023,
+            //    (511 & ratiosUlong >> 30) * OnePer511,
+            //    (511 & ratiosUlong >> 39) * OnePer511
+            //};
+
+
+            quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
+            quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
+            quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
+            quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
+            quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
+
+
+            if (noMatching)
             {
+                // var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
                 
-                byte* pRatios = (byte*)(pBuf + offset);
-
-                float* pFloats = (float*)(pBuf + offset + 6); // floats come after the 5 byte-sized ratios
-                                                              //float largestDist;
-                                                              //float ra;
-                                                              //float dec;
+                // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter here.
 
 
-                //var ratiosUlong = BitConverter.ToUInt64(new byte[]
-                //{
-                //    pRatios[0],
-                //    pRatios[1],
-                //    pRatios[2],
-                //    pRatios[3],
-                //    pRatios[4],
-                //    pRatios[5],
-                //    0,
-                //    0
-                //}, 0);
+                // Floats were written in whichever endianness the database was written in.
+                if (bytesNeedReversing)
+                {
+                    byte* pFloatBytes = (byte*)(pBuf + offset + 6);
+                    //largestDist = BitConverter.ToSingle(
+                    quadDataArray[5] = BitConverter.ToSingle(
+                    new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
+                    //ra = BitConverter.ToSingle(
+                    quadDataArray[6] = BitConverter.ToSingle(
+                        new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
+                    //dec = BitConverter.ToSingle(
+                    quadDataArray[7] = BitConverter.ToSingle(
+                        new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
+                    
+                }
+                else
+                {
+                    // Some lovely bit shifting.
+                    //var nn = ((quadBytes[1] << 8) & 0x3FF) + ((quadBytes[0]) & 0x3FF);
+                    //var nn = (((quadBytes[2] & 0x0F) << 6) & 0x3FF) + ((quadBytes[1] >> 2) & 0x3FF);
+                    //var nn = (((quadBytes[3] & 0x3F) << 4) & 0x3FF) + ((quadBytes[2] >> 4) & 0x3FF);
+                    //var nn = (((quadBytes[4] & 0x7F) << 2) & 0x1FF) + ((quadBytes[3] >> 6) & 0x1FF);
+                    //var nn = (((quadBytes[5]) << 1) & 0x1FF) + ((quadBytes[4] >> 7) & 0x1FF);
 
-                //quadDataArray[0] = (1023 & ratiosUlong) * OnePer1023;
-                //quadDataArray[1] = (1023 & ratiosUlong >> 10) * OnePer1023;
-                //quadDataArray[2] = (1023 & ratiosUlong >> 20) * OnePer1023;
-                //quadDataArray[3] = (511 & ratiosUlong >> 30) * OnePer511;
-                //quadDataArray[4] = (511 & ratiosUlong >> 39) * OnePer511;
 
+                    //ratiosUlong = BitConverter.ToUInt64(new byte[]
+                    //{
+                    //    pRatios[0], 
+                    //    pRatios[1], 
+                    //    pRatios[2], 
+                    //    pRatios[3], 
+                    //    pRatios[4], 
+                    //    pRatios[5], 
+                    //    0, 
+                    //    0
+                    //}, 0);
+
+                    //ratios = new float[]
+                    //{
+                    //    (1023 & ratiosUlong) / 1023.0f,
+                    //    (1023 & ratiosUlong >> 10) / 1023.0f,
+                    //    (1023 & ratiosUlong >> 20) / 1023.0f,
+                    //    (511 & ratiosUlong >> 30) / 511.0f,
+                    //    (511 & ratiosUlong >> 39) / 511.0f
+                    //};
+
+
+                    quadDataArray[5] = pFloats[0]; // largestDist
+                    quadDataArray[6] = pFloats[1]; // ra
+                    quadDataArray[7] = pFloats[2]; // dec
+                    //largestDist = pFloats[0];
+                    //ra = pFloats[1];
+                    //dec = pFloats[2];
+                }
+
+                // Using a pre-allocated array, need to allocate a new instance so that all quads don't refer to the same pre-allocated one...
+                var ratios = new float[]
+                {
+                    quadDataArray[0],
+                    quadDataArray[1],
+                    quadDataArray[2],
+                    quadDataArray[3],
+                    quadDataArray[4]
+                };
+                var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
+                return quad;
+            }
+
+            for (var q = 0; q < tentativeMatches.Length; q++)
+            {
+                // TODO: We're no longer setting tentativeMatches[q] to null and resetting the array in the calling method, why was this removed originally? Should inspect performance...
+                var imgQuad = tentativeMatches[q];
+                //float[] ratios = new float[5];
                 //var ratios = new float[]
                 //{
-                //    (1023 & ratiosUlong) * OnePer1023,
-                //    (1023 & ratiosUlong >> 10) * OnePer1023,
-                //    (1023 & ratiosUlong >> 20) * OnePer1023,
-                //    (511 & ratiosUlong >> 30) * OnePer511,
-                //    (511 & ratiosUlong >> 39) * OnePer511
+                //    (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) / 1023.0f,
+                //    ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) / 1023.0f,
+                //    ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) / 1023.0f,
+                //    ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) / 511.0f,
+                //    ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) / 511.0f
                 //};
-
-
-                quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
-                quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
-                quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
-                quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
-                quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
-
-
-                if (noMatching)
+                //if (imgQuad != null
+                //    && Math.Abs(imgQuad.Ratios[0] / ratios[0] - 1.0f) <= 0.010f
+                //    && Math.Abs(imgQuad.Ratios[1] / ratios[1] - 1.0f) <= 0.010f
+                //    && Math.Abs(imgQuad.Ratios[2] / ratios[2] - 1.0f) <= 0.010f
+                //    && Math.Abs(imgQuad.Ratios[3] / ratios[3] - 1.0f) <= 0.010f
+                //    && Math.Abs(imgQuad.Ratios[4] / ratios[4] - 1.0f) <= 0.010f
+                //)
+                if (imgQuad != null
+                    && Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
+                    && Math.Abs(imgQuad.Ratios[1] / quadDataArray[1] - 1.0f) <= 0.011f
+                    && Math.Abs(imgQuad.Ratios[2] / quadDataArray[2] - 1.0f) <= 0.011f
+                    && Math.Abs(imgQuad.Ratios[3] / quadDataArray[3] - 1.0f) <= 0.011f
+                    && Math.Abs(imgQuad.Ratios[4] / quadDataArray[4] - 1.0f) <= 0.011f
+                   )
                 {
-                    // var ratios = new[] { pRatios[0] / 255.0f, pRatios[1] / 255.0f, pRatios[2] / 255.0f, pRatios[3] / 255.0f, pRatios[4] / 255.0f };
-                    
-                    // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter here.
-
-
-                    // Floats were written in whichever endianness the database was written in.
                     if (bytesNeedReversing)
                     {
-                        byte* pFloatBytes = (byte*)(pBuf + offset + 6);
-                        //largestDist = BitConverter.ToSingle(
+                        byte* pFloatBytes = (byte*)(pBuf + offset + 5);
                         quadDataArray[5] = BitConverter.ToSingle(
-                        new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
-                        //ra = BitConverter.ToSingle(
+                            new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
                         quadDataArray[6] = BitConverter.ToSingle(
                             new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
-                        //dec = BitConverter.ToSingle(
                         quadDataArray[7] = BitConverter.ToSingle(
                             new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
-                        
                     }
                     else
                     {
-                        // Some lovely bit shifting.
-                        //var nn = ((quadBytes[1] << 8) & 0x3FF) + ((quadBytes[0]) & 0x3FF);
-                        //var nn = (((quadBytes[2] & 0x0F) << 6) & 0x3FF) + ((quadBytes[1] >> 2) & 0x3FF);
-                        //var nn = (((quadBytes[3] & 0x3F) << 4) & 0x3FF) + ((quadBytes[2] >> 4) & 0x3FF);
-                        //var nn = (((quadBytes[4] & 0x7F) << 2) & 0x1FF) + ((quadBytes[3] >> 6) & 0x1FF);
-                        //var nn = (((quadBytes[5]) << 1) & 0x1FF) + ((quadBytes[4] >> 7) & 0x1FF);
-
-
-                        //ratiosUlong = BitConverter.ToUInt64(new byte[]
-                        //{
-                        //    pRatios[0], 
-                        //    pRatios[1], 
-                        //    pRatios[2], 
-                        //    pRatios[3], 
-                        //    pRatios[4], 
-                        //    pRatios[5], 
-                        //    0, 
-                        //    0
-                        //}, 0);
-
-                        //ratios = new float[]
-                        //{
-                        //    (1023 & ratiosUlong) / 1023.0f,
-                        //    (1023 & ratiosUlong >> 10) / 1023.0f,
-                        //    (1023 & ratiosUlong >> 20) / 1023.0f,
-                        //    (511 & ratiosUlong >> 30) / 511.0f,
-                        //    (511 & ratiosUlong >> 39) / 511.0f
-                        //};
-
-
                         quadDataArray[5] = pFloats[0]; // largestDist
                         quadDataArray[6] = pFloats[1]; // ra
                         quadDataArray[7] = pFloats[2]; // dec
-                        //largestDist = pFloats[0];
-                        //ra = pFloats[1];
-                        //dec = pFloats[2];
                     }
 
                     // Using a pre-allocated array, need to allocate a new instance so that all quads don't refer to the same pre-allocated one...
                     var ratios = new float[]
                     {
-                        quadDataArray[0],
-                        quadDataArray[1],
-                        quadDataArray[2],
-                        quadDataArray[3],
+                        quadDataArray[0], 
+                        quadDataArray[1], 
+                        quadDataArray[2], 
+                        quadDataArray[3], 
                         quadDataArray[4]
                     };
                     var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
                     return quad;
                 }
 
-                for (var q = 0; q < tentativeMatches.Length; q++)
-                {
-                    // TODO: We're no longer setting tentativeMatches[q] to null and resetting the array in the calling method, why was this removed originally? Should inspect performance...
-                    var imgQuad = tentativeMatches[q];
-                    //float[] ratios = new float[5];
-                    //var ratios = new float[]
-                    //{
-                    //    (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) / 1023.0f,
-                    //    ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) / 1023.0f,
-                    //    ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) / 1023.0f,
-                    //    ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) / 511.0f,
-                    //    ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) / 511.0f
-                    //};
-                    //if (imgQuad != null
-                    //    && Math.Abs(imgQuad.Ratios[0] / ratios[0] - 1.0f) <= 0.010f
-                    //    && Math.Abs(imgQuad.Ratios[1] / ratios[1] - 1.0f) <= 0.010f
-                    //    && Math.Abs(imgQuad.Ratios[2] / ratios[2] - 1.0f) <= 0.010f
-                    //    && Math.Abs(imgQuad.Ratios[3] / ratios[3] - 1.0f) <= 0.010f
-                    //    && Math.Abs(imgQuad.Ratios[4] / ratios[4] - 1.0f) <= 0.010f
-                    //)
-                    if (imgQuad != null
-                        && Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
-                        && Math.Abs(imgQuad.Ratios[1] / quadDataArray[1] - 1.0f) <= 0.011f
-                        && Math.Abs(imgQuad.Ratios[2] / quadDataArray[2] - 1.0f) <= 0.011f
-                        && Math.Abs(imgQuad.Ratios[3] / quadDataArray[3] - 1.0f) <= 0.011f
-                        && Math.Abs(imgQuad.Ratios[4] / quadDataArray[4] - 1.0f) <= 0.011f
-                       )
-                    {
-                        if (bytesNeedReversing)
-                        {
-                            byte* pFloatBytes = (byte*)(pBuf + offset + 5);
-                            quadDataArray[5] = BitConverter.ToSingle(
-                                new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
-                            quadDataArray[6] = BitConverter.ToSingle(
-                                new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
-                            quadDataArray[7] = BitConverter.ToSingle(
-                                new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
-                        }
-                        else
-                        {
-                            quadDataArray[5] = pFloats[0]; // largestDist
-                            quadDataArray[6] = pFloats[1]; // ra
-                            quadDataArray[7] = pFloats[2]; // dec
-                        }
-
-                        // Using a pre-allocated array, need to allocate a new instance so that all quads don't refer to the same pre-allocated one...
-                        var ratios = new float[]
-                        {
-                            quadDataArray[0], 
-                            quadDataArray[1], 
-                            quadDataArray[2], 
-                            quadDataArray[3], 
-                            quadDataArray[4]
-                        };
-                        var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
-                        return quad;
-                    }
-
-                }
-
-                return null;
-
-                
             }
+
+            return null;
+
+              
             
         }
 
