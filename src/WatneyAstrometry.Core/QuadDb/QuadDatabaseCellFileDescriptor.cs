@@ -14,6 +14,7 @@ namespace WatneyAstrometry.Core.QuadDb
             public EquatorialCoords Center { get; set; }
             public int DataLengthBytes { get; set; }
             public long DataStartPos { get; set; }
+            //public byte[] CachedBytes { get; set; }
         }
 
         public class Pass
@@ -22,6 +23,7 @@ namespace WatneyAstrometry.Core.QuadDb
             public int SubDivisions { get; set; }
             public SubCellInfo[] SubCells { get; set; }
             public double AvgSubCellRadius { get; set; }
+            public int DataBlockByteLength { get; set; }
         }
         
         public string CellId { get; set; }
@@ -29,6 +31,7 @@ namespace WatneyAstrometry.Core.QuadDb
         public string Filename { get; private set; }
 
         public bool BytesNeedReversing { get; private set; }
+        
 
         private QuadDatabaseCellFileDescriptor()
         {
@@ -122,6 +125,7 @@ namespace WatneyAstrometry.Core.QuadDb
                         Center = new EquatorialCoords(ra, dec),
                         DataLengthBytes = dataLength
                     };
+                    pass.DataBlockByteLength += dataLength;
                 }
             }
 

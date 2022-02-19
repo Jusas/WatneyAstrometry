@@ -25,6 +25,8 @@ namespace WatneyAstrometry.Core.QuadDb
         private CellFilePassDensity[] _cellFilePassDensities = new CellFilePassDensity[0];
         
         private QuadDatabaseCellFile[] _sourceFiles = new QuadDatabaseCellFile[0];
+        public IReadOnlyList<QuadDatabaseCellFile> SourceFiles => _sourceFiles;
+        
 
 
         private bool _disposing;
@@ -94,7 +96,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="imageQuads">The quads detected from the image.</param>
         /// <returns>StarQuad list, or null if passOffset was too big/small</returns>
         public StarQuad[] GetQuadsWithinRange(EquatorialCoords center, double angularDistance, int quadsPerSqDegree,
-            int passOffset = 0, int numSubSets = 1, int subSetIndex = 0, ImageStarQuad[] imageQuads = null)
+            int passOffset, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
 
             if (passOffset > _cellFilePassDensities.Length || passOffset < -_cellFilePassDensities.Length)
@@ -126,7 +128,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var chosenPassDensity = _cellFilePassDensities[chosenIndex];
             return _sourceFiles[chosenPassDensity.FileIndex]
-                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, numSubSets, subSetIndex, imageQuads);
+                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, numSubSets, subSetIndex, imageQuads, cache);
             
 
         }

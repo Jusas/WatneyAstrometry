@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
 {
@@ -13,7 +14,7 @@ namespace WatneyAstrometry.Core.QuadDb
         //public QuadDatabaseCellFileDescriptor[] Descriptors { get; private set; }
         public QuadDatabaseCellFile[] CellFiles { get; private set; }
 
-        private QuadDatabaseCellFileIndex(string filename)
+        private QuadDatabaseCellFileIndex(string filename, int fileSetId)
         {
             var directory = Path.GetDirectoryName(filename);
             using (var stream = File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -44,11 +45,14 @@ namespace WatneyAstrometry.Core.QuadDb
                 //var descriptors = new List<QuadDatabaseCellFileDescriptor>();
                 var cellFiles = new List<QuadDatabaseCellFile>();
 
+                var fileId = fileSetId * SkySegmentSphere.Cells.Count;
+
                 while (stream.Position != stream.Length)
                 {
                     var descriptor = QuadDatabaseCellFileDescriptor.FromIndexStream(stream, directory, DataIsLittleEndian);
-                    var cellFile = new QuadDatabaseCellFile(descriptor);
+                    var cellFile = new QuadDatabaseCellFile(descriptor, fileId);
                     cellFiles.Add(cellFile);
+                    fileId++;
                 }
 
                 CellFiles = cellFiles.ToArray();
@@ -63,7 +67,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             Parallel.For(0, indexes.Length, (i) =>
             {
-                var index = new QuadDatabaseCellFileIndex(cellFileIndexFiles[i]);
+                var index = new QuadDatabaseCellFileIndex(cellFileIndexFiles[i], i);
                 indexes[i] = index;
             });
             

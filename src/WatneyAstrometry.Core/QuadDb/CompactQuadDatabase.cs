@@ -64,7 +64,8 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="sampling">If > 0, taken into account. Reduces the number of quads taken. Speeds up the process.</param>
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
         /// <returns></returns>
-        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads)
+        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
+            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
             var cells = SkySegmentSphere.Cells;
             var cellsToInclude = new string[cells.Count];
@@ -113,7 +114,8 @@ namespace WatneyAstrometry.Core.QuadDb
                     var idx = i;
                     tasks.Add(Task.Run(() =>
                     {
-                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads);
+                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(
+                            center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads, cache);
                     }));
 
                 }
@@ -127,6 +129,40 @@ namespace WatneyAstrometry.Core.QuadDb
                 .Distinct(new StarQuad.StarQuadRatioBasedEqualityComparer())
                 .ToList();
             
+        }
+
+        public QuadDatabaseSolveInstanceMemoryCache CreateMemoryCacheObject()
+        {
+            var filesTotal = _cellFileSets.Sum(x => x.SourceFiles.Count);
+            var cacheObject = new QuadDatabaseSolveInstanceMemoryCache();
+            var cacheFileEntries = new QuadDatabaseSolveInstanceMemoryCache.FileCachedData[filesTotal];
+            
+            foreach (var cellFileSet in _cellFileSets)
+            {
+                foreach (var file in cellFileSet.SourceFiles)
+                {
+                    var fileEntry = new QuadDatabaseSolveInstanceMemoryCache.FileCachedData();
+                    cacheFileEntries[file.FileId] = fileEntry;
+                    fileEntry.Passes = new QuadDatabaseSolveInstanceMemoryCache.PassCachedData[file.Descriptor.Passes.Length];
+
+                    for(var p = 0; p < file.Descriptor.Passes.Length; p++)
+                    {
+                        var passEntry = new QuadDatabaseSolveInstanceMemoryCache.PassCachedData();
+                        fileEntry.Passes[p] = passEntry;
+                        passEntry.SubCells =
+                            new QuadDatabaseSolveInstanceMemoryCache.SubCellCachedData[file.Descriptor.Passes[p]
+                                .SubCells.Length];
+                        for (var sc = 0; sc < passEntry.SubCells.Length; sc++)
+                        {
+                            passEntry.SubCells[sc] = new QuadDatabaseSolveInstanceMemoryCache.SubCellCachedData();
+                        }
+                    }
+                }
+            }
+
+            cacheObject.Files = cacheFileEntries;
+            return cacheObject;
+
         }
 
 
