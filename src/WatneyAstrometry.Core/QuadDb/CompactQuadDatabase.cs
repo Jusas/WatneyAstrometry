@@ -72,7 +72,7 @@ namespace WatneyAstrometry.Core.QuadDb
             for (int i = 0; i < cellsToInclude.Length; i++)
             {
                 var cell = cells[i];
-                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) // TODO the more we call this (the more subsets we use) the more cpu time this really starts to take. A cache might be useful here.
+                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
                 {
                     cellsToInclude[cellsToIncludeCount] = cell.CellId;
                     cellsToIncludeCount++;
