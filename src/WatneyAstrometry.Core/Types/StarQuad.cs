@@ -19,8 +19,8 @@ namespace WatneyAstrometry.Core.Types
 
         public StarQuad(float[] ratios, float largestDistance, EquatorialCoords midPoint, IList<IStar> stars = null)
         {
-            if (ratios.Length != 5)
-                throw new Exception("Five ratios form a quad");
+            //if (ratios.Length != 5)
+            //    throw new Exception("Five ratios form a quad");
 
             Ratios = ratios;
             LargestDistance = largestDistance;
@@ -82,7 +82,7 @@ namespace WatneyAstrometry.Core.Types
                 if (x.GetType() != y.GetType()) return false;
                 if (x.LargestDistance != y.LargestDistance)
                     return false;
-                for (var r = 0; r < x.Ratios.Length; r++)
+                for (var r = 0; r < 5; r++)
                 {
                     if (x.Ratios[r] != y.Ratios[r])
                         return false;

@@ -603,7 +603,7 @@ namespace WatneyAstrometry.Core
                 if(results[i] == null)
                     continue;
                 
-                if(results[i].NumPotentialMatches > 2) // was 0
+                if(results[i].NumPotentialMatches > 0) // was 0
                     withMatches.Add(results[i]);
                 else
                     withoutMatches.Add(results[i]);
@@ -644,7 +644,7 @@ namespace WatneyAstrometry.Core
 
 
             //int minMatches = 5;
-            int minMatches = 8;
+            int minMatches = 5;
 
             List<StarQuadMatch> matchingQuads = null;
 
@@ -666,7 +666,7 @@ namespace WatneyAstrometry.Core
                 databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
                     searchRun.DensityOffsets, 1, 0, imageStarQuads);
 
-            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.015, minMatches);
+            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
 
             if (matchingQuads.Count >= minMatches)
             {
@@ -746,7 +746,7 @@ namespace WatneyAstrometry.Core
             var resolvedCenter = solution.PlateCenter;
             var densityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
             var databaseQuads = await quadDatabase.GetQuadsAsync(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads);
-            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.015, minMatches);
+            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
             if (matchingQuads.Count >= minMatches)
                 return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter), matchingQuads);
             return (null, null);
