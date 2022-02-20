@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -14,7 +17,6 @@ namespace WatneyAstrometry.Core.QuadDb
             public EquatorialCoords Center { get; set; }
             public int DataLengthBytes { get; set; }
             public long DataStartPos { get; set; }
-            //public byte[] CachedBytes { get; set; }
         }
 
         public class Pass

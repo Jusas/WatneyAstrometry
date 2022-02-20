@@ -36,7 +36,7 @@ namespace WatneyAstrometry.Core
         
         private int _tentativeMatches = 0;
         private int _iterations = 0;
-        private QuadDatabaseSolveInstanceMemoryCache _cache;
+        private Guid _solveContextId;
 
         private IVerboseLogger _logger;
 
@@ -263,8 +263,8 @@ namespace WatneyAstrometry.Core
             _tentativeMatches = 0;
             _iterations = 0;
 
-            // For some caching in-memory caching needs.
-            _cache = quadDb.CreateMemoryCacheObject();
+            _solveContextId = Guid.NewGuid();
+            quadDb.CreateSolveContext(_solveContextId);
 
             OnSolveProgress?.Invoke(SolverStep.QuadFormationStarted);
 
@@ -591,7 +591,7 @@ namespace WatneyAstrometry.Core
 
             OnSolveProgress?.Invoke(SolverStep.SolveProcessFinished);
 
-            _cache = null;
+            quadDb.DisposeSolveContext(_solveContextId);
 
             return result;
             
@@ -654,7 +654,7 @@ namespace WatneyAstrometry.Core
             List<StarQuadMatch> matchingQuads = null;
 
             var databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
-                searchRun.DensityOffsets, numSubSets, subSetIndex, imageStarQuads, _cache);
+                searchRun.DensityOffsets, numSubSets, subSetIndex, imageStarQuads, _solveContextId);
             
             taskResult.NumPotentialMatches = databaseQuads.Count;
 
@@ -669,7 +669,7 @@ namespace WatneyAstrometry.Core
             // as we're going to try for a solution.
             if(numSubSets > 1)
                 databaseQuads = await quadDb.GetQuadsAsync(searchRun.Center, searchRun.RadiusDegrees, (int) quadsPerSqDeg,
-                    searchRun.DensityOffsets, 1, 0, imageStarQuads, _cache);
+                    searchRun.DensityOffsets, 1, 0, imageStarQuads, _solveContextId);
 
             matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
 
@@ -750,7 +750,7 @@ namespace WatneyAstrometry.Core
         {
             var resolvedCenter = solution.PlateCenter;
             var densityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
-            var databaseQuads = await quadDatabase.GetQuadsAsync(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads, _cache);
+            var databaseQuads = await quadDatabase.GetQuadsAsync(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads, _solveContextId);
             var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
             if (matchingQuads.Count >= minMatches)
                 return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter), matchingQuads);

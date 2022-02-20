@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using WatneyAstrometry.Core.Types;
@@ -29,8 +30,20 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadsPerSqDegree">The reference quads per square degree, for selecting which quad pass to use from the database.</param>
         /// <param name="quadDensityOffsets">Offsets to the quads per square degree density, allowing to include lower and higher densities to the search. The offsets refer to pass indexes. Example: [-1, 0, 1]</param>
         /// <param name="imageQuads">The quads formed from the source image's stars</param>
-        Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache);
+        /// <param name="solveContextId">The solve context for this operation. A solve context must exist before calling this method.</param>
+        Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId);
+        
+        /// <summary>
+        /// Creates a new "solve context" for the quad database. This context can be for example used for caching things specific for a single solve.
+        /// </summary>
+        /// <param name="contextId"></param>
+        void CreateSolveContext(Guid contextId);
 
-        QuadDatabaseSolveInstanceMemoryCache CreateMemoryCacheObject();
+        /// <summary>
+        /// Disposes/releases a created solve context.
+        /// </summary>
+        /// <param name="contextId"></param>
+        void DisposeSolveContext(Guid contextId);
+        
     }
 }

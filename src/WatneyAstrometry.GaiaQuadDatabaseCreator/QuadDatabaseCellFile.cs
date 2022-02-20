@@ -49,12 +49,7 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
             public float LargestDistance;
             public EquatorialCoords CenterPoint;
             public Star[] Stars;
-
-            //BitConverter.GetBytes(Ratios[0])
-            //.Concat(BitConverter.GetBytes(Ratios[1]))
-            //.Concat(BitConverter.GetBytes(Ratios[2]))
-            //.Concat(BitConverter.GetBytes(Ratios[3]))
-            //.Concat(BitConverter.GetBytes(Ratios[4]))
+            
             public byte[] GetBytes() => Ratios
                 .Concat(BitConverter.GetBytes(LargestDistance))
                 .Concat(BitConverter.GetBytes((float)CenterPoint.Ra))
@@ -87,7 +82,6 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
 
         public Cell CellReference { get; }
         
-        //private readonly RaDecBounds[] _subCellRaDecBounds;
         private readonly int _starsPerSqDegree;
         private int _numPasses;
         private float _passFactor;
@@ -253,33 +247,11 @@ namespace WatneyAstrometry.GaiaQuadDatabaseCreator
                     stars[starIndexB].RaDec, 
                     stars[starIndexC].RaDec
                 });
+                
 
-                //// Build 11 bit ratios. So a total of 5 bytes + 2 bytes, i.e. 8 + 3 bits per ratio. Hoping this will provide good enough
-                //// accuracy for the comparisons, gives overall less data to read and decreases database size.
-                //// We save 3 bytes per quad. It's not huge (14% saving)
-                //// 0..2047
-                //var ulongRatios = new ulong[5];
-                //ulongRatios[0] = (ulong)Math.Round(ratios[0] * 2047, MidpointRounding.AwayFromZero);
-                //ulongRatios[1] = (ulong)Math.Round(ratios[1] * 2047, MidpointRounding.AwayFromZero);
-                //ulongRatios[2] = (ulong)Math.Round(ratios[2] * 2047, MidpointRounding.AwayFromZero);
-                //ulongRatios[3] = (ulong)Math.Round(ratios[3] * 2047, MidpointRounding.AwayFromZero);
-                //ulongRatios[4] = (ulong)Math.Round(ratios[4] * 2047, MidpointRounding.AwayFromZero);
-
-                //// to 7 bytes: 56 bits
-                //ulong ratioBytes = 0;
-                //ratioBytes = ratioBytes | ulongRatios[0] | ulongRatios[1] << 11 | ulongRatios[2] << 22 |
-                //             ulongRatios[3] << 33 | ulongRatios[4] << 44;
-
-
-                //var bytes = BitConverter.GetBytes(ratioBytes);
-                //bytes = bytes.Take(7).ToArray();
-
-
-
-
-                // Build 9 bit ratios. So a total of 5 bytes + 1 byte, i.e. 8 + 2 or 1 bits per ratio. Hoping this will provide good enough
+                // Build 10 and 9 bit ratios. So a total of 5 bytes + 1 byte, i.e. 8 + 2 or 1 bits per ratio. Hoping this will provide good enough
                 // accuracy for the comparisons, gives overall less data to read and decreases database size.
-                // We save 4 bytes per quad. It's not huge (18% saving) but maybe it'll matter; need to test and see!
+                // We save 4 bytes per quad. It's not huge (18% saving).
                 // First 3 ratios are 8 + 2 bits.
                 // Last 2 ratios are 8 + 1 bits.
                 // They're not all the same accuracy, but the higher accuracy top 3 ratios still contribute with meaning, as they will cull out false positives.

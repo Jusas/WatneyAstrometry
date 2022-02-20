@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -18,7 +19,10 @@ namespace WatneyAstrometry.Core.QuadDb
     {
         internal QuadDatabaseCellFileSet[] _cellFileSets;
         private bool _disposing;
-        
+
+        private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
+            new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
+
         public CompactQuadDatabase()
         {
         }
@@ -65,8 +69,11 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
         /// <returns></returns>
         public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
-            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
+            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId)
         {
+            if (!_contexts.TryGetValue(solveContextId, out var cache))
+                throw new Exception($"Context {solveContextId} doesn't exist, it should be created first");
+
             var cells = SkySegmentSphere.Cells;
             var cellsToInclude = new string[cells.Count];
             int cellsToIncludeCount = 0;
@@ -131,7 +138,18 @@ namespace WatneyAstrometry.Core.QuadDb
             
         }
 
-        public QuadDatabaseSolveInstanceMemoryCache CreateMemoryCacheObject()
+        public void CreateSolveContext(Guid contextId)
+        {
+            if (!_contexts.TryAdd(contextId, CreateMemoryCacheObject()))
+                throw new Exception($"Solve context {contextId} already exists");
+        }
+
+        public void DisposeSolveContext(Guid contextId)
+        {
+            _contexts.TryRemove(contextId, out var _);
+        }
+
+        private QuadDatabaseSolveInstanceMemoryCache CreateMemoryCacheObject()
         {
             var filesTotal = _cellFileSets.Sum(x => x.SourceFiles.Count);
             var cacheObject = new QuadDatabaseSolveInstanceMemoryCache();
