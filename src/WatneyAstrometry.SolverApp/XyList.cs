@@ -149,8 +149,7 @@ namespace WatneyAstrometry.SolverApp
 
                 xyList.Stars.Add(new ImageStar(x, y, (long)mag, 1));
             }
-
-            var brights = xyList.Stars.Select(x => x.Brightness).Distinct().ToArray();
+            
             return xyList;
 
         }

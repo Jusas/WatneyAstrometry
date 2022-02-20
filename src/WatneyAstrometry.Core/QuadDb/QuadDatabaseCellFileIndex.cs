@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -11,7 +14,7 @@ namespace WatneyAstrometry.Core.QuadDb
     {
 
         public bool DataIsLittleEndian { get; private set; }
-        //public QuadDatabaseCellFileDescriptor[] Descriptors { get; private set; }
+
         public QuadDatabaseCellFile[] CellFiles { get; private set; }
 
         private QuadDatabaseCellFileIndex(string filename, int fileSetId)
