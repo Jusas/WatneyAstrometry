@@ -49,6 +49,7 @@ jobs:
         do
           dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -r $a --self-contained true -o "bin-cli-$a/" src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj
           cp builds/cli/notices/* bin-cli-$a
+          rm -f bin-cli-$a/*BLEEDING*
           cp bin-cli-$a/watney-solve-config.template.yml bin-cli-$a/watney-solve-config.yml
         done     
       
@@ -58,6 +59,7 @@ jobs:
         do
           dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=true -p:PublishSingleFile=true -c Release -r $a --self-contained true -o "bin-api-$a/" src/WatneyAstrometry.WebApi/WatneyAstrometry.WebApi.csproj
           cp builds/api/notices/* bin-api-$a
+          rm -f bin-api-$a/*BLEEDING*
           cp bin-api-$a/config.template.yml bin-api-$a/config.yml
         done     
      
