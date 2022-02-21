@@ -17,3 +17,6 @@ src/WatneyAstrometry.WebApi/apidoc.xml
 benchmarking/blind.csv
 benchmarking/results
 benchmarking/testimages/
+benchmarking/*.ods
+benchmarking/*.csv
+benchmarking/results*
