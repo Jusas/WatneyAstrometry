@@ -4,11 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
-## [1.1.0] - 2022-02-06
+## [CURRENT_VERSION_TAG] - CURRENT_VERSION_RELEASE_DATE
+
+### Changed
+
+- Major performance improvements to blind solves.
+
+- Introduced new database format (version 3) which introduces separate index 
+  files for faster database initialization and the quads are now packed into
+  smaller size, dropping the database size by 18%. The new Watney version
+  is not compatible with version 2 database files due to major data 
+  structure changes.  
 
 ### Fixed
 
-- WatneyAstrometry.Core v1.0.1 fix: in nearby solves the min-max range is now 
+- WatneyAstrometry.Core fix: in nearby solves the min-max range is now 
   correctly checked, so that min radius can never be entered as 0.
 
 
