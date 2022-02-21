@@ -21,24 +21,45 @@ jobs:
     
     - name: Set build vars
       id: buildvars
-      run: echo "::set-output name=version_string::$(echo '${{ github.ref_name }}' | sed 's@v@@')" && echo "::set-output name=builddate::$(date +'%Y-%m-%d')"
+      run: |
+        echo "::set-output name=version_string::$(echo '${{ github.ref_name }}' | sed 's@v@@')"
+        echo "::set-output name=builddate::$(date +'%Y-%m-%d')"
           
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
 
-    - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in CLI readmes and changelogs
-      run: for f in builds/cli/notices/*; do sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f && sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f; done
-
-    - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in API readmes and changelogs
-      run: for f in builds/api/notices/*; do sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f && sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f; done
+    - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
+      run: | 
+        for f in builds/cli/notices/*
+        do 
+          sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
+          sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f
+        done
+        for f in builds/api/notices/*
+        do
+          sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
+          sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f
+        done
       
     - name: Build all architectures CLI
-      run: for a in $OSARCHS_ALL; do dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -r $a --self-contained true -o "bin-cli-$a/" src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj && cp builds/cli/notices/* bin-cli-$a && cp bin-cli-$a/watney-solve-config.template.yml bin-cli-$a/watney-solve-config.yml; done     
+      run: |
+        for a in $OSARCHS_ALL
+        do
+          dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -r $a --self-contained true -o "bin-cli-$a/" src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj
+          cp builds/cli/notices/* bin-cli-$a
+          cp bin-cli-$a/watney-solve-config.template.yml bin-cli-$a/watney-solve-config.yml
+        done     
       
     - name: Build all architectures API
-      run: for a in $OSARCHS_ALL; do dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -r $a --self-contained true -o "bin-api-$a/" src/WatneyAstrometry.WebApi/WatneyAstrometry.WebApi.csproj && cp builds/api/notices/* bin-api-$a && cp bin-api-$a/config.template.yml bin-api-$a/config.yml; done     
+      run: |
+        for a in $OSARCHS_ALL
+        do
+          dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=true -p:PublishSingleFile=true -c Release -r $a --self-contained true -o "bin-api-$a/" src/WatneyAstrometry.WebApi/WatneyAstrometry.WebApi.csproj
+          cp builds/api/notices/* bin-api-$a
+          cp bin-api-$a/config.template.yml bin-api-$a/config.yml
+        done     
      
     - name: Build Core Nuget
       run: dotnet pack -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o "lib-core/" src/WatneyAstrometry.Core/WatneyAstrometry.Core.csproj
@@ -50,16 +71,40 @@ jobs:
       uses: montudor/action-zip@v1
 
     - name: Zip windows binaries for CLI
-      run: for a in $OSARCHS_WIN; do zip -r ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.zip bin-cli-$a/; done
+      run: |
+        for a in $OSARCHS_WIN
+        do
+          [ -d "watney-cli" ] && rm -rf watney-cli
+          mv bin-cli-$a watney-cli
+          zip -r ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-cli/
+        done
       
     - name: Zip windows binaries for API
-      run: for a in $OSARCHS_WIN; do zip -r ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.zip bin-api-$a/; done      
+      run: |
+        for a in $OSARCHS_WIN
+        do
+          [ -d "watney-api" ] && rm -rf watney-api
+          mv bin-api-$a watney-api        
+          zip -r ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-api/
+        done      
 
     - name: Tar linux and osx binaries for CLI
-      run: for a in $OSARCHS_OTHER; do tar -czf ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz bin-cli-$a/; done
+      run: | 
+        for a in $OSARCHS_OTHER
+        do
+          [ -d "watney-cli" ] && rm -rf watney-cli
+          mv bin-cli-$a watney-cli
+          tar -czf ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-cli/
+        done
 
     - name: Tar linux and osx binaries for API
-      run: for a in $OSARCHS_OTHER; do tar -czf ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz bin-api-$a/; done
+      run: |
+        for a in $OSARCHS_OTHER
+        do
+          [ -d "watney-api" ] && rm -rf watney-api
+          mv bin-api-$a watney-api
+          tar -czf ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-api/
+        done
 
     - name: Create release
       uses: "marvinpinto/action-automatic-releases@v1.2.1"
