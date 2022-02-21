@@ -76,6 +76,7 @@ jobs:
         do
           [ -d "watney-cli" ] && rm -rf watney-cli
           mv bin-cli-$a watney-cli
+          rm -f watney-cli/*.xml && rm -f watney-api/*.pdb
           zip -r ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-cli/
         done
       
@@ -85,7 +86,7 @@ jobs:
         do
           [ -d "watney-api" ] && rm -rf watney-api
           mv bin-api-$a watney-api
-          rm watney-api/*.xml && rm watney-api/*.pdb && rm watney-api/*Development.json && rm watney-api/*.config
+          rm -f watney-api/*.xml && rm -f watney-api/*.pdb && rm -f watney-api/*Development.json && rm -f watney-api/*.config
           zip -r ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-api/
         done      
 
@@ -95,6 +96,7 @@ jobs:
         do
           [ -d "watney-cli" ] && rm -rf watney-cli
           mv bin-cli-$a watney-cli
+          rm -f watney-cli/*.xml && rm -f watney-api/*.pdb
           tar -czf ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-cli/
         done
 
@@ -104,7 +106,7 @@ jobs:
         do
           [ -d "watney-api" ] && rm -rf watney-api
           mv bin-api-$a watney-api
-          rm watney-api/*.xml && rm watney-api/*.pdb && rm watney-api/*Development.json && rm watney-api/*.config
+          rm -f watney-api/*.xml && rm -f watney-api/*.pdb && rm -f watney-api/*Development.json && rm -f watney-api/*.config
           tar -czf ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-api/
         done
 
