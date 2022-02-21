@@ -84,7 +84,8 @@ jobs:
         for a in $OSARCHS_WIN
         do
           [ -d "watney-api" ] && rm -rf watney-api
-          mv bin-api-$a watney-api        
+          mv bin-api-$a watney-api
+          rm watney-api/*.xml && rm watney-api/*.pdb && rm watney-api/*Development.json && rm watney-api/*.config
           zip -r ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-api/
         done      
 
@@ -103,6 +104,7 @@ jobs:
         do
           [ -d "watney-api" ] && rm -rf watney-api
           mv bin-api-$a watney-api
+          rm watney-api/*.xml && rm watney-api/*.pdb && rm watney-api/*Development.json && rm watney-api/*.config
           tar -czf ${{ env.PKG_PREFIX }}-api-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-api/
         done
 
