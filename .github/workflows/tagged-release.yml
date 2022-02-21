@@ -76,7 +76,7 @@ jobs:
         do
           [ -d "watney-cli" ] && rm -rf watney-cli
           mv bin-cli-$a watney-cli
-          rm -f watney-cli/*.xml && rm -f watney-api/*.pdb
+          rm -f watney-cli/*.xml && rm -f watney-cli/*.pdb
           zip -r ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.zip watney-cli/
         done
       
@@ -96,7 +96,7 @@ jobs:
         do
           [ -d "watney-cli" ] && rm -rf watney-cli
           mv bin-cli-$a watney-cli
-          rm -f watney-cli/*.xml && rm -f watney-api/*.pdb
+          rm -f watney-cli/*.xml && rm -f watney-cli/*.pdb
           tar -czf ${{ env.PKG_PREFIX }}-cli-${{ steps.buildvars.outputs.version_string }}-$a.tar.gz watney-cli/
         done
 
