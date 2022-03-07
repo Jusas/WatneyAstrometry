@@ -18,7 +18,7 @@ namespace VizUtils
         {
             baseImage.Mutate(context =>
             {
-                var starCircleColor = new Argb32(255, 0, 0, 100);
+                var starCircleColor = new Argb32(255, 0, 0, 180);
                
                 foreach (var star in detectedStars)
                 {

@@ -36,16 +36,19 @@ namespace WatneyAstrometry.Core.StarDetection
         private long _histogramPeakValue = 0;
         private long _histogramPeakCount = 0;
         private int _bytesPerPixel;
+        private double _starDetectionBgOffset;
 
         private List<StarPixelBin> _starBins = new List<StarPixelBin>();
         internal IReadOnlyList<StarPixelBin> StarBins => _starBins;
+
 
         public IStarDetectionFilter DetectionFilter { get; set; } = new DefaultStarDetectionFilter();
         
         public long PixelValueRangeStart => 0;
 
-        public DefaultStarDetector()
+        public DefaultStarDetector(double starDetectionBgOffset = 3.0)
         {
+            _starDetectionBgOffset = starDetectionBgOffset;
         }
 
 
@@ -88,7 +91,8 @@ namespace WatneyAstrometry.Core.StarDetection
             double diffSquared = _histogram.Sum(x => (x.Key - pixelAvg) * (x.Key - pixelAvg) * x.Value);
             double stdDev = Math.Sqrt(diffSquared / pixelCount);
 
-            long flatValue = pixelAvg + (long)(stdDev * 3);
+            //long flatValue = pixelAvg + (long)(stdDev * 3);
+            long flatValue = pixelAvg + (long)(stdDev * _starDetectionBgOffset);
 
             List<StarPixelBin> previousLineBins = new List<StarPixelBin>();
             for (var y = 0; y < _imageMetadata.ImageHeight; y++)

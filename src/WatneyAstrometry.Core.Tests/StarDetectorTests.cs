@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using VizUtils;
+using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.StarDetection;
 using Xunit;
@@ -123,5 +124,42 @@ namespace WatneyAstrometry.Core.Tests
                 
             }
         }
+
+
+        [Fact]
+        [Trait("Category", "Visual")]
+        public void Visualize_detected_stars()
+        {
+
+            DefaultFitsReader r = new DefaultFitsReader();
+            var img = (FitsImage)r.FromFile("Resources/fits/taygeta-sim.fits");
+
+            var detector = new DefaultStarDetector();
+            var stars = detector.DetectStars(img);
+
+            using (var imageBg = TestImageUtils.FitsImagePixelBufferToRgbaImage(img))
+            {
+                StarVisualizer.VisualizeStars(imageBg, stars).SaveAsPng($"{nameof(Visualize_detected_stars)}.png");
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "Visual")]
+        public void Visualize_detected_pixel_bins()
+        {
+
+            DefaultFitsReader r = new DefaultFitsReader();
+            var img = (FitsImage)r.FromFile("Resources/fits/taygeta-sim.fits");
+
+            var detector = new DefaultStarDetector();
+            var stars = detector.DetectStars(img);
+
+            using (var imageBg = new Image<Rgba32>(img.Metadata.ImageWidth, img.Metadata.ImageHeight))
+            {
+                var bins = detector.StarBins;
+                StarVisualizer.VisualizeStarPixelBins(imageBg, bins.ToList()).SaveAsPng($"{nameof(Visualize_detected_pixel_bins)}.png");
+            }
+        }
+
     }
 }
