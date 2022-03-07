@@ -6,6 +6,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [CURRENT_VERSION_TAG] - CURRENT_VERSION_RELEASE_DATE
 
+### Added
+
+- 'ra_hms' and 'dec_dms' properties to solve result, for convenience. These
+  are the RA, Dec coords in Hours Minutes Seconds and Degrees Minutes Seconds.
+
+- Several parameter default values can now be set from the configuration
+  file:
+  * defaultMaxStars
+  * defaultStarDetectionBgOffset
+  * defaultLowerDensityOffset
+  * defaultHigherDensityOffset
+  * defaultNearbySampling
+  * defaultNearbyParallelism
+  * defaultNearbySearchRadius
+  * defaultBlindMinRadius
+  * defaultBlindMaxRadius
+  * defaultBlindSampling
+  * defaultBlindParallelism
+
+  This is useful when constantly using the same values but they differ
+  from the CLI solver built-in defaults.
+  
+  The 'defaultStarDetectionBgOffset' allows tweaking the built-in star
+  detection sensitivity. This was added to allow including dimmer stars
+  but note that too low values may cause noise to be interpreted as signal
+  (values 2.0 .. 3.0 recommended).
+
+### Changed
+
+- Produced log file should no longer have the UTF-8 BOM marker in the 
+  beginning.
+
+- Some CLI arguments are now optional, and fall back to built-in (or 
+  configured) default values when not provided:
+  
+  Blind:
+  * --min-radius
+  * --max-radius
+  
+  Nearby:
+  * --search-radius
+  
+### Fixed
+
+- Relative path to quad database ('./db' etc.) in configuration should now
+  work correctly when invoking the solver from a different working directory.
+  The relative path is first assumed to be relative to the executable, and if
+  that path is not found, it is then assumed to be relative to the 
+  configuration file.
+  
+
+
+## [1.1.0] - 2022-02-21
+
 ### Changed
 
 - Major performance improvements to blind solves.
