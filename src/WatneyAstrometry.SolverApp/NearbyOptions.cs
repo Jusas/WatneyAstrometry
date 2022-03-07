@@ -41,13 +41,13 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "Specifies that the assumed center and field radius is provided by the file FITS headers. Will result in an error if the input file is not FITS or it does not contain the required FITS headers.")]
         public bool UseFitsHeaders { get; set; }
 
-        [Option('s', "search-radius", Required = true,
+        [Option('s', "search-radius", Required = false,
             HelpText = "The search radius (degrees), the solver search will cover this area around the center coordinate.")]
-        public double SearchRadius { get; set; }
+        public double? SearchRadius { get; set; }
 
-        [Option('p', "use-parallelism", Required = false, Default = false,
-            HelpText = "Use parallelism, search multiple areas simultaneously.")]
-        public bool UseParallelism { get; set; }
+        [Option('p', "use-parallelism", Required = false,
+            HelpText = "Use parallelism, search multiple areas simultaneously. Default is false with nearby solves.")]
+        public bool? UseParallelism { get; set; }
 
         [Usage(ApplicationAlias = "watney-solve")]
         public static IEnumerable<Example> Examples
@@ -58,6 +58,14 @@ namespace WatneyAstrometry.SolverApp
                 {
                     ImageFilename = "andromeda.fits",
                     SearchRadius = 10
+                });
+                yield return new Example("Manually defined coordinates, with defaults", new NearbyOptions
+                {
+                    ImageFilename = "andromeda.png",
+                    Ra = "10.7",
+                    Dec = "41",
+                    FieldRadius = 2,
+                    UseManualParams = true
                 });
                 yield return new Example("Manually defined coordinates, radius and density offsets", new NearbyOptions
                 {

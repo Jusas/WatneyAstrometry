@@ -19,6 +19,7 @@ using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.QuadDb;
+using WatneyAstrometry.Core.StarDetection;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.ImageReaders;
 
@@ -109,7 +110,7 @@ namespace WatneyAstrometry.SolverApp
         private static void LoadConfiguration(GenericOptions options)
         {
             var executableDir =
-                Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+                Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
 
             var configFile = !string.IsNullOrEmpty(options.ConfigPath)
                 ? options.ConfigPath
@@ -164,8 +165,12 @@ namespace WatneyAstrometry.SolverApp
         private static void RunSolve(ISearchStrategy strategy, GenericOptions options, InputType inputType)
         {
             var quadDatabase = new CompactQuadDatabase();
+            var starDetector = _configuration.DefaultStarDetectionBgOffset != null
+                ? new DefaultStarDetector(_configuration.DefaultStarDetectionBgOffset.Value)
+                : new DefaultStarDetector();
             
-            var solver = new Solver(GetLogger(options))
+            var solver = new Solver(_verboseLogger)
+                .UseStarDetector(starDetector)
                 .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), CommonFormatsImageReader.SupportedImageExtensions)
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
             solver.OnSolveProgress += BenchmarkProgressHandler;
@@ -174,30 +179,47 @@ namespace WatneyAstrometry.SolverApp
 
             var solveTask = Task.Run(async () =>
             {
-                if (inputType is InputType.CommonImageFromFile or InputType.FitsFromFile)
-                    return await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions, CancellationToken.None);
-
-                if (inputType == InputType.CommonImageFromStdin)
+                try
                 {
-                    var commonFormatsImageReader = new CommonFormatsImageReader();
-                    var image = commonFormatsImageReader.FromStream(_stdinStream);
-                    return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
-                }
+                    if (inputType is InputType.CommonImageFromFile or InputType.FitsFromFile)
+                    {
+                        _verboseLogger?.Write("Solver input is file");
+                        return await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
+                            CancellationToken.None);
+                    }
 
-                if (inputType == InputType.FitsFromStdin)
+                    if (inputType == InputType.CommonImageFromStdin)
+                    {
+                        _verboseLogger?.Write("Solver input is common image format read from stdin");
+                        var commonFormatsImageReader = new CommonFormatsImageReader();
+                        var image = commonFormatsImageReader.FromStream(_stdinStream);
+                        return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                    }
+
+                    if (inputType == InputType.FitsFromStdin)
+                    {
+                        _verboseLogger?.Write("Solver input is FITS read from stdin");
+                        var defaultFitsReader = new DefaultFitsReader();
+                        var image = defaultFitsReader.FromStream(_stdinStream);
+                        return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                    }
+
+                    if (inputType == InputType.Xyls)
+                    {
+                        _verboseLogger?.Write("Solver input is XYLS");
+                        return await solver.SolveFieldAsync(_xyList, _xyList.Stars, strategy, solverOptions,
+                            CancellationToken.None);
+                    }
+
+                    return null;
+                }
+                catch (Exception e)
                 {
-                    var defaultFitsReader = new DefaultFitsReader();
-                    var image = defaultFitsReader.FromStream(_stdinStream);
-                    return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
+                    _verboseLogger?.Write($"Solver threw an exception: {e.Message}");
+                    _verboseLogger?.Write($"Solver stack trace: {e.StackTrace}");
+                    throw;
                 }
-
-                if (inputType == InputType.Xyls)
-                {
-                    return await solver.SolveFieldAsync(_xyList, _xyList.Stars, strategy, solverOptions,
-                        CancellationToken.None);
-                }
-
-                return null;
+                
             });
             solveTask.Wait();
 
@@ -210,9 +232,11 @@ namespace WatneyAstrometry.SolverApp
 
         private static void RunBlindSolve(BlindOptions options)
         {
-            Validate(options, out InputType inputType);
+            GetLogger(options);
             LoadConfiguration(options);
-
+            AddDefaultParametersFromConfig(options);
+            Validate(options, out InputType inputType);
+            
             var strategy = ParseStrategy(options);
             RunSolve(strategy, options, inputType);
             
@@ -220,11 +244,108 @@ namespace WatneyAstrometry.SolverApp
 
         private static void RunNearbySolve(NearbyOptions options)
         {
-            Validate(options, out InputType inputType);
+            GetLogger(options);
             LoadConfiguration(options);
-
+            AddDefaultParametersFromConfig(options);
+            Validate(options, out InputType inputType);
+            
             var strategy = ParseStrategy(options);
             RunSolve(strategy, options, inputType);
+            
+        }
+        
+        // Read defaults from config, and apply them to arguments that were not
+        // explicitly set.
+        private static void AddDefaultParametersFromConfig(NearbyOptions options)
+        {
+            AddDefaultGenericParametersFromConfig(options);
+
+            if (options.SearchRadius == null)
+            {
+                if (_configuration.DefaultNearbySearchRadius != null)
+                    options.SearchRadius = _configuration.DefaultNearbySearchRadius;
+                else
+                    options.SearchRadius = 10; // Hardcoded default, if nothing else is provided.
+            }
+            
+            if (options.Sampling == 0)
+            {
+                if (_configuration.DefaultNearbySampling != null)
+                    options.Sampling = (int)_configuration.DefaultNearbySampling.Value;
+            }
+
+            if (options.UseParallelism == null)
+            {
+                if (_configuration.DefaultNearbyParallelism != null)
+                    options.UseParallelism = _configuration.DefaultNearbyParallelism;
+                else
+                    options.UseParallelism = false; // Hardcoded default, if nothing else is provided.
+            }
+
+        }
+
+        // Read defaults from config, and apply them to arguments that were not
+        // explicitly set.
+        private static void AddDefaultParametersFromConfig(BlindOptions options)
+        {
+            AddDefaultGenericParametersFromConfig(options);
+
+            if (options.MaxRadius == null)
+            {
+                if (_configuration.DefaultBlindMaxRadius != null)
+                    options.MaxRadius = _configuration.DefaultBlindMaxRadius;
+                else
+                    options.MaxRadius = 8.0; // Hardcoded default, if nothing else is provided.
+            }
+
+            if (options.MinRadius == null)
+            {
+                if (_configuration.DefaultBlindMinRadius != null)
+                    options.MinRadius = _configuration.DefaultBlindMinRadius;
+                else
+                    options.MinRadius = 0.5; // Hardcoded default, if nothing else is provided.
+            }
+
+            if (options.Sampling == 0)
+            {
+                if(_configuration.DefaultBlindSampling != null)
+                    options.Sampling = (int)_configuration.DefaultBlindSampling.Value;
+            }
+
+            if (options.UseParallelism == null)
+            {
+                if (_configuration.DefaultBlindParallelism != null)
+                    options.UseParallelism = _configuration.DefaultBlindParallelism;
+                else
+                    options.UseParallelism = true; // Hardcoded default, if nothing else is provided.
+            }
+
+        }
+
+        private static void AddDefaultGenericParametersFromConfig(GenericOptions options)
+        {
+
+            if (options.LowerDensityOffset == null)
+            {
+                if (_configuration.DefaultLowerDensityOffset != null)
+                    options.LowerDensityOffset = _configuration.DefaultLowerDensityOffset;
+                else
+                    options.LowerDensityOffset = 1; // Hardcoded default, if nothing else is provided.
+            }
+
+            if (options.HigherDensityOffset == null)
+            {
+                if (_configuration.DefaultHigherDensityOffset != null)
+                    options.HigherDensityOffset = _configuration.DefaultHigherDensityOffset;
+                else
+                    options.HigherDensityOffset = 1; // Hardcoded default, if nothing else is provided.
+            }
+
+            if (options.MaxStars == 0)
+            {
+                if (_configuration.DefaultMaxStars != null)
+                    options.MaxStars = (int)_configuration.DefaultMaxStars.Value;
+            }
             
         }
 
@@ -260,6 +381,8 @@ namespace WatneyAstrometry.SolverApp
             {
                 outputData.Add("ra", result.Solution.PlateCenter.Ra);
                 outputData.Add("dec", result.Solution.PlateCenter.Dec);
+                outputData.Add("ra_hms", Conversions.RaDegreesToHhMmSs(result.Solution.PlateCenter.Ra));
+                outputData.Add("dec_dms", Conversions.DecDegreesToDdMmSs(result.Solution.PlateCenter.Dec));
                 outputData.Add("fieldRadius", result.Solution.Radius);
                 outputData.Add("orientation", result.Solution.Orientation);
                 outputData.Add("pixScale", result.Solution.PixelScale);
@@ -349,11 +472,11 @@ namespace WatneyAstrometry.SolverApp
         {
             var strategyOptions = new BlindSearchStrategyOptions()
             {
-                MaxNegativeDensityOffset = options.LowerDensityOffset,
-                MaxPositiveDensityOffset = options.HigherDensityOffset,
-                UseParallelism = options.UseParallelism,
-                MinRadiusDegrees = options.MinRadius,
-                StartRadiusDegrees = options.MaxRadius,
+                MaxNegativeDensityOffset = options.LowerDensityOffset.Value,
+                MaxPositiveDensityOffset = options.HigherDensityOffset.Value,
+                UseParallelism = options.UseParallelism.Value,
+                MinRadiusDegrees = options.MinRadius.Value,
+                StartRadiusDegrees = options.MaxRadius.Value,
                 SearchOrderRa = options.WestFirst
                     ? BlindSearchStrategyOptions.RaSearchOrder.WestFirst
                     : BlindSearchStrategyOptions.RaSearchOrder.EastFirst,
@@ -362,6 +485,13 @@ namespace WatneyAstrometry.SolverApp
                     : BlindSearchStrategyOptions.DecSearchOrder.NorthFirst
             };
 
+            _verboseLogger?.Write("Blind search strategy");
+            _verboseLogger?.Write($"- MaxNegativeDensityOffset: {options.LowerDensityOffset}");
+            _verboseLogger?.Write($"- MaxPositiveDensityOffset: {options.HigherDensityOffset}");
+            _verboseLogger?.Write($"- UseParallelism: {options.UseParallelism}");
+            _verboseLogger?.Write($"- StartRadiusDegrees: {options.MaxRadius}");
+            _verboseLogger?.Write($"- MinRadiusDegrees: {options.MinRadius}");
+            
             var strategy = new BlindSearchStrategy(strategyOptions);
             return strategy;
         }
@@ -385,12 +515,24 @@ namespace WatneyAstrometry.SolverApp
             NearbySearchStrategy strategy;
             var strategyOptions = new NearbySearchStrategyOptions
             {
-                MaxNegativeDensityOffset = options.LowerDensityOffset,
-                MaxPositiveDensityOffset = options.HigherDensityOffset,
-                UseParallelism = options.UseParallelism,
-                SearchAreaRadiusDegrees = options.SearchRadius
+                MaxNegativeDensityOffset = options.LowerDensityOffset.Value,
+                MaxPositiveDensityOffset = options.HigherDensityOffset.Value,
+                UseParallelism = options.UseParallelism.Value,
+                SearchAreaRadiusDegrees = options.SearchRadius.Value
             };
-            
+
+            // For convenience
+            void LogStrategyOpts()
+            {
+                _verboseLogger?.Write("Nearby search strategy");
+                _verboseLogger?.Write($"- MaxNegativeDensityOffset: {strategyOptions.MaxNegativeDensityOffset}");
+                _verboseLogger?.Write($"- MaxPositiveDensityOffset: {strategyOptions.MaxPositiveDensityOffset}");
+                _verboseLogger?.Write($"- UseParallelism: {strategyOptions.UseParallelism}");
+                _verboseLogger?.Write($"- SearchAreaRadiusDegrees: {strategyOptions.SearchAreaRadiusDegrees}");
+                _verboseLogger?.Write($"- MinFieldRadiusDegrees: {strategyOptions.MinFieldRadiusDegrees}");
+                _verboseLogger?.Write($"- MaxFieldRadiusDegrees: {strategyOptions.MaxFieldRadiusDegrees}");
+                _verboseLogger?.Write($"- IntermediateFieldRadiusSteps: {strategyOptions.IntermediateFieldRadiusSteps}");
+            }
 
             if (options.UseManualParams)
             {
@@ -457,6 +599,8 @@ namespace WatneyAstrometry.SolverApp
                 }
 
                 strategy = new NearbySearchStrategy(center, strategyOptions);
+                LogStrategyOpts();
+                _verboseLogger?.Write($"Search center: {center}");
                 return strategy;
             }
 
@@ -487,9 +631,12 @@ namespace WatneyAstrometry.SolverApp
                     strategyOptions.MaxFieldRadiusDegrees = fitsImage.Metadata.ViewSize != null
                         ? (float)fitsImage.Metadata.ViewSize.DiameterDeg * 0.5f
                         : options.FieldRadius;
+                    strategyOptions.MinFieldRadiusDegrees = strategyOptions.MaxFieldRadiusDegrees;
 
                     // Looks like we have what we need.
                     strategy = new NearbySearchStrategy(center, strategyOptions);
+                    LogStrategyOpts();
+                    _verboseLogger?.Write($"Search center: {center}");
                     return strategy;
                 }
                 catch (Exception e)

@@ -44,6 +44,8 @@ public static class ServiceRegistration
             config.AllowedConcurrentSolves = watneyApiConfiguration.AllowedConcurrentSolves;
             config.QuadDatabasePath = watneyApiConfiguration.QuadDatabasePath;
             config.SolverTimeout = watneyApiConfiguration.SolverTimeoutValue;
+            // New config value, so we must also ensure we have a default value if it's left unconfigured.
+            config.StarDetectionBgOffset = watneyApiConfiguration.StarDetectionBgOffset > 0 ? watneyApiConfiguration.StarDetectionBgOffset : 3.0;
         });
 
         services.AddHttpClient();

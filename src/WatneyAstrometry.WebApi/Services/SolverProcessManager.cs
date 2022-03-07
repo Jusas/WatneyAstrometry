@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.QuadDb;
+using WatneyAstrometry.Core.StarDetection;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Exceptions;
 using WatneyAstrometry.WebApi.Models;
@@ -21,6 +22,7 @@ public class SolverProcessManager : ISolverProcessManager
     {
         public string QuadDatabasePath { get; set; }
         public int AllowedConcurrentSolves { get; set; } = 1;
+        public double StarDetectionBgOffset { get; set; } = 3.0;
         public TimeSpan SolverTimeout { get; set; } = TimeSpan.FromMinutes(2);
     }
 
@@ -217,7 +219,9 @@ public class SolverProcessManager : ISolverProcessManager
 
         try
         {
-            var solver = new Solver().UseQuadDatabase(() => _quadDatabase);
+            var solver = new Solver()
+                .UseStarDetector(new DefaultStarDetector(_config.StarDetectionBgOffset))
+                .UseQuadDatabase(() => _quadDatabase);
             var solverResult = await solver.SolveFieldAsync(inputImageFrame, job.Stars, searchStrategy, solverOptions,
                 timeoutCancellationTokenSource.Token).ConfigureAwait(false);
 

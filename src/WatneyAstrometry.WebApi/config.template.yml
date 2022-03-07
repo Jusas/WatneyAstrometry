@@ -12,6 +12,19 @@ quadDbPath: './db'
 
 
 # ================================================================================
+# Value for star detector flat value calculation.
+# The flat (background) value is calculated from an average value of pixels
+# in the image, and the standard deviance value is then added to the average this
+# many times (flatValue = pixelAverage + stdDev * defaultStarDetectionBgOffset).
+# The higher the value, the brighter the pixels included in star detection must
+# be. To detect fainter stars, lower this value. 
+# If the value is too low, noise may be interpreted as signal.
+# Values 2.0 .. 3.0 should be fine.
+# ================================================================================
+starDetectionBgOffset: 3.0
+
+
+# ================================================================================
 # Does the API use persistency or not.
 # Persistency means saving the queued and solved jobs to disk.
 # If false, the jobs and the queue will be held in memory only and

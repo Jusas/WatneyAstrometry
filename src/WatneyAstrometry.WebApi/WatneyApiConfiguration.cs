@@ -39,6 +39,9 @@ namespace WatneyAstrometry.WebApi
         
         [YamlMember(Alias = "enableAstrometryNetCompatibilityApi", SerializeAs = typeof(bool))]
         public bool EnableCompatibilityApi { get; set; }
+        
+        [YamlMember(Alias = "starDetectionBgOffset", SerializeAs = typeof(double))]
+        public double StarDetectionBgOffset { get; set; }
 
         [YamlIgnore]
         public IReadOnlyDictionary<string, string> ApiKeys { get; set; }

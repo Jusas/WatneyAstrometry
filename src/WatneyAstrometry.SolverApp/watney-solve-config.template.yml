@@ -1,11 +1,110 @@
-﻿# This is the configuration file for watney-solve program.
+﻿---
+# This is the configuration file for the Watney solver program.
 # The format of this file is YAML.
 
+# ================================================================================
 # The path to the quad database. If using relative directory, start with './'
 # Examples: 
 #   quadDbPath: ./db
 #   quadDbPath: /opt/watney-astrometry/db
 #   quadDbPath: 'C:\Program Files\watney-astrometry\db'
 #
+# ================================================================================
 quadDbPath: './db'
+
+# Note:
+# The values below can be used to override the default parameter values of the 
+# CLI solver. They are not required but when given, they override the defaults.
+
+# ================================================================================
+# Default --max-stars value, when the parameters is not provided.
+# The maximum hard limit is set in code to 1000.
+# The less stars, the faster the solve. However having too few stars may not 
+# produce a solution.
+# ================================================================================
+defaultMaxStars: 300
+
+# ================================================================================
+# Default value for star detector flat value calculation.
+# The flat (background) value is calculated from an average value of pixels
+# in the image, and the standard deviance value is then added to the average this
+# many times (flatValue = pixelAverage + stdDev * defaultStarDetectionBgOffset).
+# The higher the value, the brighter the pixels included in star detection must
+# be. To detect fainter stars, lower this value. 
+# If the value is too low, noise may be interpreted as signal.
+# Values 2.0 .. 3.0 should be fine.
+# ================================================================================
+defaultStarDetectionBgOffset: 3.0
+
+# ================================================================================
+# Default value for --lower-density-offset, when the parameter is not provided.
+# Include this many lower quad density passes in search (compared to image quad 
+# density). A higher value can increase chances of finding a solution, but slows
+# down the solve due to more calculations.
+# Recommended value is 1, but values of 2 or 3 may be used if there are 
+# difficulties in solving.
+# ================================================================================
+defaultLowerDensityOffset: 1
+
+# ================================================================================
+# Default value for --higher-density-offset, when the parameter is not provided.
+# Include this many higher quad density passes in search (compared to image quad 
+# density). A higher value can increase chances of finding a solution, but slows
+# down the solve due to more calculations.
+# Recommended value is 1, but values of 2 or 3 may be used if there are 
+# difficulties in solving.
+# ================================================================================
+defaultHigherDensityOffset: 1
+
+# ================================================================================
+# Nearby solves:
+# Default --sampling value, when the parameter is not provided.
+# Value 1 effectively disables sampling.
+# For nearby solves it's recommended to disable sampling for faster results.
+# ================================================================================
+defaultNearbySampling: 1
+
+# ================================================================================
+# Nearby solves:
+# Default --sampling value, when the parameter is not provided.
+# Value 1 effectively disables sampling.
+# For nearby solves it's recommended to disable sampling for faster results.
+# ================================================================================
+defaultNearbyParallelism: false
+
+# ================================================================================
+# Nearby solves:
+# Default --search-radius value, when the parameter is not provided.
+# ================================================================================
+defaultNearbySearchRadius: 15
+
+# ================================================================================
+# Blind solves:
+# Default --min-radius value for blind solves, when the parameter is 
+# not provided.
+# ================================================================================
+defaultBlindMinRadius: 0.5
+
+# ================================================================================
+# Blind solves:
+# Default --max-radius value for blind solves, when the parameter is
+# not provided.
+# ================================================================================
+defaultBlindMaxRadius: 8
+
+# ================================================================================
+# Blind solves:
+# Default --sampling value, when the parameter is not provided.
+# Values up to 16 work best.
+# Value 1 effectively disables sampling.
+# ================================================================================
+defaultBlindSampling: 16
+
+# ================================================================================
+# Blind solves:
+# Default --sampling value, when the parameter is not provided.
+# Value 1 effectively disables sampling.
+# For nearby solves it's recommended to disable sampling for faster results.
+# ================================================================================
+defaultBlindParallelism: true
 

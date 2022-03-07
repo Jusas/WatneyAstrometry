@@ -7,6 +7,9 @@ namespace WatneyAstrometry.WebApi.Models.Domain
     {
         public double Ra { get; set; }
         public double Dec { get; set; }
+        public string Ra_hms { get; set; }
+        public string Dec_dms { get; set; }
+
         public double FieldRadius { get; set; }
         public double Orientation { get; set; }
         public double PixScale { get; set; }

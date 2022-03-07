@@ -54,13 +54,13 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "Output filename for WCS coordinates. If given, a FITS file containing WCS headers will be produced.")]
         public string WcsFile { get; set; }
 
-        [Option('x', "lower-density-offset", Required = false, Default = (uint)1,
-            HelpText = "Include this many lower quad density passes in search (compared to image quad density).")]
-        public uint LowerDensityOffset { get; set; }
+        [Option('x', "lower-density-offset", Required = false,
+            HelpText = "Include this many lower quad density passes in search (compared to image quad density). Default value is 1.")]
+        public uint? LowerDensityOffset { get; set; }
 
-        [Option('z', "higher-density-offset", Required = false, Default = (uint)1,
-            HelpText = "Include this many higher quad density passes in search (compared to image quad density).")]
-        public uint HigherDensityOffset { get; set; }
+        [Option('z', "higher-density-offset", Required = false,
+            HelpText = "Include this many higher quad density passes in search (compared to image quad density). Default value is 1.")]
+        public uint? HigherDensityOffset { get; set; }
 
         [Option("extended", Required = false, Default = false,
             HelpText = "Produce extended output. This will print out a lot of additional detail about the solve, including the FITS header keywords/values and the CD matrix.")]

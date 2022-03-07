@@ -3,6 +3,7 @@
 
 using AutoMapper;
 using WatneyAstrometry.Core;
+using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Models.Rest;
@@ -83,6 +84,14 @@ public class RestJobModel
                 .ForMember(dest => dest.OriginalFilename, x => x.MapFrom(src => src.OriginalFilename))
                 .ForMember(dest => dest.StarsDetected, x => x.MapFrom(src => src.Stars.Count))
                 .ForMember(dest => dest.OriginalFilename, x => x.MapFrom(src => src.OriginalFilename))
+                .AfterMap((src, dest) =>
+                {
+                    if (dest.Solution != null)
+                    {
+                        dest.Solution.Dec_dms = Conversions.DecDegreesToDdMmSs(dest.Solution.Dec);
+                        dest.Solution.Ra_hms = Conversions.RaDegreesToHhMmSs(dest.Solution.Ra);
+                    }
+                })
                 ;
 
             

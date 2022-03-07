@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using YamlDotNet.Serialization;
 
 namespace WatneyAstrometry.SolverApp
@@ -11,6 +12,40 @@ namespace WatneyAstrometry.SolverApp
     {
         [YamlMember(Alias = "quadDbPath")]
         public string QuadDatabasePath { get; set; }
+
+        [YamlMember(Alias = "defaultMaxStars")]
+        public uint? DefaultMaxStars { get; set; }
+
+        [YamlMember(Alias = "defaultLowerDensityOffset")]
+        public uint? DefaultLowerDensityOffset { get; set; }
+
+        [YamlMember(Alias = "defaultHigherDensityOffset")]
+        public uint? DefaultHigherDensityOffset { get; set; }
+
+        [YamlMember(Alias = "defaultNearbySampling")]
+        public uint? DefaultNearbySampling { get; set; }
+
+        [YamlMember(Alias = "defaultNearbyParallelism")]
+        public bool? DefaultNearbyParallelism { get; set; }
+
+        [YamlMember(Alias = "defaultNearbySearchRadius")]
+        public double? DefaultNearbySearchRadius { get; set; }
+        
+        [YamlMember(Alias = "defaultBlindMinRadius")]
+        public double? DefaultBlindMinRadius { get; set; }
+
+        [YamlMember(Alias = "defaultBlindMaxRadius")]
+        public double? DefaultBlindMaxRadius { get; set; }
+
+        [YamlMember(Alias = "defaultBlindSampling")]
+        public uint? DefaultBlindSampling { get; set; }
+
+        [YamlMember(Alias = "defaultBlindParallelism")]
+        public bool? DefaultBlindParallelism { get; set; }
+
+        [YamlMember(Alias = "defaultStarDetectionBgOffset")]
+        public double? DefaultStarDetectionBgOffset { get; set; }
+
 
         public Configuration()
         {
@@ -27,7 +62,32 @@ namespace WatneyAstrometry.SolverApp
             {
                 var deserializer = new DeserializerBuilder()
                     .Build();
-                return deserializer.Deserialize<Configuration>(configuration);
+                var config = deserializer.Deserialize<Configuration>(configuration);
+
+                var relativePathRegex = new Regex(@"^(\.+)(\\|\/)");
+                if (relativePathRegex.IsMatch(config.QuadDatabasePath))
+                {
+                    // If our Quad DB path is a relative path, try two paths;
+                    // 1. Relative to executable
+                    // 2. Relative to config file (if the config file is not in the same directory as the executable)
+
+                    var executableDir =
+                        Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName);
+
+                    var quadDbPath = Path.Combine(executableDir, config.QuadDatabasePath);
+
+                    if (Directory.Exists(quadDbPath))
+                        config.QuadDatabasePath = quadDbPath;
+                    else if(Path.GetDirectoryName(configFile) != executableDir)
+                    {
+                        quadDbPath = Path.Combine(Path.GetDirectoryName(configFile), config.QuadDatabasePath);
+                        if (Directory.Exists(quadDbPath))
+                            config.QuadDatabasePath = quadDbPath;
+                    }
+                    
+                }
+                
+                return config;
             }
             catch (Exception e)
             {

@@ -11,14 +11,14 @@ namespace WatneyAstrometry.SolverApp
     [Verb("blind", HelpText = "Perform blind solve.")]
     public class BlindOptions : GenericOptions
     {
-        [Option("min-radius", Required = true, Default = 1.0,
-            HelpText = "The minimum field radius (in degrees) the solver may use in search. Must be >= 0.1")] // ConstraintValues.MinRecommendedFieldRadius
-        public double MinRadius { get; set; }
+        [Option("min-radius", Required = false,
+            HelpText = "The minimum field radius (in degrees) the solver may use in search. Must be >= 0.1. If left empty, solver configured default value will be used (default is 0.5)")] // ConstraintValues.MinRecommendedFieldRadius
+        public double? MinRadius { get; set; }
 
-        [Option("max-radius", Required = true, Default = 8.0,
+        [Option("max-radius", Required = false,
             HelpText = "The maximum field radius (in degrees) the solver may use in search. Must be <= 16. " + // ConstraintValues.MaxRecommendedFieldRadius
-                       "Search starts at max radius, and radius is divided by 2 until min-radius is reached.")]
-        public double MaxRadius { get; set; }
+                       "Search starts at max radius, and radius is divided by 2 until min-radius is reached. If left empty, solver configured default value will be used (default is 8.0)")]
+        public double? MaxRadius { get; set; }
 
         [Option("east-first", Required = false, Default = true,
             HelpText = "Scan Eastern side of the sky first.")]
@@ -36,15 +36,19 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "Scan Southern hemisphere first.")]
         public bool SouthFirst { get; set; }
         
-        [Option('p', "use-parallelism", Required = false, Default = true,
-            HelpText = "Use parallelism, search multiple areas simultaneously.")]
-        public bool UseParallelism { get; set; }
+        [Option('p', "use-parallelism", Required = false,
+            HelpText = "Use parallelism, search multiple areas simultaneously. Default is true with blind solves.")]
+        public bool? UseParallelism { get; set; }
 
         [Usage(ApplicationAlias = "watney-solve")]
         public static IEnumerable<Example> Examples
         {
             get
             {
+                yield return new Example("Minimal parameters", new BlindOptions
+                {
+                    ImageFilename = "andromeda.png"
+                });
                 yield return new Example("Basic scenario, with defaults", new BlindOptions
                 {
                     ImageFilename = "andromeda.png",
