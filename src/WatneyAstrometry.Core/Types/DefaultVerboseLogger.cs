@@ -6,6 +6,7 @@ namespace WatneyAstrometry.Core.Types
 {
     public class DefaultVerboseLogger : IVerboseLogger
     {
+        private static Encoding _encoding = new UTF8Encoding(false);
 
         public class Options
         {
@@ -35,7 +36,7 @@ namespace WatneyAstrometry.Core.Types
             if (_options.WriteToFile)
             {
                 lock(_mutex)
-                    File.AppendAllText(_options.LogFile, message + "\n", Encoding.UTF8);
+                    File.AppendAllText(_options.LogFile, message + "\n", _encoding);
             }
 
         }
