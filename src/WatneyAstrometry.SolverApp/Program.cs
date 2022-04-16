@@ -15,6 +15,7 @@ using CommandLine;
 using CommandLine.Text;
 using Newtonsoft.Json;
 using WatneyAstrometry.Core;
+using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.MathUtils;
@@ -22,6 +23,7 @@ using WatneyAstrometry.Core.QuadDb;
 using WatneyAstrometry.Core.StarDetection;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.ImageReaders;
+using WatneyAstrometry.SolverApp.Exceptions;
 
 namespace WatneyAstrometry.SolverApp
 {
@@ -130,6 +132,10 @@ namespace WatneyAstrometry.SolverApp
                     WriteToStdout = options.LogToStdout
                 });
             }
+            else
+            {
+                _verboseLogger = new NullVerboseLogger();
+            }
 
             return _verboseLogger;
         }
@@ -183,14 +189,14 @@ namespace WatneyAstrometry.SolverApp
                 {
                     if (inputType is InputType.CommonImageFromFile or InputType.FitsFromFile)
                     {
-                        _verboseLogger?.Write("Solver input is file");
+                        _verboseLogger.WriteInfo($"Solver input is file, {options.ImageFilename}");
                         return await solver.SolveFieldAsync(options.ImageFilename, strategy, solverOptions,
                             CancellationToken.None);
                     }
 
                     if (inputType == InputType.CommonImageFromStdin)
                     {
-                        _verboseLogger?.Write("Solver input is common image format read from stdin");
+                        _verboseLogger.WriteInfo("Solver input is common image format read from stdin");
                         var commonFormatsImageReader = new CommonFormatsImageReader();
                         var image = commonFormatsImageReader.FromStream(_stdinStream);
                         return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
@@ -198,7 +204,7 @@ namespace WatneyAstrometry.SolverApp
 
                     if (inputType == InputType.FitsFromStdin)
                     {
-                        _verboseLogger?.Write("Solver input is FITS read from stdin");
+                        _verboseLogger.WriteInfo("Solver input is FITS read from stdin");
                         var defaultFitsReader = new DefaultFitsReader();
                         var image = defaultFitsReader.FromStream(_stdinStream);
                         return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
@@ -206,7 +212,7 @@ namespace WatneyAstrometry.SolverApp
 
                     if (inputType == InputType.Xyls)
                     {
-                        _verboseLogger?.Write("Solver input is XYLS");
+                        _verboseLogger.WriteInfo("Solver input is XYLS");
                         return await solver.SolveFieldAsync(_xyList, _xyList.Stars, strategy, solverOptions,
                             CancellationToken.None);
                     }
@@ -215,8 +221,7 @@ namespace WatneyAstrometry.SolverApp
                 }
                 catch (Exception e)
                 {
-                    _verboseLogger?.Write($"Solver threw an exception: {e.Message}");
-                    _verboseLogger?.Write($"Solver stack trace: {e.StackTrace}");
+                    LogException(e);
                     throw;
                 }
                 
@@ -232,28 +237,82 @@ namespace WatneyAstrometry.SolverApp
 
         private static void RunBlindSolve(BlindOptions options)
         {
-            GetLogger(options);
-            LoadConfiguration(options);
-            AddDefaultParametersFromConfig(options);
-            Validate(options, out InputType inputType);
-            
-            var strategy = ParseStrategy(options);
-            RunSolve(strategy, options, inputType);
-            
+            try
+            {
+                GetLogger(options);
+                LoadConfiguration(options);
+                AddDefaultParametersFromConfig(options);
+                Validate(options, out InputType inputType);
+
+                var strategy = ParseStrategy(options);
+                RunSolve(strategy, options, inputType);
+            }
+            catch (Exception e)
+            {
+                LogException(e);
+                Environment.Exit(1);
+            }
         }
 
         private static void RunNearbySolve(NearbyOptions options)
         {
-            GetLogger(options);
-            LoadConfiguration(options);
-            AddDefaultParametersFromConfig(options);
-            Validate(options, out InputType inputType);
-            
-            var strategy = ParseStrategy(options);
-            RunSolve(strategy, options, inputType);
+            try
+            {
+                GetLogger(options);
+                LoadConfiguration(options);
+                AddDefaultParametersFromConfig(options);
+                Validate(options, out InputType inputType);
+
+                var strategy = ParseStrategy(options);
+                RunSolve(strategy, options, inputType);
+            }
+            catch (Exception e)
+            {
+                LogException(e);
+                Environment.Exit(1);
+            }
+        }
+
+        private static void WriteConsoleError(string message) => Console.WriteLine($"WATNEY ERROR: {message}");
+        
+
+        private static void LogException(Exception e)
+        {
+            if (e is ConfigException configException)
+            {
+                _verboseLogger.WriteError($"Configuration problem. {configException.Message}");
+                WriteConsoleError($"Configuration problem. {configException.Message}");
+            }
+            else if (e is SolverException solverException)
+            {
+                _verboseLogger.WriteError($"Solver problem. {solverException.Message}");
+                WriteConsoleError($"Solver problem. {solverException.Message}");
+            }
+            else if (e is SolverInputException solverInputException)
+            {
+                _verboseLogger.WriteError($"Problem with solver input. {solverInputException.Message}");
+                WriteConsoleError($"Problem with solver input. {solverInputException.Message}");
+            }
+            else if (e is QuadDatabaseException quadDatabaseException)
+            {
+                _verboseLogger.WriteError($"Quad database problem. {quadDatabaseException.Message}");
+                WriteConsoleError($"Quad database problem. {quadDatabaseException.Message}");
+            }
+            else if (e is QuadDatabaseVersionException quadDatabaseVersionException)
+            {
+                _verboseLogger.WriteError($"Quad database version issue. {quadDatabaseVersionException.Message}");
+                WriteConsoleError($"Quad database version issue. {quadDatabaseVersionException.Message}");
+            }
+            else
+            {
+                _verboseLogger.WriteError($"Uncaught program exception: {e.Message}");
+                _verboseLogger.WriteError($"Exception stack trace: {e.StackTrace}");
+                WriteConsoleError($"Uncaught program exception: {e.Message}");
+                WriteConsoleError($"Exception stack trace: {e.StackTrace}");
+            }
             
         }
-        
+
         // Read defaults from config, and apply them to arguments that were not
         // explicitly set.
         private static void AddDefaultParametersFromConfig(NearbyOptions options)
@@ -438,10 +497,16 @@ namespace WatneyAstrometry.SolverApp
                 if(!string.IsNullOrEmpty(directory))
                     Directory.CreateDirectory(Path.GetDirectoryName(options.OutFile));
                 File.WriteAllText(options.OutFile, outputText, Encoding.ASCII);
+                _verboseLogger.WriteInfo("== Solution ==");
+                foreach (var item in outputData)
+                {
+                    _verboseLogger.WriteInfo($"* {item.Key}: {item.Value}");
+                }
             }
 
             if (result.Success && !string.IsNullOrEmpty(options.WcsFile))
             {
+                _verboseLogger.WriteInfo($"Writing WCS file to {options.WcsFile}");
                 var directory = Path.GetDirectoryName(options.WcsFile);
                 if (!string.IsNullOrEmpty(directory))
                     Directory.CreateDirectory(Path.GetDirectoryName(options.WcsFile));
@@ -485,12 +550,12 @@ namespace WatneyAstrometry.SolverApp
                     : BlindSearchStrategyOptions.DecSearchOrder.NorthFirst
             };
 
-            _verboseLogger?.Write("Blind search strategy");
-            _verboseLogger?.Write($"- MaxNegativeDensityOffset: {options.LowerDensityOffset}");
-            _verboseLogger?.Write($"- MaxPositiveDensityOffset: {options.HigherDensityOffset}");
-            _verboseLogger?.Write($"- UseParallelism: {options.UseParallelism}");
-            _verboseLogger?.Write($"- StartRadiusDegrees: {options.MaxRadius}");
-            _verboseLogger?.Write($"- MinRadiusDegrees: {options.MinRadius}");
+            _verboseLogger.WriteInfo("Blind search strategy");
+            _verboseLogger.WriteInfo($"- MaxNegativeDensityOffset: {options.LowerDensityOffset}");
+            _verboseLogger.WriteInfo($"- MaxPositiveDensityOffset: {options.HigherDensityOffset}");
+            _verboseLogger.WriteInfo($"- UseParallelism: {options.UseParallelism}");
+            _verboseLogger.WriteInfo($"- StartRadiusDegrees: {options.MaxRadius}");
+            _verboseLogger.WriteInfo($"- MinRadiusDegrees: {options.MinRadius}");
             
             var strategy = new BlindSearchStrategy(strategyOptions);
             return strategy;
@@ -524,14 +589,14 @@ namespace WatneyAstrometry.SolverApp
             // For convenience
             void LogStrategyOpts()
             {
-                _verboseLogger?.Write("Nearby search strategy");
-                _verboseLogger?.Write($"- MaxNegativeDensityOffset: {strategyOptions.MaxNegativeDensityOffset}");
-                _verboseLogger?.Write($"- MaxPositiveDensityOffset: {strategyOptions.MaxPositiveDensityOffset}");
-                _verboseLogger?.Write($"- UseParallelism: {strategyOptions.UseParallelism}");
-                _verboseLogger?.Write($"- SearchAreaRadiusDegrees: {strategyOptions.SearchAreaRadiusDegrees}");
-                _verboseLogger?.Write($"- MinFieldRadiusDegrees: {strategyOptions.MinFieldRadiusDegrees}");
-                _verboseLogger?.Write($"- MaxFieldRadiusDegrees: {strategyOptions.MaxFieldRadiusDegrees}");
-                _verboseLogger?.Write($"- IntermediateFieldRadiusSteps: {strategyOptions.IntermediateFieldRadiusSteps}");
+                _verboseLogger.WriteInfo("Nearby search strategy");
+                _verboseLogger.WriteInfo($"- MaxNegativeDensityOffset: {strategyOptions.MaxNegativeDensityOffset}");
+                _verboseLogger.WriteInfo($"- MaxPositiveDensityOffset: {strategyOptions.MaxPositiveDensityOffset}");
+                _verboseLogger.WriteInfo($"- UseParallelism: {strategyOptions.UseParallelism}");
+                _verboseLogger.WriteInfo($"- SearchAreaRadiusDegrees: {strategyOptions.SearchAreaRadiusDegrees}");
+                _verboseLogger.WriteInfo($"- MinFieldRadiusDegrees: {strategyOptions.MinFieldRadiusDegrees}");
+                _verboseLogger.WriteInfo($"- MaxFieldRadiusDegrees: {strategyOptions.MaxFieldRadiusDegrees}");
+                _verboseLogger.WriteInfo($"- IntermediateFieldRadiusSteps: {strategyOptions.IntermediateFieldRadiusSteps}");
             }
 
             if (options.UseManualParams)
@@ -578,6 +643,14 @@ namespace WatneyAstrometry.SolverApp
                     }
                 }
 
+                if (parseErrors.Any())
+                {
+                    _verboseLogger.WriteError("Late validation produced errors.");
+                    parseErrors.ForEach(err => _verboseLogger.WriteError(err));
+                    ErrorAction(_parserResult, new Error[0], parseErrors);
+                    Environment.Exit(1);
+                }
+
                 var fieldRadiusMinMaxRegex = new Regex(@"^(\d+\.*\d*)-(\d+\.*\d*)$");
                 if (!string.IsNullOrEmpty(options.FieldRadiusMinMax) &&
                     fieldRadiusMinMaxRegex.IsMatch(options.FieldRadiusMinMax))
@@ -600,7 +673,7 @@ namespace WatneyAstrometry.SolverApp
 
                 strategy = new NearbySearchStrategy(center, strategyOptions);
                 LogStrategyOpts();
-                _verboseLogger?.Write($"Search center: {center}");
+                _verboseLogger.WriteInfo($"Search center: {center}");
                 return strategy;
             }
 
@@ -623,6 +696,8 @@ namespace WatneyAstrometry.SolverApp
 
                     if (parseErrors.Any())
                     {
+                        _verboseLogger.WriteError("Late validation produced errors.");
+                        parseErrors.ForEach(err => _verboseLogger.WriteError(err));
                         ErrorAction(_parserResult, new Error[0], parseErrors);
                         Environment.Exit(1);
                     }
@@ -636,13 +711,17 @@ namespace WatneyAstrometry.SolverApp
                     // Looks like we have what we need.
                     strategy = new NearbySearchStrategy(center, strategyOptions);
                     LogStrategyOpts();
-                    _verboseLogger?.Write($"Search center: {center}");
+                    _verboseLogger.WriteInfo($"Search center: {center}");
                     return strategy;
                 }
                 catch (Exception e)
                 {
-                    parseErrors.Add("FITS file parsing failed: " + e.Message);
-                    ErrorAction(_parserResult, new Error[0], parseErrors);
+                    var errorMessage = "FITS file parsing failed: " + e.Message;
+                    parseErrors.Add(errorMessage);
+                    _verboseLogger.WriteError("Late validation produced errors.");
+                    parseErrors.ForEach(err => _verboseLogger.WriteError(err));
+                    WriteConsoleError(errorMessage);
+                    //ErrorAction(_parserResult, new Error[0], parseErrors);
                     Environment.Exit(1);
                 }
                 
@@ -723,6 +802,10 @@ namespace WatneyAstrometry.SolverApp
             }
             else
             {
+                if (string.IsNullOrEmpty(options.ImageFilename) && string.IsNullOrEmpty(options.XylsFilename))
+                {
+                    errors.Add("image or xyls filename was not supplied");
+                }
                 if (!string.IsNullOrEmpty(options.ImageFilename))
                 {
                     var isFits = DefaultFitsReader.IsSupported(options.ImageFilename);
@@ -783,6 +866,8 @@ namespace WatneyAstrometry.SolverApp
             
             if (errors.Any())
             {
+                _verboseLogger.WriteError("Late argument validation produced errors.");
+                errors.ForEach(err => _verboseLogger.WriteError(err));
                 ErrorAction(_parserResult, new Error[0], errors);
                 Environment.Exit(1);
             }
@@ -847,6 +932,8 @@ namespace WatneyAstrometry.SolverApp
 
             if (errors.Any())
             {
+                _verboseLogger.WriteError("Late argument validation produced errors.");
+                errors.ForEach(err => _verboseLogger.WriteError(err));
                 ErrorAction(_parserResult, new Error[0], errors);
                 Environment.Exit(1);
             }
