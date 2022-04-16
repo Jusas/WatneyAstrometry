@@ -14,7 +14,8 @@ $ErrorActionPreference = "Stop"
 
 $defaultArgs = @(    
     "--benchmark",
-    "--extended"
+    "--extended",
+	"--max-stars", "300"
 );
 
 $cJson = Get-Content -Raw -Encoding ascii $Config;

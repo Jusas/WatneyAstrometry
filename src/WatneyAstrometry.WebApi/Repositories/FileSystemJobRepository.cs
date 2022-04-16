@@ -6,10 +6,14 @@ using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Repositories;
 
-public class FileSystemJobRepository : IJobRepository
+/// <summary>
+/// Job repository that is maintained in the file system (file based, persistent).
+/// </summary>
+internal class FileSystemJobRepository : IJobRepository
 {
 
     public class Configuration

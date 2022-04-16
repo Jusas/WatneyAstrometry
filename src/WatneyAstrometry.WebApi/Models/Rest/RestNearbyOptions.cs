@@ -7,6 +7,7 @@ using System.Globalization;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Models.Rest
 {

@@ -11,15 +11,23 @@ using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Repositories;
 using WatneyAstrometry.WebApi.Utils;
+#pragma warning disable CS1998
 
 namespace WatneyAstrometry.WebApi.Services;
 
-public class JobManager : IJobManager
+/// <inheritdoc />
+internal class JobManager : IJobManager
 {
     private readonly IJobRepository _jobRepository;
     private readonly IQueueManager _queueManager;
     private readonly ILogger<JobManager> _logger;
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="jobRepository"></param>
+    /// <param name="queueManager"></param>
+    /// <param name="logger"></param>
     public JobManager(IJobRepository jobRepository, IQueueManager queueManager, ILogger<JobManager> logger)
     {
         _jobRepository = jobRepository;
@@ -27,6 +35,7 @@ public class JobManager : IJobManager
         _logger = logger;
     }
 
+    /// <inheritdoc />
     public async Task<JobModel> PrepareJob(NewJobInputModel newJobFormModel, IDictionary<string, object> metadata = null)
     {
         await Task.Yield();
@@ -47,17 +56,20 @@ public class JobManager : IJobManager
         _queueManager.Enqueue(jobModel.Id);
         return jobModel;
     }
-    
+
+    /// <inheritdoc />
     public async Task<JobModel> GetJob(string id)
     {
         return await _jobRepository.Get(id);
     }
 
+    /// <inheritdoc />
     public async Task<JobModel> GetJob(int numericId)
     {
         return await _jobRepository.Get(numericId);
     }
 
+    /// <inheritdoc />
     public async Task CancelJob(string id)
     {
         _logger.LogTrace($"Job cancellation signal received for job {id}");

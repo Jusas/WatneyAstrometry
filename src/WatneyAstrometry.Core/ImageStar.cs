@@ -32,10 +32,20 @@ namespace WatneyAstrometry.Core
         /// </summary>
         public double StarSize { get; set; }
 
+        /// <summary>
+        /// New image star, uninitialized.
+        /// </summary>
         public ImageStar()
         {
         }
 
+        /// <summary>
+        /// New image star from coordinates, size and brightness.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="brightness"></param>
+        /// <param name="starSize"></param>
         public ImageStar(double x, double y, long brightness, double starSize)
         {
             X = x;

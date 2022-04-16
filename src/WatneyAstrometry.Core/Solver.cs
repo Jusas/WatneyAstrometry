@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.Image;
 using WatneyAstrometry.Core.MathUtils;
@@ -40,18 +41,34 @@ namespace WatneyAstrometry.Core
 
         private IVerboseLogger _logger;
 
+        /// <summary>
+        /// A progress handler delegate. Invoked when the solver process progresses.
+        /// </summary>
+        /// <param name="step"></param>
         public delegate void SolveProgressHandler(SolverStep step);
         /// <summary>
         /// Event that is triggered as we enter different steps in the solving process.
         /// </summary>
         public event SolveProgressHandler OnSolveProgress;
 
+        /// <summary>
+        /// New solver instance.
+        /// </summary>
+        /// <param name="logger"></param>
         public Solver(IVerboseLogger logger = null)
         {
             _logger = logger ?? new NullVerboseLogger();
             UseImageReader<DefaultFitsReader>(() => new DefaultFitsReader(), "fit", "fits");
         }
 
+        /// <summary>
+        /// Specify an image reader for the solver that can be used to read different kinds of images.
+        /// </summary>
+        /// <typeparam name="T">The type of the image reader</typeparam>
+        /// <param name="factoryFunc">A factory function that produces a new instance of the reader</param>
+        /// <param name="fileExtensions">Which file extensions this reader can handle (file extensions without the dot)</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public Solver UseImageReader<T>(Func<IImageReader> factoryFunc, params string[] fileExtensions) where T: IImageReader
         {
             var type = typeof(T);
@@ -64,6 +81,11 @@ namespace WatneyAstrometry.Core
             return this;
         }
 
+        /// <summary>
+        /// Removes an image reader registration from the solver.
+        /// </summary>
+        /// <typeparam name="T">The type of the registered image reader</typeparam>
+        /// <returns></returns>
         public Solver RemoveImageReader<T>() where T : IImageReader
         {
             var type = typeof(T);
@@ -74,42 +96,76 @@ namespace WatneyAstrometry.Core
             return this;
         }
 
+        /// <summary>
+        /// Clears the full list of registered image readers.
+        /// </summary>
+        /// <returns></returns>
         public Solver ClearImageReaders()
         {
             _imageReaderFactories.Clear();
             return this;
         }
 
+        /// <summary>
+        /// Use a specified star detector instance for star detection.
+        /// </summary>
+        /// <param name="starDetector"></param>
+        /// <returns></returns>
         public Solver UseStarDetector(IStarDetector starDetector)
         {
             _starDetectorFactory = () => starDetector;
             return this;
         }
 
+        /// <summary>
+        /// Use a specified star detector instance factory method for star detection.
+        /// </summary>
+        /// <param name="factoryFunc"></param>
+        /// <returns></returns>
         public Solver UseStarDetector(Func<IStarDetector> factoryFunc)
         {
             _starDetectorFactory = factoryFunc;
             return this;
         }
 
+        /// <summary>
+        /// Use a specified star detector instance factory method (async) for star detection.
+        /// </summary>
+        /// <param name="asyncFactoryFunc"></param>
+        /// <returns></returns>
         public Solver UseStarDetector(Func<Task<IStarDetector>> asyncFactoryFunc)
         {
             _starDetectorFactoryAsync = asyncFactoryFunc;
             return this;
         }
 
+        /// <summary>
+        /// Use a specified quad database factory method for instantiating a quad database.
+        /// </summary>
+        /// <param name="factoryFunc"></param>
+        /// <returns></returns>
         public Solver UseQuadDatabase(Func<IQuadDatabase> factoryFunc)
         {
             _quadDatabaseFactory = factoryFunc;
             return this;
         }
 
+        /// <summary>
+        /// Use a specified quad database instance.
+        /// </summary>
+        /// <param name="quadDatabase"></param>
+        /// <returns></returns>
         public Solver UseQuadDatabase(IQuadDatabase quadDatabase)
         {
             _quadDatabaseFactory = () => quadDatabase;
             return this;
         }
 
+        /// <summary>
+        /// Use a specified quad database factory method (async) for instantiating a quad database.
+        /// </summary>
+        /// <param name="asyncFactoryFunc"></param>
+        /// <returns></returns>
         public Solver UseQuadDatabase(Func<Task<IQuadDatabase>> asyncFactoryFunc)
         {
             _quadDatabaseFactoryAsync = asyncFactoryFunc;
@@ -119,14 +175,14 @@ namespace WatneyAstrometry.Core
         /// <inheritdoc />
         public async Task<SolveResult> SolveFieldAsync(string filename, ISearchStrategy strategy, SolverOptions options, CancellationToken cancellationToken)
         {
-            _logger.Write($"Solving field from file {filename}, with strategy {strategy.GetType().Name}");
+            _logger.WriteInfo($"Solving field from file {filename}, with strategy {strategy.GetType().Name}");
             var filenameExtension = Path.GetExtension(filename);
             if(string.IsNullOrEmpty(filenameExtension))
-                throw new Exception("File does not have extension, unable to determine file type");
+                throw new SolverInputException("File does not have extension, unable to determine file type");
 
             filenameExtension = filenameExtension.Replace(".", string.Empty);
             if(!_imageReaderFactories.ContainsKey(filenameExtension))
-                throw new Exception($"No ImageReader for file extension '{filenameExtension}' was found, unable to process image");
+                throw new SolverInputException($"No ImageReader for file extension '{filenameExtension}' was found, unable to process image");
 
             OnSolveProgress?.Invoke(SolverStep.ImageReadStarted);
 
@@ -134,10 +190,10 @@ namespace WatneyAstrometry.Core
             var image = reader.FromFile(filename);
 
             if(image.Metadata?.ViewSize != null)
-                _logger.Write($"Image field radius: {0.5 * image.Metadata.ViewSize.DiameterDeg}");
+                _logger.WriteInfo($"Image field radius: {0.5 * image.Metadata.ViewSize.DiameterDeg}");
 
             if(image.Metadata?.CenterPos != null)
-                _logger.Write($"Image center coordinate: {image.Metadata.CenterPos.ToStringRounded(3)}");
+                _logger.WriteInfo($"Image center coordinate: {image.Metadata.CenterPos.ToStringRounded(3)}");
 
             OnSolveProgress?.Invoke(SolverStep.ImageReadFinished);
 
@@ -158,7 +214,7 @@ namespace WatneyAstrometry.Core
             OnSolveProgress?.Invoke(SolverStep.StarDetectionStarted);
 
             var detectedStars = starDetector.DetectStars(image);
-            _logger.Write($"Detected {detectedStars.Count} stars from the image");
+            _logger.WriteInfo($"Detected {detectedStars.Count} stars from the image");
 
             OnSolveProgress?.Invoke(SolverStep.StarDetectionFinished);
 
@@ -203,7 +259,7 @@ namespace WatneyAstrometry.Core
 
             SolveResult result = null;
             
-            _logger.Write("Image parsed, starting the solve");
+            _logger.WriteInfo("Image parsed, starting the solve");
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -223,7 +279,7 @@ namespace WatneyAstrometry.Core
                 maxStars = options.UseMaxStars.Value;
                 if (maxStars > ConstraintValues.MaxRecommendedStars)
                 {
-                    _logger.Write($"Warn: max stars parameter over the recommended value " +
+                    _logger.WriteWarn($"Max stars parameter over the recommended value " +
                         $"of {ConstraintValues.MaxRecommendedStars}, this may cause slow solves");
                 }
             }
@@ -233,7 +289,9 @@ namespace WatneyAstrometry.Core
                     : (int)Math.Min(0.33 * stars.Count, 1000);
             
             // No stars? No game.
-            if(stars.Count == 0)
+            if (stars.Count == 0)
+            {
+                _logger.WriteError("Found 0 stars from the input");
                 return new SolveResult()
                 {
                     Success = false,
@@ -244,21 +302,22 @@ namespace WatneyAstrometry.Core
                         DetectedStars = stars
                     }
                 };
+            }
 
             var chosenDetectedStars = TakeBrightest(stars, maxStars);
 
-            _logger.Write($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
+            _logger.WriteInfo($"Chose {chosenDetectedStars.Count} stars from the detected stars for quad formation");
 
             // Note: this can take time if the factory method is actually reading the database files
             // at this moment, or not if the quad database has already been initialized.
-            _logger.Write($"Initializing quad database");
+            _logger.WriteInfo($"Initializing quad database");
             IQuadDatabase quadDb;
             if (_quadDatabaseFactoryAsync != null)
                 quadDb = await _quadDatabaseFactoryAsync.Invoke();
             else
                 quadDb = _quadDatabaseFactory.Invoke();
 
-            _logger.Write($"Quad database is ready");
+            _logger.WriteInfo($"Quad database is ready");
 
             _tentativeMatches = 0;
             _iterations = 0;
@@ -270,7 +329,7 @@ namespace WatneyAstrometry.Core
 
             // Form quads from image stars
             var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
-            _logger.Write($"Formed {imageStarQuads.Length} quads from the chosen stars");
+            _logger.WriteInfo($"Formed {imageStarQuads.Length} quads from the chosen stars");
 
             OnSolveProgress?.Invoke(SolverStep.QuadFormationFinished);
 
@@ -280,10 +339,10 @@ namespace WatneyAstrometry.Core
             int? sampling = options.UseSampling;
 
             if(sampling != null && sampling >= 1)
-                _logger.Write($"Using given sampling value, 1/{sampling} quads will be used for the first search round");
+                _logger.WriteInfo($"Using given sampling value, 1/{sampling} quads will be used for the first search round");
             else
             {
-                _logger.Write("Using auto-sampling");
+                _logger.WriteInfo("Using auto-sampling");
                 sampling = 4; // After testing, seems like a good performant value overall.
             }
 
@@ -353,7 +412,7 @@ namespace WatneyAstrometry.Core
 
                                 searchQueue = areaBatches[areaBatchIndex];
                                 
-                                _logger.Write(
+                                _logger.WriteInfo(
                                     $"Starting search tasks in parallel. Running sampling subset {currentSubSetIndex + 1}/{numSubSets}");
 
                                 var searchTasks = searchQueue.Select(searchRun => Task.Run(async () =>
@@ -388,7 +447,7 @@ namespace WatneyAstrometry.Core
                                     runsByRadius[rg].Remove(potentialMatchQueue[m]);
 
                                 // Console.WriteLine($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
-                                _logger.Write(
+                                _logger.WriteInfo(
                                     $"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
                                 var potentialMatchSearchTasks = potentialMatchQueue.Select(searchRun =>
                                     Task.Run(async () =>
@@ -404,7 +463,7 @@ namespace WatneyAstrometry.Core
                                 continueSearching = successfulSolveResult == null && !combinedCts.Token.IsCancellationRequested;
 
                                 if (successfulSolveResult != null)
-                                    _logger.Write($"A successful result was found!");
+                                    _logger.WriteInfo($"A successful result was found!");
 
 
                                 if (!continueSearching)
@@ -416,7 +475,7 @@ namespace WatneyAstrometry.Core
                             if (!continueSearching)
                                 break;
 
-                            _logger.Write($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
+                            _logger.WriteInfo($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
                         }
 
                         if (!continueSearching)
@@ -427,7 +486,7 @@ namespace WatneyAstrometry.Core
                 finally
                 {
                     stopwatch.Stop();
-                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                    _logger.WriteInfo($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = successfulSolveResult ?? new SolveResult();
                     diagnosticsData.MatchInstances = result.DiagnosticsData?.MatchInstances;
                     result.StarsDetected = stars.Count;
@@ -443,7 +502,7 @@ namespace WatneyAstrometry.Core
             }
             else
             {
-                _logger.Write($"Starting search tasks in serial mode");
+                _logger.WriteInfo($"Starting search tasks in serial mode");
                 var serialSearches = new List<SolveResult>();
 
                 // For convenience.
@@ -501,7 +560,7 @@ namespace WatneyAstrometry.Core
                                 if (taskResult != null && taskResult.Success)
                                 {
                                     stopwatch.Stop();
-                                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                                    _logger.WriteInfo($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                                     MakeSuccessResult(taskResult);
 
                                     continueSearching = false;
@@ -522,7 +581,7 @@ namespace WatneyAstrometry.Core
                             serialSearches.Clear();
 
                             var potentialMatchQueue = resultSet.withMatches.Select(x => x.SearchRun).ToArray();
-                            _logger.Write($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
+                            _logger.WriteInfo($"Continue searching, potential matches to try: {potentialMatchQueue.Length}");
 
                             // Remove all potentials so that we don't search them again in the next subset.
                             // They aren't a significant number, but every little bit helps.
@@ -538,7 +597,7 @@ namespace WatneyAstrometry.Core
                                 if (taskResult != null && taskResult.Success)
                                 {
                                     stopwatch.Stop();
-                                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                                    _logger.WriteInfo($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                                     MakeSuccessResult(taskResult);
                                     
                                     break;
@@ -550,7 +609,7 @@ namespace WatneyAstrometry.Core
 
                             if (successfulSolveResult != null)
                             {
-                                _logger.Write($"A successful result was found!");
+                                _logger.WriteInfo($"A successful result was found!");
                                 break;
                             }
 
@@ -563,19 +622,19 @@ namespace WatneyAstrometry.Core
                         if (!continueSearching)
                             break;
 
-                        _logger.Write($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
+                        _logger.WriteInfo($"Radius group {rg} in subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next radius group.");
                     }
 
                     if (!continueSearching)
                         break;
 
-                    _logger.Write($"Subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next subset.");
+                    _logger.WriteInfo($"Subset {currentSubSetIndex+1}/{numSubSets} yielded no result, continuing to next subset.");
                 }
 
                 if (result == null)
                 {
                     stopwatch.Stop();
-                    _logger.Write($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
+                    _logger.WriteInfo($"Search tasks finished. Time spent: {stopwatch.Elapsed}");
                     result = new SolveResult();
                     result.StarsDetected = stars.Count;
                     result.StarsUsedInSolve = chosenDetectedStars.Count;
@@ -608,7 +667,7 @@ namespace WatneyAstrometry.Core
                 if(results[i] == null)
                     continue;
                 
-                if(results[i].NumPotentialMatches > 0) // was 0
+                if(results[i].NumPotentialMatches > 0)
                     withMatches.Add(results[i]);
                 else
                     withoutMatches.Add(results[i]);
@@ -658,7 +717,7 @@ namespace WatneyAstrometry.Core
             
             taskResult.NumPotentialMatches = databaseQuads.Count;
 
-            _logger.Write($"{logPrefix} {databaseQuads.Count} potential database matches");
+            _logger.WriteInfo($"{logPrefix} {databaseQuads.Count} potential database matches");
             if (databaseQuads.Count < minMatches)
             {
                 return taskResult;
@@ -675,12 +734,12 @@ namespace WatneyAstrometry.Core
 
             if (matchingQuads.Count >= minMatches)
             {
-                _logger.Write($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
+                _logger.WriteInfo($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
                 var preliminarySolution = CalculateSolution(imageDimensions, matchingQuads, searchRun.Center);
 
                 if (!IsValidSolution(preliminarySolution))
                 {
-                    _logger.Write($"{logPrefix} not a valid solution");
+                    _logger.WriteInfo($"{logPrefix} not a valid solution");
                     //return null;
                     return taskResult;
                 }
@@ -697,7 +756,7 @@ namespace WatneyAstrometry.Core
                 pixelAngularSearchFieldSizeRatio = imageDiameterInPixels / preliminarySolution.Radius * 2;
 
 
-                _logger.Write($"{logPrefix} valid solution, calculating an improved solution");
+                _logger.WriteInfo($"{logPrefix} valid solution, calculating an improved solution");
                 // Calculate a second time; we may be quite a bit off if we're detecting the quads at an edge,
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
@@ -706,12 +765,12 @@ namespace WatneyAstrometry.Core
 
                 if (!IsValidSolution(improvedSolution.solution))
                 {
-                    _logger.Write($"{logPrefix} solution improve failed");
+                    _logger.WriteInfo($"{logPrefix} solution improve failed");
                     //return null;
                     return taskResult;
                 }
 
-                _logger.Write($"{logPrefix} valid solution was found");
+                _logger.WriteInfo($"{logPrefix} valid solution was found");
                 taskResult.Success = true;
                 taskResult.Canceled = false;
                 taskResult.SearchRun = searchRun;

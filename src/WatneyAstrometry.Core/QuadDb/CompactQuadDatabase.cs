@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.Types;
 
@@ -23,6 +24,9 @@ namespace WatneyAstrometry.Core.QuadDb
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
             new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
 
+        /// <summary>
+        /// New instance of quad database.
+        /// </summary>
         public CompactQuadDatabase()
         {
         }
@@ -40,7 +44,7 @@ namespace WatneyAstrometry.Core.QuadDb
         {
 
             if (!Directory.Exists(directoryPath))
-                throw new Exception($"Directory {directoryPath} does not exist, unable to load/use star database");
+                throw new QuadDatabaseException($"Directory {directoryPath} does not exist, unable to load/use star database");
 
             var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
             _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
@@ -56,23 +60,25 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <summary>
         /// Gets the quads around the given center point, within the given radius.
         /// <br/>
-        /// The database contains passes, and the pass chosen for use is determined by the <see cref="quadsPerSqDegree"/> parameter. Using <see cref="quadDensityOffsets"/>
+        /// The database contains passes, and the pass chosen for use is determined by the <paramref name="quadsPerSqDegree"/> parameter. Using <paramref name="quadDensityOffsets"/>
         /// you can control the passes included in the results.
         /// <br/>
-        /// <see cref="imageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
+        /// <paramref name="imageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
         /// </summary>
         /// <param name="center">The center.</param>
         /// <param name="radiusDegrees">The radius around the center.</param>
         /// <param name="quadsPerSqDegree">The quads per square degree, calculated from the image and assumed field size.</param>
         /// <param name="quadDensityOffsets">Offsets used to include passes with lower or higher quad density. Example: [-1, 0, 1]. Can be null, which will equal to [0].</param>
-        /// <param name="sampling">If > 0, taken into account. Reduces the number of quads taken. Speeds up the process.</param>
+        /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
+        /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
+        /// <param name="solveContextId">Which solve context we're working on. Contexts are used for caching to speed up the process.</param>
         /// <returns></returns>
         public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
             int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId)
         {
             if (!_contexts.TryGetValue(solveContextId, out var cache))
-                throw new Exception($"Context {solveContextId} doesn't exist, it should be created first");
+                throw new QuadDatabaseException($"Context {solveContextId} doesn't exist, it should be created first");
 
             var cells = SkySegmentSphere.Cells;
             var cellsToInclude = new string[cells.Count];
@@ -138,12 +144,21 @@ namespace WatneyAstrometry.Core.QuadDb
             
         }
 
+        /// <summary>
+        /// Create a new solve context. Contexts are used for caching to speed up the quad lookups.
+        /// </summary>
+        /// <param name="contextId"></param>
+        /// <exception cref="QuadDatabaseException"></exception>
         public void CreateSolveContext(Guid contextId)
         {
             if (!_contexts.TryAdd(contextId, CreateMemoryCacheObject()))
-                throw new Exception($"Solve context {contextId} already exists");
+                throw new QuadDatabaseException($"Solve context {contextId} already exists");
         }
 
+        /// <summary>
+        /// Disposes a solve context.
+        /// </summary>
+        /// <param name="contextId"></param>
         public void DisposeSolveContext(Guid contextId)
         {
             _contexts.TryRemove(contextId, out var _);
@@ -183,7 +198,9 @@ namespace WatneyAstrometry.Core.QuadDb
 
         }
 
-
+        /// <summary>
+        /// Disposes the resources it and its children have reserved.
+        /// </summary>
         public void Dispose()
         {
             if (!_disposing)

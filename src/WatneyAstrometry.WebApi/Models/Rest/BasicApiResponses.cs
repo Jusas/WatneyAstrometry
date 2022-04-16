@@ -3,16 +3,28 @@
 
 namespace WatneyAstrometry.WebApi.Models.Rest;
 
+/// <summary>
+/// Basic message response.
+/// </summary>
 public class BasicResponse
 {
+    /// <summary>
+    /// Response message
+    /// </summary>
     public string Message { get; set; }
 }
 
+/// <summary>
+/// Internal error
+/// </summary>
 public class ApiInternalErrorResponse : BasicResponse
 {
 }
 
 
+/// <summary>
+/// Resource not found
+/// </summary>
 public class ApiNotFoundResponse : BasicResponse
 {
 
@@ -29,6 +41,9 @@ public class ApiStatusModelResponse
     public string Status { get; set; }
 }
 
+/// <summary>
+/// Cancel request response
+/// </summary>
 public class CancelJobResponse : BasicResponse
 {
 }

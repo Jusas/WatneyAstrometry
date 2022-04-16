@@ -18,8 +18,18 @@ namespace WatneyAstrometry.ImageReaders
     /// </summary>
     public class CommonFormatsImageReader : IImageReader
     {
+        /// <summary>
+        /// Extensions that are supported by this reader.
+        /// </summary>
         public static string[] SupportedImageExtensions => new [] {"png", "jpg", "jpeg"};
 
+        /// <summary>
+        /// Read an image from a file.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
+        /// <exception cref="IOException"></exception>
+        /// <exception cref="NotImplementedException"></exception>
         public IImage FromFile(string filename)
         {
 
@@ -169,7 +179,13 @@ namespace WatneyAstrometry.ImageReaders
             }
         }
         
-
+        /// <summary>
+        /// Read an image from a stream.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="NotImplementedException"></exception>
         public IImage FromStream(Stream stream)
         {
             var imageFormat = Image.DetectFormat(stream);
@@ -190,6 +206,11 @@ namespace WatneyAstrometry.ImageReaders
 
         }
 
+        /// <summary>
+        /// Check if this reader can support the data in the stream.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
         public static bool IsSupported(Stream stream)
         {
             var imageFormat = Image.DetectFormat(stream);
@@ -202,6 +223,11 @@ namespace WatneyAstrometry.ImageReaders
             return false;
         }
 
+        /// <summary>
+        /// Check if this reader can support the data in the file.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
         public static bool IsSupported(string filename)
         {
             using (FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))

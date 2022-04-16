@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.Options;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Repositories;
 
@@ -12,7 +13,7 @@ namespace WatneyAstrometry.WebApi.Repositories;
 /// A job repository that keeps all jobs in memory and will be cleared
 /// if the process restarts.
 /// </summary>
-public class InMemoryJobRepository : IJobRepository
+internal class InMemoryJobRepository : IJobRepository
 {
     private readonly ILogger<InMemoryJobRepository> _logger;
 

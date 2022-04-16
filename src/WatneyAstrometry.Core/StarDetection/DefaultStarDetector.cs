@@ -41,11 +41,15 @@ namespace WatneyAstrometry.Core.StarDetection
         private List<StarPixelBin> _starBins = new List<StarPixelBin>();
         internal IReadOnlyList<StarPixelBin> StarBins => _starBins;
 
-
+        /// <summary>
+        /// Filter implementation, which filters out undesirable pixel bins.
+        /// </summary>
         public IStarDetectionFilter DetectionFilter { get; set; } = new DefaultStarDetectionFilter();
         
-        public long PixelValueRangeStart => 0;
-
+        /// <summary>
+        /// New instance of star detector.
+        /// </summary>
+        /// <param name="starDetectionBgOffset">Offset to use for background detection (factor which is used to add n * stdDev to average background value)</param>
         public DefaultStarDetector(double starDetectionBgOffset = 3.0)
         {
             _starDetectionBgOffset = starDetectionBgOffset;
@@ -68,6 +72,11 @@ namespace WatneyAstrometry.Core.StarDetection
             ValidateInputArgs();
         }
 
+        /// <summary>
+        /// Run star detection on image.
+        /// </summary>
+        /// <param name="image"></param>
+        /// <returns></returns>
         public IList<ImageStar> DetectStars(IImage image)
         {
             Initialize(image);

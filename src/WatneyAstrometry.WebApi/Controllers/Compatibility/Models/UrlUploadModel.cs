@@ -3,9 +3,13 @@
 
 using Newtonsoft.Json;
 using WatneyAstrometry.Core.Types;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 
+/// <summary>
+/// Model for URL uploads.
+/// </summary>
 public class UrlUploadModel : UploadModel
 {
 

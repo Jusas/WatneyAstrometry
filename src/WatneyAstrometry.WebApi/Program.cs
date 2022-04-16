@@ -71,7 +71,9 @@ if (apiConfig.EnableSwagger)
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(setup =>
     {
+        #pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
         var versionProvider = builder.Services.BuildServiceProvider()
+        #pragma warning restore ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
             .GetRequiredService<IApiVersionDescriptionProvider>();
 
         foreach (var description in versionProvider.ApiVersionDescriptions)

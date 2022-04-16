@@ -1,4 +1,5 @@
-﻿namespace WatneyAstrometry.Core.Fits
+﻿#pragma warning disable CS1591
+namespace WatneyAstrometry.Core.Fits
 {
     public static class FitsConstants
     {

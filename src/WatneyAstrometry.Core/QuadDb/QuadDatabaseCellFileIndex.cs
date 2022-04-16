@@ -6,16 +6,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
 {
-    public class QuadDatabaseCellFileIndex
+    internal class QuadDatabaseCellFileIndex
     {
 
         public bool DataIsLittleEndian { get; private set; }
 
         public QuadDatabaseCellFile[] CellFiles { get; private set; }
+
+        public const string IndexFileFormatIdentifier = "WATNEYQDBINDEX";
+        public const byte IndexFileFormatVersion = 1;
 
         private QuadDatabaseCellFileIndex(string filename, int fileSetId)
         {
@@ -24,20 +28,17 @@ namespace WatneyAstrometry.Core.QuadDb
             {
                 // Read header.
                 
-                string expectedHeader = "WATNEYQDBINDEX";
-                byte supportedVersion = 1;
+                var buf = new byte[IndexFileFormatIdentifier.Length];
+                stream.Read(buf, 0, IndexFileFormatIdentifier.Length);
 
-                var buf = new byte[expectedHeader.Length];
-                stream.Read(buf, 0, expectedHeader.Length);
-
-                if (Encoding.ASCII.GetString(buf) != expectedHeader)
-                    throw new Exception($"File {filename} is not a WATNEYQDBINDEX");
+                if (Encoding.ASCII.GetString(buf) != IndexFileFormatIdentifier)
+                    throw new QuadDatabaseVersionException($"File {filename} is not a {IndexFileFormatIdentifier}");
 
                 stream.Read(buf, 0, 1);
-                if (buf[0] != supportedVersion)
+                if (buf[0] != IndexFileFormatVersion)
                 {
-                    throw new Exception($"This version of quad database index ({buf[0]}) is not supported " +
-                        $"by this version of Watney. Supported versions: {supportedVersion}");
+                    throw new QuadDatabaseVersionException($"This version of quad database index ({buf[0]}) is not supported " +
+                        $"by this version of Watney. Supported versions: {IndexFileFormatVersion}");
                 }
 
                 stream.Read(buf, 0, 1);
@@ -65,6 +66,9 @@ namespace WatneyAstrometry.Core.QuadDb
         public static QuadDatabaseCellFileIndex[] ReadAllIndexes(string directory)
         {
             var cellFileIndexFiles = Directory.GetFiles(directory, "*.qdbindex");
+            if (cellFileIndexFiles.Length == 0)
+                throw new QuadDatabaseVersionException(
+                    "No .qdbindex files were found. This version of Watney requires the separately indexed database files. Please download and use the correct database files.");
 
             var indexes = new QuadDatabaseCellFileIndex[cellFileIndexFiles.Length];
 

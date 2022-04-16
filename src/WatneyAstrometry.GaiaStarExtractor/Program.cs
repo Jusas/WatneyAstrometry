@@ -13,6 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using WatneyAstrometry.Core.Types;
+#pragma warning disable CS1998
 
 namespace WatneyAstrometry.GaiaStarExtractor
 {
@@ -41,7 +42,7 @@ namespace WatneyAstrometry.GaiaStarExtractor
         private static Dictionary<string, Stream> _cachedOutputStreams = new Dictionary<string, Stream>();
         private static Dictionary<string, object> _streamLocks = new Dictionary<string, object>();
 
-        static async Task Run(Opts options)
+        public static async Task Run(Opts options)
         {
 
             var concurrentOps = options.Threads < 0 ? Math.Max(Environment.ProcessorCount - 1, 1) : options.Threads;

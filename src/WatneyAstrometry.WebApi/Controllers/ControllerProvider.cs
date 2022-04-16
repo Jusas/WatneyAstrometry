@@ -7,7 +7,7 @@ using WatneyAstrometry.WebApi.Controllers.Compatibility;
 
 namespace WatneyAstrometry.WebApi.Controllers;
 
-public class ControllerProvider : ControllerFeatureProvider
+internal class ControllerProvider : ControllerFeatureProvider
 {
     private readonly WatneyApiConfiguration _config;
 

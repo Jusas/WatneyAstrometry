@@ -11,7 +11,7 @@ namespace WatneyAstrometry.Core.QuadDb
     /// <summary>
     /// Class representing a set of Cell files. The quad database is split into cell files.
     /// </summary>
-    public class QuadDatabaseCellFileSet : IDisposable
+    internal class QuadDatabaseCellFileSet : IDisposable
     {
         // TODO internal or public?
         // Group descriptors by cellId, and create a new CellFile per descriptor
@@ -82,8 +82,8 @@ namespace WatneyAstrometry.Core.QuadDb
                 .OrderBy(x => x.QuadsPerSqDeg)
                 .ToArray();
         }
-        
-        
+
+
         /// <summary>
         /// Retrieves stars that are within specified angular distance.
         /// </summary>
@@ -92,8 +92,10 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadsPerSqDegree">Image quad density</param>
         /// <param name="passOffset">If negative, use this offset to return quads from a more sparse quad density pass. If positive, return quads from a more dense quad density pass.
         /// Returns null if there are no more sparse/dense passes available.</param>
-        /// <param name="sampling">If > 1, used to limit taken quads to 1/[sampling], so less quads taken.</param>
+        /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
+        /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
         /// <param name="imageQuads">The quads detected from the image.</param>
+        /// <param name="cache"></param>
         /// <returns>StarQuad list, or null if passOffset was too big/small</returns>
         public StarQuad[] GetQuadsWithinRange(EquatorialCoords center, double angularDistance, int quadsPerSqDegree,
             int passOffset, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)

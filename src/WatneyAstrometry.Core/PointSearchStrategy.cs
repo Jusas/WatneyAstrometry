@@ -12,7 +12,9 @@ namespace WatneyAstrometry.Core
     /// </summary>
     public class PointSearchStrategy : ISearchStrategy
     {
-
+        /// <summary>
+        /// Options for PointSearchStrategy.
+        /// </summary>
         public class Options
         {
             /// <summary>
@@ -52,6 +54,12 @@ namespace WatneyAstrometry.Core
         private Options _options;
         private int[] _densityOffsets;
 
+        /// <summary>
+        /// New point search strategy.
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="options"></param>
+        /// <exception cref="Exception"></exception>
         public PointSearchStrategy(EquatorialCoords point, Options options)
         {
             _point = point;
@@ -72,6 +80,9 @@ namespace WatneyAstrometry.Core
             };
         }
 
+        /// <summary>
+        /// Does this strategy use parallelism.
+        /// </summary>
         public bool UseParallelism => false;
     }
 }

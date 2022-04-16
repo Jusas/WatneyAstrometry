@@ -16,6 +16,9 @@ namespace WatneyAstrometry.Core
         /// </summary>
         public List<SearchRun> SearchRuns { get; set; } = new List<SearchRun>();
 
+        /// <summary>
+        /// Ctor
+        /// </summary>
         public PartialBlindSearchStrategy()
         {
         }

@@ -6,7 +6,10 @@ using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.MathUtils
 {
-    public class BandsAndCells
+    /// <summary>
+    /// Functionality related to the 406 database cell system.
+    /// </summary>
+    public static class BandsAndCells
     {
 
         private static double AngleDiff(double angle1, double angle2)

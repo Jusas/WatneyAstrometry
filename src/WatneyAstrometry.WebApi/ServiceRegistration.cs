@@ -6,8 +6,17 @@ using WatneyAstrometry.WebApi.Services;
 
 namespace WatneyAstrometry.WebApi;
 
-public static class ServiceRegistration
+/// <summary>
+/// Registering services for the API.
+/// </summary>
+internal static class ServiceRegistration
 {
+    /// <summary>
+    /// Adds the services required by the solver setup.
+    /// </summary>
+    /// <param name="services"></param>
+    /// <param name="configuration"></param>
+    /// <param name="watneyApiConfiguration"></param>
     public static void AddSolverApiServices(this IServiceCollection services, IConfiguration configuration, WatneyApiConfiguration watneyApiConfiguration)
     {
         services.AddSingleton<IJobManager, JobManager>();
@@ -52,6 +61,10 @@ public static class ServiceRegistration
 
     }
 
+    /// <summary>
+    /// Starts initial services.
+    /// </summary>
+    /// <param name="sp"></param>
     public static void InitializeApiServices(IServiceProvider sp)
     {
         // Instantiate SolverProcessManager to start the background work watching.
@@ -61,6 +74,10 @@ public static class ServiceRegistration
         sp.GetService<IJobRepository>();
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sp"></param>
     public static void ShutdownApiServices(IServiceProvider sp)
     {
 

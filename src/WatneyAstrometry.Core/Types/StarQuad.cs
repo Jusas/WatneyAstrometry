@@ -8,15 +8,34 @@ using System.Linq;
 namespace WatneyAstrometry.Core.Types
 {
     /// <summary>
-    /// Represents a star quad.
+    /// Represents a star quad (in database or in image).
     /// </summary>
     public class StarQuad
     {
+        /// <summary>
+        /// The quad ratios (between stars).
+        /// </summary>
         public float[] Ratios { get; protected set; }
+        /// <summary>
+        /// The largest distance (degrees or pixels).
+        /// </summary>
         public float LargestDistance { get; protected set; }
+        /// <summary>
+        /// The mid point of the quad.
+        /// </summary>
         public EquatorialCoords MidPoint { get; protected set; }
+        /// <summary>
+        /// The stars that make up this quad.
+        /// </summary>
         public virtual IReadOnlyList<IStar> Stars { get; protected set; } = new IStar[0];
 
+        /// <summary>
+        /// New quad from known ratios, largest distance, midpoint and stars.
+        /// </summary>
+        /// <param name="ratios"></param>
+        /// <param name="largestDistance"></param>
+        /// <param name="midPoint"></param>
+        /// <param name="stars"></param>
         public StarQuad(float[] ratios, float largestDistance, EquatorialCoords midPoint, IList<IStar> stars = null)
         {
             //if (ratios.Length != 5)
@@ -28,29 +47,8 @@ namespace WatneyAstrometry.Core.Types
             if (stars != null)
                 Stars = stars.ToArray();
         }
-
-        public bool IsRatioWithinThreshold(int index, float ratio, float threshold)
-        {
-            if (Math.Abs(Ratios[index] / ratio - 1.0f) > threshold)
-                return false;
-            return true;
-        }
-
-        public bool AreRatiosWithinThreshold(float[] ratios, float threshold)
-        {
-            float d = Math.Abs(Ratios[0] / ratios[0] - 1.0f);
-            if (d > threshold) return false;
-            d = Math.Abs(Ratios[1] / ratios[1] - 1.0f);
-            if (d > threshold) return false;
-            d = Math.Abs(Ratios[2] / ratios[2] - 1.0f);
-            if (d > threshold) return false;
-            d = Math.Abs(Ratios[3] / ratios[3] - 1.0f);
-            if (d > threshold) return false;
-            d = Math.Abs(Ratios[4] / ratios[4] - 1.0f);
-            if (d > threshold) return false;
-            return true;
-        }
-
+        
+        
         /// <summary>
         /// For duplicate detection.
         /// </summary>

@@ -14,7 +14,22 @@ namespace WatneyAstrometry.Core.Tests.Utils
 
         public void Write(string message)
         {
-            _testOutputHelper.WriteLine(message);
+            _testOutputHelper.WriteLine("INFO: " + message);
+        }
+
+        public void WriteInfo(string message)
+        {
+            _testOutputHelper.WriteLine("INFO: " + message);
+        }
+
+        public void WriteWarn(string message)
+        {
+            _testOutputHelper.WriteLine("WARN: " + message);
+        }
+
+        public void WriteError(string message)
+        {
+            _testOutputHelper.WriteLine("ERROR: " + message);
         }
     }
 }

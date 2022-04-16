@@ -3,6 +3,7 @@
 
 using System;
 using WatneyAstrometry.Core.MathUtils;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.Core.Types
 {

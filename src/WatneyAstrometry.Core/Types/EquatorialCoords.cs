@@ -18,25 +18,48 @@ namespace WatneyAstrometry.Core.Types
     /// </summary>
     public class EquatorialCoords
     {
+        /// <summary>
+        /// RA coordinate, degrees decimal number.
+        /// </summary>
         public double Ra { get; set; }
+        /// <summary>
+        /// Dec coordinate, degrees decimal number.
+        /// </summary>
         public double Dec { get; set; }
 
+        /// <summary>
+        /// New empty equatorialcoords.
+        /// </summary>
         public EquatorialCoords()
         {
             
         }
 
+        /// <summary>
+        /// New equatorial coords from RA, Dec.
+        /// </summary>
+        /// <param name="ra"></param>
+        /// <param name="dec"></param>
         public EquatorialCoords(double ra, double dec)
         {
             Ra = ToPositive(ra);
             Dec = dec;
         }
 
+        /// <summary>
+        /// A string representation of the coordinates.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return $"[{Ra.ToString(CultureInfo.InvariantCulture)}, {Dec.ToString(CultureInfo.InvariantCulture)}]";
         }
 
+        /// <summary>
+        /// Rounded string representation of the coordinates.
+        /// </summary>
+        /// <param name="decimals"></param>
+        /// <returns></returns>
         public string ToStringRounded(int decimals)
         {
             return $"[{Math.Round(Ra, decimals).ToString(CultureInfo.InvariantCulture)}, {Math.Round(Dec, decimals).ToString(CultureInfo.InvariantCulture)}]";
@@ -101,23 +124,7 @@ namespace WatneyAstrometry.Core.Types
             var angle = Math.Acos(a);
             return Conversions.Rad2Deg(angle);
         }
-
-        /// <summary>
-        /// Gets angular distance between two points.
-        /// </summary>
-        [Obsolete("Not using catalog stars anymore, using quads")]
-        public static double GetAngularDistanceBetween(EquatorialCoords p1, CatalogStar catalogStar)
-        {
-            return GetAngularDistanceBetween(p1, new EquatorialCoords(catalogStar.Ra, catalogStar.Dec));
-        }
-
-        /// <summary>
-        /// Gets angular distance between two points.
-        /// </summary>
-        public static double GetAngularDistanceBetween(CatalogStar s1, CatalogStar s2)
-        {
-            return GetAngularDistanceBetween(new EquatorialCoords(s1.Ra, s1.Dec), new EquatorialCoords(s2.Ra, s2.Dec));
-        }
+        
 
         /// <summary>
         /// Transforms the RA, Dec coords to standard coordinates around the given center.
@@ -255,17 +262,11 @@ namespace WatneyAstrometry.Core.Types
             return new EquatorialCoords(Conversions.Rad2Deg(centralRa), Conversions.Rad2Deg(centralDec));
         }
 
-        /// <summary>
-        /// Gets the center RA, Dec of multiple catalog stars.
-        /// </summary>
-        public static EquatorialCoords GetCenterEquatorialCoords(IList<CatalogStar> stars)
-        {
-            return GetCenterEquatorialCoords(stars.Select(x => new EquatorialCoords(x.Ra, x.Dec)).ToArray());
-        }
 
         /// <summary>
         /// Project a coordinate to a simulated camera view 2d plane.
         /// </summary>
+        /// <param name="coordinate">The coordinate to project</param>
         /// <param name="planeCenter">The center RA, Dec of the camera view</param>
         /// <param name="rotationDeg">Camera field rotation</param>
         /// <param name="imageWidth">Image width in pixels</param>

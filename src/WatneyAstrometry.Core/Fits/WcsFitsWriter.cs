@@ -15,6 +15,10 @@ namespace WatneyAstrometry.Core.Fits
         private readonly Stream _output;
         private int _bytesWritten = 0;
 
+        /// <summary>
+        /// Ctor
+        /// </summary>
+        /// <param name="output"></param>
         public WcsFitsWriter(Stream output)
         {
             _output = output;

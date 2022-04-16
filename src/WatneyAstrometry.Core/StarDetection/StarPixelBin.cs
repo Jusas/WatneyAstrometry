@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.Core.StarDetection
 {

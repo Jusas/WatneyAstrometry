@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.Core.Types
 {
@@ -65,28 +66,6 @@ namespace WatneyAstrometry.Core.Types
             {
                 return _cells;
             }
-            //get
-            //{
-            //    if (_cells == null)
-            //    {
-            //        lock (_mutex)
-            //        {
-            //            _cells = new List<Cell>();
-            //            for (var b = 0; b < LatitudeBands.Count; b++)
-            //            {
-            //                var band = LatitudeBands[b];
-            //                var cellWidth = CellWidths[b];
-            //                for (int raLeft = 0, c = 0; raLeft < 360; raLeft += cellWidth, c++)
-            //                {
-            //                    var bounds = new RaDecBounds(raLeft, raLeft + cellWidth, band.L2, band.L1);
-            //                    _cells.Add(new Cell(bounds, b, c));
-            //                }
-            //            }
-            //        }
-            //    }
-
-            //    return _cells;
-            //}
         }
 
         static SkySegmentSphere()

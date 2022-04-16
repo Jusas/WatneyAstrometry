@@ -6,6 +6,9 @@ using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 
+/// <summary>
+/// Model for file uploads.
+/// </summary>
 public class FileUploadModel : UploadModel
 {
 

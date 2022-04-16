@@ -24,13 +24,22 @@ namespace WatneyAstrometry.Core.Fits
     /// </summary>
     public class DefaultFitsReader : IImageReader
     {
-
+        /// <summary>
+        /// Checks if the file is supported by this reader.
+        /// </summary>
+        /// <param name="filename"></param>
+        /// <returns></returns>
         public static bool IsSupported(string filename)
         {
             using (var stream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read))
                 return IsSupported(stream);
         }
 
+        /// <summary>
+        /// Checks if the data stream is supported by this reader.
+        /// </summary>
+        /// <param name="stream"></param>
+        /// <returns></returns>
         public static bool IsSupported(Stream stream)
         {
             var pos = stream.Position;

@@ -9,7 +9,7 @@ using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
 {
-    public class QuadDatabaseCellFileDescriptor
+    internal class QuadDatabaseCellFileDescriptor
     {
 
         public class SubCellInfo

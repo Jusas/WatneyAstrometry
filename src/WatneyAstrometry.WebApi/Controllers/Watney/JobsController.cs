@@ -37,7 +37,12 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
         private readonly IJobManager _jobManager;
         private readonly IMapper _mapper;
 
-
+        /// <summary>
+        /// Ctor
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="jobManager"></param>
+        /// <param name="mapper"></param>
         public JobsController(ILogger<JobsController> logger, IJobManager jobManager, IMapper mapper)
         {
             _logger = logger;

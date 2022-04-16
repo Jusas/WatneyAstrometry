@@ -6,7 +6,7 @@ namespace WatneyAstrometry.Core.Types
     /// <summary>
     /// A memory cache object, one per solve instance.
     /// </summary>
-    public class QuadDatabaseSolveInstanceMemoryCache
+    internal class QuadDatabaseSolveInstanceMemoryCache
     {
         public class PassCachedData
         {

@@ -30,7 +30,10 @@ namespace WatneyAstrometry.Core
         /// </summary>
         public int[] DensityOffsets;
 
-        // For debugging and logging, to more easily visualize the SearchRun parameters.
+        /// <summary>
+        /// String representation of the properties.
+        /// </summary>
+        /// <returns></returns>
         public override string ToString()
         {
             return $"[{Center.Ra}, {Center.Dec}] ({RadiusDegrees:F})";

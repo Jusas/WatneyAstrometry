@@ -7,10 +7,12 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
+#pragma warning disable CS1591
+#pragma warning disable CS1998
 
 namespace WatneyAstrometry.WebApi.Authentication;
 
-public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
+internal class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
 {
     private WatneyApiConfiguration _apiConfiguration;
 

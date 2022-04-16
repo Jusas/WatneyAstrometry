@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using WatneyAstrometry.SolverApp.Exceptions;
 using YamlDotNet.Serialization;
 
 namespace WatneyAstrometry.SolverApp
@@ -54,12 +55,12 @@ namespace WatneyAstrometry.SolverApp
         public static Configuration Load(string configFile)
         {
             if (!File.Exists(configFile))
-                throw new Exception($"Configuration file does not exist at path {configFile}");
-
-            var configuration = File.ReadAllText(configFile);
-
+                throw new ConfigException($"Configuration file does not exist at path {configFile}");
+            
             try
             {
+                var configuration = File.ReadAllText(configFile);
+
                 var deserializer = new DeserializerBuilder()
                     .Build();
                 var config = deserializer.Deserialize<Configuration>(configuration);
@@ -91,7 +92,7 @@ namespace WatneyAstrometry.SolverApp
             }
             catch (Exception e)
             {
-                throw new Exception("Failed to parse configuration file. " + e.Message);
+                throw new ConfigException("Failed to read or parse configuration file: " + e.Message, e);
             }
             
         }

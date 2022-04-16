@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+// Domain models for job solution.
+
+#pragma warning disable CS1591
 namespace WatneyAstrometry.WebApi.Models.Domain
 {
     public class JobSolutionProperties

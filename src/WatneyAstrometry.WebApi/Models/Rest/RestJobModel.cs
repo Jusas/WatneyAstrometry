@@ -5,6 +5,7 @@ using AutoMapper;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Models.Rest;
 

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Models.Rest;
 

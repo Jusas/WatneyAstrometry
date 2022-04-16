@@ -1,8 +1,12 @@
 ﻿using Newtonsoft.Json;
 using WatneyAstrometry.Core.Types;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 
+/// <summary>
+/// Base class for file and URL uploads.
+/// </summary>
 public abstract class UploadModel
 {
     [JsonProperty("session")]

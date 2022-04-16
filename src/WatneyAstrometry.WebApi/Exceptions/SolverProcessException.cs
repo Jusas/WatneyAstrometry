@@ -3,8 +3,12 @@
 
 namespace WatneyAstrometry.WebApi.Exceptions;
 
+/// <summary>
+/// Exception in solving process.
+/// </summary>
 public class SolverProcessException : Exception
 {
+    /// <inheritdoc />
     public SolverProcessException(string message, Exception inner = null) : base(message, inner)
     {
     }

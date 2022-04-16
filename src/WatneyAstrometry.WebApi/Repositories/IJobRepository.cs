@@ -3,6 +3,7 @@
 
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Models.Domain;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Repositories;
 
@@ -11,11 +12,9 @@ namespace WatneyAstrometry.WebApi.Repositories;
 /// </summary>
 public interface IJobRepository
 {
-    // int QueuedJobCount { get; }
     Task Insert(JobModel job);
     Task Update(JobModel job);
     Task<JobModel> Get(string id);
     Task<JobModel> Get(int numericId);
-    // Task<JobModel> Dequeue();
 
 }

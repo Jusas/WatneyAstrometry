@@ -1,8 +1,12 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable CS1591
 namespace WatneyAstrometry.WebApi.Models.Domain;
 
+/// <summary>
+/// Domain model for job parameters.
+/// </summary>
 public class JobParametersModel
 {
     public int? MaxStars { get; set; }

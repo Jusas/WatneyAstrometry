@@ -3,8 +3,12 @@
 
 namespace WatneyAstrometry.WebApi.Exceptions
 {
+    /// <summary>
+    /// Exception when file format is incompatible.
+    /// </summary>
     public class FileFormatException : Exception
     {
+        /// <inheritdoc />
         public FileFormatException(string message, Exception inner = null) : base(message, inner)
         {
         }

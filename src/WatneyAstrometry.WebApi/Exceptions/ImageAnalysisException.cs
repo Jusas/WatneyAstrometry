@@ -3,8 +3,12 @@
 
 namespace WatneyAstrometry.WebApi.Exceptions;
 
+/// <summary>
+/// Exception in the image analysis.
+/// </summary>
 public class ImageAnalysisException : Exception
 {
+    /// <inheritdoc />
     public ImageAnalysisException(string message, Exception inner = null) : base(message, inner)
     {
     }

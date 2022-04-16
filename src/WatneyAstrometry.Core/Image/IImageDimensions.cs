@@ -3,6 +3,9 @@
 
 namespace WatneyAstrometry.Core.Image
 {
+    /// <summary>
+    /// Image dimensions interface.
+    /// </summary>
     public interface IImageDimensions
     {
         /// <summary>

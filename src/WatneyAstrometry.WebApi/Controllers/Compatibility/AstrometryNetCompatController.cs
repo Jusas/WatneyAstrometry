@@ -13,6 +13,7 @@ using WatneyAstrometry.WebApi.Controllers.Watney;
 using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Services;
 using WcsFitsWriter = WatneyAstrometry.Core.Fits.WcsFitsWriter;
+#pragma warning disable CS1998
 
 namespace WatneyAstrometry.WebApi.Controllers.Compatibility
 {
@@ -33,6 +34,13 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         private readonly WatneyApiConfiguration _apiConfig;
         private readonly IHttpClientFactory _httpClientFactory;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="logger"></param>
+        /// <param name="jobManager"></param>
+        /// <param name="apiConfig"></param>
+        /// <param name="httpClientFactory"></param>
         public AstrometryNetCompatController(ILogger<JobsController> logger, IJobManager jobManager,
             WatneyApiConfiguration apiConfig, IHttpClientFactory httpClientFactory)
         {
@@ -245,7 +253,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 });
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return new ObjectResult("Server Error (500)")
                 {
@@ -369,7 +377,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 });
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return new ObjectResult("Server Error (500)")
                 {

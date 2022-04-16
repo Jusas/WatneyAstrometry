@@ -5,8 +5,12 @@ using System;
 
 namespace WatneyAstrometry.Core.Types
 {
+    /// <summary>
+    /// A Solver / solving related exception.
+    /// </summary>
     public class SolverException : Exception
     {
+        /// <inheritdoc/>
         public SolverException(string message, Exception inner = null) : base(message, inner)
         {
             

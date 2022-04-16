@@ -12,10 +12,26 @@ namespace WatneyAstrometry.Core.Types
     /// </summary>
     public class ImageStarQuad : StarQuad
     {
+        /// <summary>
+        /// The list of stars in the quad.
+        /// </summary>
         public override IReadOnlyList<IStar> Stars => ImageStars;
+        /// <summary>
+        /// The list of stars in the quad.
+        /// </summary>
         public IReadOnlyList<ImageStar> ImageStars { get; private set; }
+        /// <summary>
+        /// The midpoint of the quad, in pixels.
+        /// </summary>
         public (double x, double y) PixelMidPoint { get; private set; }
 
+        /// <summary>
+        /// Initializes a new quad from image stars.
+        /// </summary>
+        /// <param name="ratios"></param>
+        /// <param name="largestDistance"></param>
+        /// <param name="stars"></param>
+        /// <exception cref="Exception"></exception>
         public ImageStarQuad(float[] ratios, float largestDistance, IList<ImageStar> stars)
             : base(ratios, largestDistance, null)
         {

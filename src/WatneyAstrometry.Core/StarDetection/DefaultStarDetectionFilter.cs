@@ -18,10 +18,19 @@ namespace WatneyAstrometry.Core.StarDetection
     /// </summary>
     public class DefaultStarDetectionFilter : IStarDetectionFilter
     {
+        /// <summary>
+        /// New filter instance.
+        /// </summary>
         public DefaultStarDetectionFilter()
         {
         }
 
+        /// <summary>
+        /// Apply the filter to pixel bins, and return the filtered list of bins.
+        /// </summary>
+        /// <param name="starPixelBins"></param>
+        /// <param name="imageMetadata"></param>
+        /// <returns></returns>
         public virtual List<StarPixelBin> ApplyFilter(IReadOnlyList<StarPixelBin> starPixelBins, Metadata imageMetadata)
         {
             int tooSmall = 0;
@@ -56,8 +65,19 @@ namespace WatneyAstrometry.Core.StarDetection
 
 
         // Well, this is pretty crude but hey, it does filter out some meaningless stuff.
+        /// <summary>
+        /// Root out too small stars.
+        /// </summary>
+        /// <param name="pixelBin"></param>
+        /// <returns></returns>
         protected virtual bool IsTooSmall(StarPixelBin pixelBin) => pixelBin.PixelCount < 4;
 
+        /// <summary>
+        /// Root out too large stars.
+        /// </summary>
+        /// <param name="pixelBin"></param>
+        /// <param name="imageMetadata"></param>
+        /// <returns></returns>
         protected virtual bool IsTooLarge(StarPixelBin pixelBin, Metadata imageMetadata)
         {
             // Arbitrarily chosen size, but should be reasonable.
@@ -70,6 +90,11 @@ namespace WatneyAstrometry.Core.StarDetection
             return false;
         }
 
+        /// <summary>
+        /// Analyze if the pixel bin is streakish (star / satellite streak).
+        /// </summary>
+        /// <param name="pixelBin"></param>
+        /// <returns></returns>
         protected virtual bool IsStreakish(StarPixelBin pixelBin)
         {
             var dimensions = pixelBin.Dimensions;

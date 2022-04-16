@@ -2,10 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Concurrent;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Services;
 
-public class InMemoryQueueManager : IQueueManager
+/// <summary>
+/// Queue manager for the in-memory queue.
+/// </summary>
+internal class InMemoryQueueManager : IQueueManager
 {
     private readonly ILogger<InMemoryQueueManager> _logger;
     public event IQueueManager.JobQueuedHandler OnJobQueued;

@@ -23,6 +23,7 @@ namespace WatneyAstrometry.Core.Fits
 
         internal List<HduHeaderRecord> HduHeaderRecords { get; set; }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             PixelDataStream?.Dispose();

@@ -19,6 +19,10 @@ namespace WatneyAstrometry.WebApi.Models.Rest
         
         internal IFormFile Image { get; set; }
 
+        /// <summary>
+        /// Perform validation on the job parameters after they've passed the first asp.net validation.
+        /// </summary>
+        /// <returns></returns>
         public Dictionary<string, string[]> Validate()
         {
             var errors = new Dictionary<string, string[]>();

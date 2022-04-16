@@ -12,10 +12,15 @@ using WatneyAstrometry.WebApi.Exceptions;
 using WatneyAstrometry.WebApi.Models;
 using WatneyAstrometry.WebApi.Models.Domain;
 using WatneyAstrometry.WebApi.Repositories;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Services;
 
-public class SolverProcessManager : ISolverProcessManager
+/// <summary>
+/// Class that manages the solving processes itself.
+/// Runs in the background emptying the queue.
+/// </summary>
+internal class SolverProcessManager : ISolverProcessManager
 {
 
     public class Configuration

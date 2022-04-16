@@ -6,6 +6,9 @@ using System.Linq;
 
 namespace WatneyAstrometry.Core.MathUtils
 {
+    /// <summary>
+    /// Some mathematical equations.
+    /// </summary>
     public static class Equations
     {
         /// <summary>

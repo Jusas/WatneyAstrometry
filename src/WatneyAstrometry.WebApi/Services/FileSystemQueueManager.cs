@@ -2,10 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Microsoft.Extensions.Options;
+#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Services;
 
-public class FileSystemQueueManager : IQueueManager
+/// <summary>
+/// File system based queue manager.
+/// The queue is saved into a file.
+/// </summary>
+internal class FileSystemQueueManager : IQueueManager
 {
 
     public class Configuration

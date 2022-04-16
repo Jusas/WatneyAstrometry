@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
@@ -15,7 +16,7 @@ namespace WatneyAstrometry.Core.QuadDb
     /// A class that represents a single Cell file (a file that contains quads in
     /// passes for specified RA,Dec bounds, a part of the quad database).
     /// </summary>
-    public class QuadDatabaseCellFile : IDisposable
+    internal class QuadDatabaseCellFile : IDisposable
     {
         public QuadDatabaseCellFileDescriptor Descriptor { get; private set; }
         private static readonly int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
@@ -26,6 +27,10 @@ namespace WatneyAstrometry.Core.QuadDb
 
         public int FileId => _fileId;
         private readonly int _fileId;
+
+        private bool _fileVersionValidated = false;
+        private const string FileFormatIdentifierString = "WATNEYQDB";
+        private const int FileFormatVersion = 3;
         
         public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor, int fileId)
         {
@@ -43,6 +48,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="numSubSets">The number of quad subsets we divide the available quads to.</param>
         /// <param name="subSetIndex">The index of the quad subset we want to include.</param>
         /// <param name="imageQuads"></param>
+        /// <param name="cache"></param>
         /// <returns></returns>
         public unsafe StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex,
             int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
@@ -112,8 +118,47 @@ namespace WatneyAstrometry.Core.QuadDb
                 {
                     if (fileStream == null)
                     {
-                        if (!_fileStreamPool.TryDequeue(out fileStream))
-                            fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+                        try
+                        {
+                            if (!_fileStreamPool.TryDequeue(out fileStream))
+                                fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read,
+                                    FileShare.Read);
+                            if (!_fileVersionValidated)
+                            {
+                                _fileVersionValidated = true;
+                                fileStream.Seek(0, SeekOrigin.Begin);
+                                var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
+                                fileStream.Read(fileFormatBytes, 0, fileFormatBytes.Length);
+
+                                // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
+                                if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
+                                    FileFormatIdentifierString)
+                                {
+                                    throw new QuadDatabaseVersionException($"The file {Descriptor.Filename} is not a valid Watney database file");
+                                }
+                                
+                                var versionNumBytes = new byte[sizeof(int)];
+                                fileStream.Read(versionNumBytes, 0, sizeof(int));
+                                if (Descriptor.BytesNeedReversing)
+                                    Array.Reverse(versionNumBytes);
+
+                                var versionNum = BitConverter.ToInt32(versionNumBytes, 0);
+                                if (versionNum != FileFormatVersion)
+                                    throw new QuadDatabaseVersionException(
+                                        $"Expected database version {FileFormatVersion} format database files, but they were version {versionNum}. " +
+                                        $"Unable to use them. Make sure you have downloaded the right database files.");
+                            }
+                        }
+                        catch (FileNotFoundException)
+                        {
+                            throw new QuadDatabaseException(
+                                $"Quad database file {Descriptor.Filename} was not found. Is your quad database intact?");
+                        }
+                        catch (Exception e)
+                        {
+                            throw new QuadDatabaseException($"Failed to read quad database file {Descriptor.Filename}: {e.Message}", e);
+                        }
+                        
                     }
 
                     if (samplingBeingUsed && thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset == null)
@@ -182,11 +227,12 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <summary>
         /// Read the bytes and spit out a quad.
         /// </summary>
-        /// <param name="buf"></param>
+        /// <param name="pBuf"></param>
         /// <param name="offset"></param>
         /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
         /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
+        /// <param name="quadDataArray"></param>
         /// <returns></returns>
         private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
         {

@@ -11,9 +11,33 @@ namespace WatneyAstrometry.WebApi.Services;
 /// </summary>
 public interface IJobManager
 {
+    /// <summary>
+    /// Prepare the job (run analysis on the image and queue the job)
+    /// </summary>
+    /// <param name="newJobFormModel"></param>
+    /// <param name="metadata"></param>
+    /// <returns></returns>
     Task<JobModel> PrepareJob(NewJobInputModel newJobFormModel, IDictionary<string, object> metadata = null);
+    
+    /// <summary>
+    /// Get a job by its ID.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     Task<JobModel> GetJob(string id);
+
+    /// <summary>
+    /// Get a job by its numerical ID.
+    /// </summary>
+    /// <param name="numericId"></param>
+    /// <returns></returns>
     Task<JobModel> GetJob(int numericId);
+
+    /// <summary>
+    /// Cancel a job.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     Task CancelJob(string id);
 
 }
