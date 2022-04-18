@@ -239,8 +239,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
             bool noMatching = tentativeMatches == null;
             byte* pRatios = (byte*)(pBuf + offset);
-            float* pFloats = (float*)(pBuf + offset + 6); // floats come after the ratios
-            
+            byte* pFloats = (byte*)(pBuf + offset + 6); // floats come after the ratios
+
             // Ratios are packed; 3x 10 bit numbers, 2x 9 bit numbers.
             quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
             quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
@@ -256,23 +256,33 @@ namespace WatneyAstrometry.Core.QuadDb
                 // Floats were written in whichever endianness the database was written in.
                 if (bytesNeedReversing)
                 {
-                    byte* pFloatBytes = (byte*)(pBuf + offset + 6);
                     // largestDist
                     quadDataArray[5] = BitConverter.ToSingle(
-                    new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
+                    new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
                     // ra
                     quadDataArray[6] = BitConverter.ToSingle(
-                        new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
+                        new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
                     // dec
                     quadDataArray[7] = BitConverter.ToSingle(
-                        new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
+                        new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
                     
                 }
                 else
                 {
-                    quadDataArray[5] = pFloats[0]; // largestDist
-                    quadDataArray[6] = pFloats[1]; // ra
-                    quadDataArray[7] = pFloats[2]; // dec
+                    // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
+                    // converted to/from float/double via local variable that is guaranteed to be aligned.
+                    // https://github.com/dotnet/runtime/issues/18041
+                    // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
+
+                    var if1 = *(int*)pFloats;
+                    pFloats += sizeof(int);
+                    var if2 = *(int*)pFloats;
+                    pFloats += sizeof(int);
+                    var if3 = *(int*)pFloats;
+
+                    quadDataArray[5] = *(float*)&if1; // largestDist
+                    quadDataArray[6] = *(float*)&if2; // ra
+                    quadDataArray[7] = *(float*)&if3; // dec
                 }
 
                 // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
@@ -303,19 +313,29 @@ namespace WatneyAstrometry.Core.QuadDb
                 {
                     if (bytesNeedReversing)
                     {
-                        byte* pFloatBytes = (byte*)(pBuf + offset + 5);
                         quadDataArray[5] = BitConverter.ToSingle(
-                            new byte[] { pFloatBytes[3], pFloatBytes[2], pFloatBytes[1], pFloatBytes[0] }, 0);
+                            new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
                         quadDataArray[6] = BitConverter.ToSingle(
-                            new byte[] { pFloatBytes[7], pFloatBytes[6], pFloatBytes[5], pFloatBytes[4] }, 0);
+                            new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
                         quadDataArray[7] = BitConverter.ToSingle(
-                            new byte[] { pFloatBytes[11], pFloatBytes[10], pFloatBytes[9], pFloatBytes[8] }, 0);
+                            new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
                     }
                     else
                     {
-                        quadDataArray[5] = pFloats[0]; // largestDist
-                        quadDataArray[6] = pFloats[1]; // ra
-                        quadDataArray[7] = pFloats[2]; // dec
+                        // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
+                        // converted to/from float/double via local variable that is guaranteed to be aligned.
+                        // https://github.com/dotnet/runtime/issues/18041
+                        // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
+
+                        var if1 = *(int*)pFloats;
+                        pFloats += sizeof(int);
+                        var if2 = *(int*)pFloats; 
+                        pFloats += sizeof(int);
+                        var if3 = *(int*)pFloats;
+
+                        quadDataArray[5] = *(float*)&if1; // largestDist
+                        quadDataArray[6] = *(float*)&if2; // ra
+                        quadDataArray[7] = *(float*)&if3; // dec
                     }
 
                     // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
