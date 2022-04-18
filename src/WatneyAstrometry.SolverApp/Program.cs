@@ -182,6 +182,7 @@ namespace WatneyAstrometry.SolverApp
             solver.OnSolveProgress += BenchmarkProgressHandler;
 
             var solverOptions = ParseSolverOptions(options);
+            _verboseLogger.WriteInfo($"System is little endian: {BitConverter.IsLittleEndian}");
 
             var solveTask = Task.Run(async () =>
             {
