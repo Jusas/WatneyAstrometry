@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using WatneyAstrometry.Core.Image;
@@ -71,7 +72,7 @@ namespace WatneyAstrometry.Core.Fits
             WriteEnd();
         }
 
-        private void WriteEnd()
+        internal void WriteEnd()
         {
             var end = "END".PadRight(80);
             var recordBytes = Encoding.ASCII.GetBytes(end);
@@ -89,7 +90,7 @@ namespace WatneyAstrometry.Core.Fits
             
         }
 
-        private void WritePureComment(string comment)
+        internal void WritePureComment(string comment)
         {
             var commentChars = $"COMMENT {comment}"
                 .PadRight(80)
@@ -101,7 +102,7 @@ namespace WatneyAstrometry.Core.Fits
             _bytesWritten += recordBytes.Length;
         }
 
-        private void WriteRecord(string keyword, object value, string comment = null)
+        internal void WriteRecord(string keyword, object value, string comment = null)
         {
             var keywordChars = keyword
                 .PadRight(8)
@@ -112,8 +113,8 @@ namespace WatneyAstrometry.Core.Fits
 
             if (value == null)
                 valueChars = "".PadRight(70);
-            else if(value is double d)
-                valueChars = d.ToString(CultureInfo.InvariantCulture)
+            else if (value is double d)
+                valueChars = d.ToString("G13", CultureInfo.InvariantCulture) // Ensure we don't get too long values
                     .PadLeft(20)
                     .Substring(0, 20);
             else if (value is int i)

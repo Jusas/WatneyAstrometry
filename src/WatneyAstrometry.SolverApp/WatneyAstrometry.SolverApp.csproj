@@ -6,7 +6,7 @@
     <Authors>Jussi Saarivirta</Authors>
     <Company />
     <Product>Watney Astrometric Solver</Product>
-    <VersionPrefix>1.1.1</VersionPrefix>
+    <VersionPrefix>1.1.2</VersionPrefix>
     <PackageId>WatneyAstrometrySolver</PackageId>
     <AssemblyName>watney-solve</AssemblyName>
     <RootNamespace>WatneyAstrometry.SolverApp</RootNamespace>
