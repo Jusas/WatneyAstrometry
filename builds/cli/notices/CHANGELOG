@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+- Fixed the issue of truncating the exponent when writing long decimal 
+  numbers with scientific notation to the solve result WCS FITS file headers.
+  
+  
+  
+## [1.1.2] - 2022-04-18
+
+### Fixed
+
 - Fixed exceptions with ARM processors when running in 32bit operating systems 
   ("A datatype misalignment was detected in a load or store instruction")
   which was unexpectedly caused by the previous quad database format changes.
