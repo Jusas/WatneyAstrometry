@@ -1,0 +1,150 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:avalonia="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
+             xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
+             xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsManagerView">
+
+  <Design.DataContext>
+    <vm:SettingsManagerViewModel/>
+  </Design.DataContext>
+
+  <UserControl.Styles>
+    <!--<Style Selector="TextBlock.CommandInfoText.Shown">
+        <Style.Animations>
+            <Animation Duration="0:0:1">
+                <KeyFrame Cue="0%">
+                    <Setter Property="Opacity" Value="0.0" />
+                </KeyFrame>
+                <KeyFrame Cue="10%">
+                    <Setter Property="Opacity" Value="1.0" />
+                </KeyFrame>
+                <KeyFrame Cue="90%">
+                    <Setter Property="Opacity" Value="1.0" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="Opacity" Value="0.0" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+      <Style Selector="TextBlock.CommandInfoText">
+          <Setter Property="Opacity" Value="0"></Setter>
+      </Style>-->
+  </UserControl.Styles>
+
+  <StackPanel Orientation="Vertical">
+    <StackPanel Orientation="Vertical">
+      <TextBlock Classes="FormItemLabel">Profile:</TextBlock>
+      <StackPanel Orientation="Horizontal">
+        <ComboBox MinWidth="220" Items="{Binding SolveProfiles}"
+                      SelectedItem="{Binding SelectedProfile}"
+                      ></ComboBox>
+        <Button Width="36" Margin="8,0,0,0" ToolTip.Tip="Create a new profile"
+                    Command="{Binding OpenNewProfileDialog}">
+          <avalonia:Icon Value="mdi-file-plus" FontSize="18"/>
+        </Button>
+        <Button Width="36" Margin="4,0,0,0" ToolTip.Tip="Save current profile changes"
+                Command="{Binding SaveCurrentProfile}">
+          <avalonia:Icon Value="mdi-content-save" FontSize="18"/>
+        </Button>
+        <Button Width="36" Margin="4,0,0,0" ToolTip.Tip="Delete selected profile"
+                Command="{Binding DeleteCurrentProfile}">
+          <avalonia:Icon Value="mdi-trash-can" FontSize="18"/>
+        </Button>
+          <TextBlock Margin="16, 0, 0, 0" 
+                     IsVisible="{Binding CommandInfoText, 
+                     Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding CommandInfoText}" 
+                     Height="16"/>
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Name="SettingsTab_BlindSettingsGroup" Margin="0,20,0,0" Orientation="Horizontal"
+                IsVisible="{Binding Path=SelectedProfile.ProfileType, 
+                            Converter={x:Static converters:EnumConverters.ValueEquals}, 
+                            ConverterParameter={x:Static profile:SolveProfileType.Blind}}" >
+      <StackPanel Orientation="Vertical">
+        <TextBlock Classes="FormItemLabel">Min field radius (deg):</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.BlindOptions.MinRadius}"
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical"  Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Max field radius (deg):</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.BlindOptions.MaxRadius}"
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical"  Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Search order:</TextBlock>
+        <ComboBox MinWidth="220" Items="{Binding SearchOrders}"
+                  SelectedItem="{Binding SelectedProfile.BlindOptions.SearchOrder}" />
+      </StackPanel>
+    </StackPanel>
+
+    <StackPanel Name="SettingsTab_NearbySettingsGroup" Margin="0,20,0,0" Orientation="Horizontal"
+                IsVisible="{Binding Path=SelectedProfile.ProfileType, 
+                            Converter={x:Static converters:EnumConverters.ValueEquals}, 
+                            ConverterParameter={x:Static profile:SolveProfileType.Nearby}}">
+      <StackPanel Orientation="Vertical">
+        <TextBlock Classes="FormItemLabel">Data source:</TextBlock>
+          <ComboBox MinWidth="160" Items="{Binding NearbyInputSources}" 
+                    SelectedItem="{Binding SelectedProfile.NearbyOptions.InputSource}"
+                    SelectionChanged="OnComboBoxSelectionChanged">
+          </ComboBox>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0" 
+                  IsVisible="{Binding SelectedProfile.NearbyOptions.InputSource,
+                 Converter={x:Static converters:EnumConverters.ValueEquals},
+                 ConverterParameter={x:Static profile:InputSource.Manual}}">
+        <TextBlock Classes="FormItemLabel">RA:</TextBlock>
+        <TextBox Text="{Binding SelectedProfile.NearbyOptions.Ra}"></TextBox>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0"
+                  IsVisible="{Binding SelectedProfile.NearbyOptions.InputSource,
+                 Converter={x:Static converters:EnumConverters.ValueEquals},
+                 ConverterParameter={x:Static profile:InputSource.Manual}}">
+        <TextBlock Classes="FormItemLabel">Dec:</TextBlock>
+        <TextBox Text="{Binding SelectedProfile.NearbyOptions.Dec}"></TextBox>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Field radius (deg):</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.FieldRadius}"
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Search radius (deg):</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.SearchRadius}"
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+    </StackPanel>
+
+
+    <StackPanel Name="SettingsTab_CommonSettingsGroup" Margin="0,20,0,0" Orientation="Horizontal">
+      <StackPanel Orientation="Vertical">
+        <TextBlock Classes="FormItemLabel">Max stars:</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.MaxStars}" 
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Sampling:</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.Sampling}" 
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Higher density offset:</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.HigherDensityOffset}" 
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+      <StackPanel Orientation="Vertical" Margin="20,0,0,0">
+        <TextBlock Classes="FormItemLabel">Lower density offset:</TextBlock>
+        <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.LowerDensityOffset}" 
+                       ShowButtonSpinner="False"></NumericUpDown>
+      </StackPanel>
+    </StackPanel>
+
+  </StackPanel>
+</UserControl>

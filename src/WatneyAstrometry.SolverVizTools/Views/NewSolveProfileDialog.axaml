@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="260"
+        Width="400"
+        Height="260"
+        x:Class="WatneyAstrometry.SolverVizTools.Views.NewSolveProfileDialog"
+        Title="Create new solve profile...">
+
+    <Design.DataContext>
+        <viewModels:NewSolveProfileDialogViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Style Selector="TextBlock.ErrorText">
+            <Setter Property="Foreground" Value="#FF0000" />
+        </Style>
+    </Window.Styles>
+
+    <Border Padding="15">
+      <StackPanel Orientation="Vertical">
+          <StackPanel Orientation="Vertical">
+              <TextBlock Classes="FormItemLabel">New profile name:</TextBlock>
+              <TextBox Text="{Binding ProfileName}"></TextBox>
+          </StackPanel>
+          <StackPanel Orientation="Vertical">
+              <TextBlock Classes="FormItemLabel">Profile type:</TextBlock>
+              <ComboBox SelectedItem="{Binding ProfileType}"
+                        Items="{Binding Types}">
+              </ComboBox>
+              <TextBlock Classes="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Height="60"></TextBlock>
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Margin="0, 20, 0, 0" HorizontalAlignment="Right">
+              <Button Width="100" Content="OK" FontSize="14" HorizontalContentAlignment="Center" Margin="0,0,8,0"
+                      Command="{Binding CreateProfile}">
+              </Button>
+              <Button Width="100" Content="Cancel" FontSize="14" HorizontalContentAlignment="Center"
+                      Command="{Binding CancelCreate}"></Button>
+          </StackPanel>
+      </StackPanel>
+  </Border>
+</Window>

@@ -16,7 +16,7 @@ namespace WatneyAstrometry.Core.Types
         //SampledLastDitchRun
     }
     
-    internal class SolveDiagnosticsData
+    public class SolveDiagnosticsData
     {
         // Get the actual matches.
         public List<StarQuadMatch> MatchInstances { get; set; }
@@ -31,7 +31,7 @@ namespace WatneyAstrometry.Core.Types
         public SolveRunType FoundUsingRunType { get; set; }
 
         // How many areas we scanned that had at least a single matching quad
-        public int NumberOfPotentialHitAreasFound { get; set; }
+        //public int NumberOfPotentialHitAreasFound { get; set; }
 
         // Quad density per square deg
         public int DetectedQuadDensity { get; set; }

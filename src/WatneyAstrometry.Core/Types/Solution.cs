@@ -184,12 +184,12 @@ namespace WatneyAstrometry.Core.Types
         }
         
         /// <summary>
-        /// Returns the pixel position of the specified equatorial coordinates, or null
-        /// if the pixel is outside the image.
+        /// Returns the pixel position of the specified equatorial coordinates. Note that
+        /// the pixel can also be outside the image.
         /// </summary>
         /// <param name="coords"></param>
         /// <returns></returns>
-        public (int x, int y)? EquatorialCoordsToPixel(EquatorialCoords coords)
+        public (int x, int y) EquatorialCoordsToPixel(EquatorialCoords coords)
         {
             var stdc = InputCoordinates.ToStandardCoordinates(coords);
             var pc = PlateConstants;
@@ -198,12 +198,8 @@ namespace WatneyAstrometry.Core.Types
                     (pc.B + -pc.A / pc.D * pc.E);
             var x = (-pc.B * y + (-pc.C) + stdc.x) / pc.A;
 
-            (int, int)? returnValue = null;
-            if (x > 0 && x <= _imageW && y > 0 && y <= _imageH)
-                returnValue = ((int) Math.Round(x), (int) Math.Round(y));
+            return ((int)Math.Round(x), (int)Math.Round(y));
 
-            return returnValue;
-            
         }
 
     }

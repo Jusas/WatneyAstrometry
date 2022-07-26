@@ -1,0 +1,18 @@
+﻿<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Design.PreviewWith>
+        <Border Padding="20">
+            <!-- Add Controls for Previewer Here -->
+        </Border>
+    </Design.PreviewWith>
+
+    <!-- Add Styles Here -->
+    <Style Selector="Window, Button, RadioButton, TextBox, ComboBox, NumericUpDown">
+        <Setter Property="FontSize" Value="12"></Setter>
+    </Style>
+
+    <Style Selector="TextBlock.FormItemLabel">
+        <Setter Property="Margin" Value="0, 8, 0, 8"></Setter>
+    </Style>
+
+</Styles>

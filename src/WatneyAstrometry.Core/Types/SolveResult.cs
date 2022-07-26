@@ -46,6 +46,12 @@ namespace WatneyAstrometry.Core.Types
 
         internal SolveDiagnosticsData DiagnosticsData { get; set; }
 
+        /// <summary>
+        /// Get the solver diagnostics data (more details of the matching).
+        /// </summary>
+        /// <returns></returns>
+        public SolveDiagnosticsData GetDiagnosticsData() => DiagnosticsData;
+
         //// Get the actual matches.
         //internal List<StarQuadMatch> MatchInstances { get; set; }
 
