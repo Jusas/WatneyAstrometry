@@ -17,7 +17,7 @@ namespace WatneyAstrometry.SolverVizTools.Abstractions
             where TView : IControl
             where TViewModel : ViewModelBase;
 
-        Window Instantiate<TViewModel>(TViewModel usingViewModel = null) 
+        IWindow Instantiate<TViewModel>(TViewModel usingViewModel = null) 
             where TViewModel : ViewModelBase;
     }
 }

@@ -6,10 +6,10 @@
     <!--Avalonia doesen't support TrimMode=link currently,but we are working on that https://github.com/AvaloniaUI/Avalonia/issues/6892 -->
     <TrimMode>copyused</TrimMode>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
-    <Folder Include="Services\" />
     <None Remove=".gitignore" />
   </ItemGroup>
   <ItemGroup>
@@ -29,5 +29,9 @@
     <PackageReference Include="Projektanker.Icons.Avalonia.FontAwesome" Version="5.1.0" />
     <PackageReference Include="Projektanker.Icons.Avalonia.MaterialDesign" Version="5.1.0" />
     <PackageReference Include="XamlNameReferenceGenerator" Version="1.3.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\WatneyAstrometry.Core\WatneyAstrometry.Core.csproj" />
+    <ProjectReference Include="..\WatneyAstrometry.ImageReaders\WatneyAstrometry.ImageReaders.csproj" />
   </ItemGroup>
 </Project>

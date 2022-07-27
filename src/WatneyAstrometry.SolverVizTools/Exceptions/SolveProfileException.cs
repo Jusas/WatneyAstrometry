@@ -3,12 +3,12 @@
 
 using System;
 
-namespace WatneyAstrometry.SolverVizTools.Abstractions;
+namespace WatneyAstrometry.SolverVizTools.Exceptions;
 
 public class SolveProfileException : Exception
 {
     public SolveProfileException(string message, Exception inner = null) : base(message, inner)
     {
-        
+
     }
 }

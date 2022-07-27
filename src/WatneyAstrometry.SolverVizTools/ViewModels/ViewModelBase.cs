@@ -6,14 +6,15 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Avalonia.Controls;
+using WatneyAstrometry.SolverVizTools.Abstractions;
 
 namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
     public class ViewModelBase : ReactiveObject
     {
-        private Window _ownerWindow;
+        private IWindow _ownerWindow;
 
-        public Window OwnerWindow
+        public IWindow OwnerWindow
         {
             get => _ownerWindow;
             set

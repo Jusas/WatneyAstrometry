@@ -8,7 +8,8 @@
         xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
         xmlns:views="clr-namespace:WatneyAstrometry.SolverVizTools.Views"
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
-        SizeToContent="Width" 
+        Width="1024"
+        Height="768"
         x:Class="WatneyAstrometry.SolverVizTools.Views.MainWindow"
         Icon="/Assets/wicon.ico"
         Title="WatneyAstrometry Desktop">
@@ -47,51 +48,13 @@
               </Button>
             </Panel>
 
-            <ScrollViewer Grid.Column="1">
-              <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible">
-                <Border Padding="16">
-                  <Panel Name="ImageSelectionArea" Background="#000000" Height="{Binding $self.Bounds.Width}" MaxHeight="{Binding #SolveMainPanel.Bounds.Height}"
-                         PointerEnter="ImageSelectionArea_PointerEnter">
-                    <Border BorderThickness="1" BorderBrush="#222222">
-                      <Grid>
-                        <Image ></Image>
-                        <!-- IMAGE TOOLBAR -->
-                        <Border Padding="4" Background="#22FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top">
-                          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
-                            <Button Classes="ImageToolbarButton" Name="OpenImageButton" ToolTip.Tip="Open an image">
-                              <icons:Icon Value="mdi-folder-image" FontSize="18" />
-                            </Button>
-                            <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in">
-                              <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
-                            </Button>
-                            <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out">
-                              <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
-                            </Button>
-                            <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show crosshairs">
-                              <icons:Icon Value="mdi-crosshairs" />
-                            </ToggleButton>
-                            <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected stars">
-                              <icons:Icon Value="mdi-shimmer" />
-                            </ToggleButton>
-                            <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected quads">
-                              <icons:Icon Value="mdi-vector-square" />
-                            </ToggleButton>
-                            <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show RA/Dec grid">
-                              <icons:Icon Value="mdi-web" />
-                            </ToggleButton>
-                            <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show Deep Sky Objects">
-                              <icons:Icon Value="mdi-origin" />
-                            </ToggleButton>
-                          </StackPanel>
-                        </Border>
-                      </Grid>                      
-                    </Border>
-
-                  </Panel>
-                </Border>
-              </StackPanel>
+            <ScrollViewer Grid.Column="1" Padding="15">
+              <views:SolveProcessView DataContext="{Binding SolveProcessViewModel}"></views:SolveProcessView>
             </ScrollViewer>
+
+
           </Grid>
+
         </SplitView>
       </TabItem>
       

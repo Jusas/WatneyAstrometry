@@ -23,7 +23,7 @@ namespace WatneyAstrometry.SolverVizTools
                 {
                     DataContext = viewModel // new MainWindowViewModel(),
                 };
-                viewModel.OwnerWindow = desktop.MainWindow;
+                viewModel.OwnerWindow = new WindowWrapper(desktop.MainWindow);
             }
 
             base.OnFrameworkInitializationCompleted();

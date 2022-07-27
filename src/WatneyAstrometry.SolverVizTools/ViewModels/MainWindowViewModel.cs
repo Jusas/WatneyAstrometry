@@ -19,6 +19,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         private bool _isPaneOpen = true;
         private readonly ISolveProfileManager _solveProfileManager;
         private readonly IViewProvider _viewProvider;
+        private readonly IDialogProvider _dialogProvider;
+        private readonly IImageManager _imageManager;
 
         public bool IsPaneOpen
         {
@@ -31,6 +33,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public SettingsPaneViewModel SettingsPaneViewModel { get; private set; }
 
+        public SolveProcessViewModel SolveProcessViewModel { get; private set; }
+
         /// <summary>
         /// For designer only.
         /// </summary>
@@ -40,10 +44,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             PopulateInitialData();
         }
 
-        public MainWindowViewModel(ISolveProfileManager solveProfileManager, IViewProvider viewProvider)
+        public MainWindowViewModel(ISolveProfileManager solveProfileManager, IViewProvider viewProvider, IDialogProvider dialogProvider,
+            IImageManager imageManager)
         {
             _solveProfileManager = solveProfileManager;
             _viewProvider = viewProvider;
+            _dialogProvider = dialogProvider;
+            _imageManager = imageManager;
             PopulateInitialData();
         }
 
@@ -59,6 +66,11 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 OwnerWindow = this.OwnerWindow
             };
             SettingsPaneViewModel = new SettingsPaneViewModel(_solveProfileManager);
+            SolveProcessViewModel = new SolveProcessViewModel(_viewProvider, _dialogProvider, _imageManager)
+            {
+                OwnerWindow = this.OwnerWindow
+            };
+
         }
 
         public void SetSolveSettingsPaneVisible()

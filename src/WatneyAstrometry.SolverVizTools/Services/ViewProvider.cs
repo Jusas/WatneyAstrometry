@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Splat;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.ViewModels;
+using WatneyAstrometry.SolverVizTools.Views;
 
 namespace WatneyAstrometry.SolverVizTools.Services
 {
@@ -21,26 +22,28 @@ namespace WatneyAstrometry.SolverVizTools.Services
             _typeMap.Add(vmType, vType);
         }
 
-        public Window Instantiate<TViewModel>(TViewModel usingViewModel = null) where TViewModel : ViewModelBase
+        public IWindow Instantiate<TViewModel>(TViewModel usingViewModel = null) where TViewModel : ViewModelBase
         {
             var vmType = typeof(TViewModel);
             var viewType = _typeMap[vmType];
             // var viewInstance = Locator.Current.GetService(viewType) as IControl;
             var viewInstance = (Window)Activator.CreateInstance(viewType)!;
 
+            var wrapper = new WindowWrapper(viewInstance);
+
             if (usingViewModel == null)
             {
                 var viewModelInstance = Locator.Current.GetService<TViewModel>();
                 viewInstance.DataContext = viewModelInstance;
-                viewModelInstance.OwnerWindow = viewInstance;
+                viewModelInstance.OwnerWindow = wrapper;
             }
             else
             {
                 viewInstance.DataContext = usingViewModel;
-                usingViewModel.OwnerWindow = viewInstance;
+                usingViewModel.OwnerWindow = wrapper;
             }
             
-            return viewInstance;
+            return wrapper;
         }
     }
 }

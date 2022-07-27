@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             xmlns:icons="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="950"
+             xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
+             xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
+             xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
+             x:Class="WatneyAstrometry.SolverVizTools.Views.SolveProcessView">
+
+  <Design.DataContext>
+    <vm:SolveProcessViewModel/>
+  </Design.DataContext>
+
+  
+    <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
+      <Border Padding="16">
+        <Panel Name="ImageSelectionArea" Background="#000000">
+          <Border BorderThickness="2" BorderBrush="#222222">
+            <Grid>
+              <Image Source="{Binding SolverImage}"></Image>
+              <TextBlock
+                         Text="Click image button to open or drag &amp; drop image file here"
+                         FontSize="24"
+                         TextWrapping="Wrap"
+                         TextAlignment="Center"
+                         VerticalAlignment="Center"
+                         Foreground="#333333"
+                         Width="{Binding #ImageSelectionArea.Bounds.Width,
+                         Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=50}">
+                <TextBlock.IsVisible>
+                  <MultiBinding Converter="{x:Static converters:ObjectConverters.ObjectRefEquals}">
+                    <Binding Path="SolverImage"></Binding>
+                    <Binding Path="PlaceholderImage"></Binding>
+                  </MultiBinding>
+                </TextBlock.IsVisible>
+              </TextBlock>
+              <!-- IMAGE TOOLBAR -->
+              <Border Padding="4" Background="#22FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                  <Button Classes="ImageToolbarButton" Name="OpenImageButton" ToolTip.Tip="Open an image"
+                          Command="{Binding OpenImageViaDialog}">
+                    <icons:Icon Value="mdi-folder-image" FontSize="18" />
+                  </Button>
+                  <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in"
+                          Command="{Binding OpenImageViaDialog}">
+                    <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
+                  </Button>
+                  <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out">
+                    <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
+                  </Button>
+                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show crosshairs">
+                    <icons:Icon Value="mdi-crosshairs" />
+                  </ToggleButton>
+                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected stars">
+                    <icons:Icon Value="mdi-shimmer" />
+                  </ToggleButton>
+                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected quads">
+                    <icons:Icon Value="mdi-vector-square" />
+                  </ToggleButton>
+                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show RA/Dec grid">
+                    <icons:Icon Value="mdi-web" />
+                  </ToggleButton>
+                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show Deep Sky Objects">
+                    <icons:Icon Value="mdi-origin" />
+                  </ToggleButton>
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+        </Panel>
+      </Border>
+      <Border Padding="18, 0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+          <Button Margin="16, 0">
+            <TextBlock Margin="8" FontSize="16">Run solver</TextBlock>
+          </Button>
+          <Button>
+            <TextBlock Margin="8" FontSize="16">Cancel solve</TextBlock>
+          </Button>
+        </StackPanel>
+      </Border>
+      <Border Padding="18, 16">
+        <StackPanel Orientation="Vertical">
+          <TextBlock Text="Image information" FontSize="16" Margin="0, 0, 0, 8"></TextBlock>
+          <DataGrid Items="{Binding SolverImageData}" CanUserResizeColumns="True">
+            <DataGrid.Columns>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="File name" Binding="{Binding FileName}"></DataGridTextColumn>
+              <DataGridTextColumn IsReadOnly="True" Header="Format" Binding="{Binding SourceFormat}"></DataGridTextColumn>
+              <DataGridTextColumn IsReadOnly="True" Header="Width" Binding="{Binding Width}"></DataGridTextColumn>
+              <DataGridTextColumn IsReadOnly="True" Header="Height" Binding="{Binding Height}"></DataGridTextColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </StackPanel>
+
+      </Border>
+
+    </StackPanel>
+
+</UserControl>

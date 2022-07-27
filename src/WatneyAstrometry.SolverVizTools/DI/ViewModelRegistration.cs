@@ -21,17 +21,23 @@ namespace WatneyAstrometry.SolverVizTools.DI
         private static IMutableDependencyResolver _services;
         private static IReadonlyDependencyResolver _resolver;
         private static IViewProvider _viewProvider;
+        private static IDialogProvider _dialogProvider;
 
         public static void RegisterViewModels(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver)
         {
             _services = services;
             _resolver = resolver;
             _viewProvider = new ViewProvider();
+            _dialogProvider = new DialogProvider();
 
             services.RegisterLazySingleton<IViewProvider>(() => _viewProvider);
+            services.RegisterLazySingleton<IDialogProvider>(() => _dialogProvider);
 
             RegisterLazySingletonViewModel<MainWindowViewModel, MainWindow>(() => 
-                new MainWindowViewModel(resolver.GetService<ISolveProfileManager>(), _viewProvider));
+                new MainWindowViewModel(resolver.GetService<ISolveProfileManager>(), 
+                    _viewProvider, 
+                    _dialogProvider,
+                    resolver.GetService<IImageManager>()));
 
             // This is a sub-view
             //RegisterLazySingletonViewModel<SettingsManagerViewModel, SettingsManagerView>(() =>

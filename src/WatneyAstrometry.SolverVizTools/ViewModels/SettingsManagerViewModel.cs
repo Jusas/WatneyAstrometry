@@ -9,6 +9,7 @@ using System.Windows.Input;
 using Avalonia.Controls;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.Abstractions;
+using WatneyAstrometry.SolverVizTools.Exceptions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Services;
 

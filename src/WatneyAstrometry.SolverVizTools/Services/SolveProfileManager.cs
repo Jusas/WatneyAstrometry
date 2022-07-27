@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DynamicData;
 using WatneyAstrometry.SolverVizTools.Abstractions;
+using WatneyAstrometry.SolverVizTools.Exceptions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Utils;
 
@@ -31,8 +32,7 @@ public class SolveProfileManager : ISolveProfileManager
     
     public static Options DefaultOptions => new Options()
     {
-        StorageFolder = Path.Combine(Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), 
-            ".watney", "solverviztools"),
+        StorageFolder = ProgramEnvironment.ApplicationDataFolder,
         ProfilesFileName = "solverprofiles.json"
     };
 

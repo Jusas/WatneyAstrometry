@@ -8,6 +8,7 @@
 
     <Application.Styles>
         <FluentTheme Mode="Dark"/>
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"></StyleInclude>
         <StyleInclude Source="avares://WatneyAstrometry.SolverVizTools/MainWindowStyles.axaml"></StyleInclude>
         <StyleInclude Source="avares://WatneyAstrometry.SolverVizTools/CommonStyles.axaml"></StyleInclude>
     </Application.Styles>
