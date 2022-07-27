@@ -17,7 +17,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
     public class SettingsPaneViewModel : ViewModelBase
     {
-        
+        private readonly IServiceProvider _serviceProvider;
+
         private SolveProfile _selectedPresetProfile;
         public SolveProfile SelectedPresetProfile
         {
@@ -50,9 +51,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             PopulateInitialData();
         }
 
-        public SettingsPaneViewModel(ISolveProfileManager solveProfileManager)
+        public SettingsPaneViewModel(IServiceProvider serviceProvider)
         {
-            _solveProfileManager = solveProfileManager;
+            _serviceProvider = serviceProvider;
+            _solveProfileManager = serviceProvider.GetService<ISolveProfileManager>();
             PopulateInitialData();
         }
 

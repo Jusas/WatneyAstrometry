@@ -18,6 +18,7 @@ namespace WatneyAstrometry.SolverVizTools.DI
         public static void RegisterServices(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver)
         {
             services.RegisterLazySingleton<IServiceProvider>(() => new ServiceProvider());
+            services.RegisterLazySingleton<IDialogProvider>(() => new DialogProvider());
             services.RegisterLazySingleton<ISolveProfileManager>(() => new SolveProfileManager());
             services.RegisterLazySingleton<IImageManager>(() => new ImageManager());
         }

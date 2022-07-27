@@ -12,6 +12,7 @@ using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Services;
 using WatneyAstrometry.SolverVizTools.ViewModels;
 using WatneyAstrometry.SolverVizTools.Views;
+using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.DI
 {
@@ -21,30 +22,21 @@ namespace WatneyAstrometry.SolverVizTools.DI
         private static IMutableDependencyResolver _services;
         private static IReadonlyDependencyResolver _resolver;
         private static IViewProvider _viewProvider;
-        private static IDialogProvider _dialogProvider;
 
         public static void RegisterViewModels(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver)
         {
             _services = services;
             _resolver = resolver;
+            
             _viewProvider = new ViewProvider();
-            _dialogProvider = new DialogProvider();
-
             services.RegisterLazySingleton<IViewProvider>(() => _viewProvider);
-            services.RegisterLazySingleton<IDialogProvider>(() => _dialogProvider);
-
+            
+            
             RegisterLazySingletonViewModel<MainWindowViewModel, MainWindow>(() => 
-                new MainWindowViewModel(resolver.GetService<ISolveProfileManager>(), 
-                    _viewProvider, 
-                    _dialogProvider,
-                    resolver.GetService<IImageManager>()));
-
-            // This is a sub-view
-            //RegisterLazySingletonViewModel<SettingsManagerViewModel, SettingsManagerView>(() =>
-            //    new SettingsManagerViewModel(resolver.GetService<ISolveProfileManager>(), _viewProvider));
-
+                new MainWindowViewModel(resolver.GetService<IServiceProvider>()));
+            
             RegisterViewModel<NewSolveProfileDialogViewModel, NewSolveProfileDialog>(() => 
-                new NewSolveProfileDialogViewModel(resolver.GetService<ISolveProfileManager>()));
+                new NewSolveProfileDialogViewModel(resolver.GetService<IServiceProvider>()));
             
         }
 

@@ -9,6 +9,7 @@ using System.Text;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Services;
+using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
@@ -17,10 +18,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         //public ObservableCollection<SolveProfile> SolveProfiles { get; private set; }
         
         private bool _isPaneOpen = true;
-        private readonly ISolveProfileManager _solveProfileManager;
-        private readonly IViewProvider _viewProvider;
-        private readonly IDialogProvider _dialogProvider;
-        private readonly IImageManager _imageManager;
+        private readonly IServiceProvider _serviceProvider;
 
         public bool IsPaneOpen
         {
@@ -40,33 +38,27 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         /// </summary>
         public MainWindowViewModel()
         {
-            _solveProfileManager = new MockSolverProfileManager();
             PopulateInitialData();
         }
 
-        public MainWindowViewModel(ISolveProfileManager solveProfileManager, IViewProvider viewProvider, IDialogProvider dialogProvider,
-            IImageManager imageManager)
+        public MainWindowViewModel(IServiceProvider serviceProvider)
         {
-            _solveProfileManager = solveProfileManager;
-            _viewProvider = viewProvider;
-            _dialogProvider = dialogProvider;
-            _imageManager = imageManager;
+            _serviceProvider = serviceProvider;
             PopulateInitialData();
         }
 
         private void PopulateInitialData()
         {
-            // SolveProfiles = _solveProfileManager.GetProfiles(true, true);
         }
 
         protected override void OnViewCreated()
         {
-            SettingsManagerViewModel = new SettingsManagerViewModel(_solveProfileManager, _viewProvider)
+            SettingsManagerViewModel = new SettingsManagerViewModel(_serviceProvider)
             {
                 OwnerWindow = this.OwnerWindow
             };
-            SettingsPaneViewModel = new SettingsPaneViewModel(_solveProfileManager);
-            SolveProcessViewModel = new SolveProcessViewModel(_viewProvider, _dialogProvider, _imageManager)
+            SettingsPaneViewModel = new SettingsPaneViewModel(_serviceProvider);
+            SolveProcessViewModel = new SolveProcessViewModel(_serviceProvider)
             {
                 OwnerWindow = this.OwnerWindow
             };

@@ -12,6 +12,7 @@ using Avalonia.Controls.Primitives;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
+using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
@@ -56,10 +57,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             Initialize();
         }
         
-        public NewSolveProfileDialogViewModel(ISolveProfileManager solveProfileManager)
+        public NewSolveProfileDialogViewModel(IServiceProvider serviceProvider)
         {
             Initialize();
-            _solveProfileManager = solveProfileManager;
+            _solveProfileManager = serviceProvider.GetService<ISolveProfileManager>();
             this.WhenAnyValue(x => x.ProfileName)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Throttle(TimeSpan.FromMilliseconds(100))

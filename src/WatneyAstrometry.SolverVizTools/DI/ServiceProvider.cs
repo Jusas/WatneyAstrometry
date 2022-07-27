@@ -1,4 +1,5 @@
-﻿using Splat;
+﻿using Avalonia;
+using Splat;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 
 namespace WatneyAstrometry.SolverVizTools.DI;
@@ -11,5 +12,10 @@ public class ServiceProvider : IServiceProvider
     public T GetService<T>()
     {
         return Locator.Current.GetService<T>();
+    }
+
+    public T GetAvaloniaService<T>()
+    {
+        return AvaloniaLocator.Current.GetService<T>();
     }
 }

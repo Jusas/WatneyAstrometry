@@ -13,17 +13,35 @@ namespace WatneyAstrometry.SolverVizTools.Converters
 
         public class ObjectRefEqualsConverter : IMultiValueConverter
         {
+            private readonly bool _inverse;
+
+            public ObjectRefEqualsConverter(bool inverse)
+            {
+                _inverse = inverse;
+            }
+
             public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)
             {
                 var firstValue = values[0];
-                foreach(var value in values)
+                var otherValues = values.Skip(1);
+
+                if (_inverse)
+                {
+                    foreach (var value in otherValues)
+                        if (value == firstValue)
+                            return false;
+                    return true;
+                }
+                
+                foreach(var value in otherValues)
                     if(value != firstValue)
                         return false;
                 return true;
             }
         }
 
-        public static IMultiValueConverter ObjectRefEquals => new ObjectRefEqualsConverter();
+        public static IMultiValueConverter ObjectRefEquals => new ObjectRefEqualsConverter(false);
+        public static IMultiValueConverter ObjectRefNotEquals => new ObjectRefEqualsConverter(true);
 
     }
 }

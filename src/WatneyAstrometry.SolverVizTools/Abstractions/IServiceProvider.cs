@@ -3,4 +3,5 @@
 public interface IServiceProvider
 {
     T GetService<T>();
+    T GetAvaloniaService<T>();
 }
