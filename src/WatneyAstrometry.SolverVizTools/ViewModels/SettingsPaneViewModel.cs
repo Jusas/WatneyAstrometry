@@ -40,27 +40,27 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             InputSource.Manual
         };
 
-        private readonly ISolveProfileManager _solveProfileManager;
+        private readonly ISolveSettingsManager _solveSettingsManager;
         
         /// <summary>
         /// For designer only.
         /// </summary>
         public SettingsPaneViewModel()
         {
-            _solveProfileManager = new MockSolverProfileManager();
+            _solveSettingsManager = new MockSolverSettingsManager();
             PopulateInitialData();
         }
 
         public SettingsPaneViewModel(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-            _solveProfileManager = serviceProvider.GetService<ISolveProfileManager>();
+            _solveSettingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             PopulateInitialData();
         }
 
         private void PopulateInitialData()
         {
-            SolveProfiles = _solveProfileManager.GetProfiles(true, true);
+            SolveProfiles = _solveSettingsManager.GetProfiles(true, true);
             SelectedPresetProfile = SolveProfiles.First();
         }
         

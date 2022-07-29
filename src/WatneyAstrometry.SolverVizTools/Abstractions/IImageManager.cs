@@ -9,6 +9,6 @@ namespace WatneyAstrometry.SolverVizTools.Abstractions
 {
     public interface IImageManager
     {
-        ImageData LoadImage(string filename);
+        Task<ImageData> LoadImage(string filename);
     }
 }

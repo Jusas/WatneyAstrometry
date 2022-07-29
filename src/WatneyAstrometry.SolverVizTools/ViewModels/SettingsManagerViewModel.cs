@@ -10,6 +10,7 @@ using Avalonia.Controls;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Exceptions;
+using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Services;
 
@@ -44,29 +45,34 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             InputSource.Manual
         };
 
-        private readonly ISolveProfileManager _solveProfileManager;
+        public WatneyConfiguration WatneyConfiguration { get; private set; }
+
+        private readonly ISolveSettingsManager _solveSettingsManager;
         private readonly IViewProvider _viewProvider;
-        
+        private readonly IDialogProvider _dialogProvider;
+
         /// <summary>
         /// For designer only.
         /// </summary>
         public SettingsManagerViewModel()
         {
-            _solveProfileManager = new MockSolverProfileManager();
+            _solveSettingsManager = new MockSolverSettingsManager();
             PopulateInitialData();
         }
 
         public SettingsManagerViewModel(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
-            _solveProfileManager = serviceProvider.GetService<ISolveProfileManager>();
+            _solveSettingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             _viewProvider = serviceProvider.GetService<IViewProvider>();
+            _dialogProvider = serviceProvider.GetService<IDialogProvider>();
             PopulateInitialData();
         }
 
         private void PopulateInitialData()
         {
-            SolveProfiles = _solveProfileManager.GetProfiles(true, false);
+            SolveProfiles = _solveSettingsManager.GetProfiles(true, false);
+            WatneyConfiguration = _solveSettingsManager.GetWatneyConfiguration(true, false);
             SelectedProfile = SolveProfiles.First();
         }
 
@@ -79,9 +85,22 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 SelectedProfile = profile;
         }
 
+        public async Task OpenBrowseWatneyDatabaseFolderDialog()
+        {
+            var folder = await _dialogProvider.ShowOpenFolderDialog(OwnerWindow, "Select Watney quad database directory",
+                WatneyConfiguration.QuadDatabasePath);
+            if(!string.IsNullOrEmpty(folder))
+            {
+                WatneyConfiguration.QuadDatabasePath = folder;
+                this.RaisePropertyChanged(nameof(WatneyConfiguration));
+                _solveSettingsManager.SaveWatneyConfiguration();
+            }
+        }
+        
+
         public void SaveCurrentProfile()
         {
-            _solveProfileManager.SaveProfiles();
+            _solveSettingsManager.SaveProfiles();
         }
 
         public void DeleteCurrentProfile()
@@ -91,7 +110,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 var profileName = SelectedProfile.Name;
                 try
                 {
-                    _solveProfileManager.DeleteProfile(SelectedProfile);
+                    _solveSettingsManager.DeleteProfile(SelectedProfile);
 
                     CommandInfoText = $"Deleted profile '{profileName}'";
                     this.RaisePropertyChanged(nameof(CommandInfoText));

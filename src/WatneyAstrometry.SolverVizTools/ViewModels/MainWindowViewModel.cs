@@ -53,16 +53,21 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         protected override void OnViewCreated()
         {
-            SettingsManagerViewModel = new SettingsManagerViewModel(_serviceProvider)
-            {
-                OwnerWindow = this.OwnerWindow
-            };
-            SettingsPaneViewModel = new SettingsPaneViewModel(_serviceProvider);
-            SolveProcessViewModel = new SolveProcessViewModel(_serviceProvider)
-            {
-                OwnerWindow = this.OwnerWindow
-            };
+            SettingsManagerViewModel = _serviceProvider.GetService<SettingsManagerViewModel>();
+            SettingsManagerViewModel.OwnerWindow = this.OwnerWindow;
 
+            SettingsPaneViewModel = _serviceProvider.GetService<SettingsPaneViewModel>();
+            SettingsPaneViewModel.OwnerWindow = this.OwnerWindow;
+
+            SolveProcessViewModel = _serviceProvider.GetService<SolveProcessViewModel>();
+            SolveProcessViewModel.OwnerWindow = this.OwnerWindow;
+        }
+
+        public void OnClosing()
+        {
+            var settingsManager = _serviceProvider.GetService<ISolveSettingsManager>();
+            settingsManager.SaveWatneyConfiguration();
+            //settingsManager.SaveProfiles();
         }
 
         public void SetSolveSettingsPaneVisible()

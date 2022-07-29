@@ -37,6 +37,17 @@ namespace WatneyAstrometry.SolverVizTools.DI
             
             RegisterViewModel<NewSolveProfileDialogViewModel, NewSolveProfileDialog>(() => 
                 new NewSolveProfileDialogViewModel(resolver.GetService<IServiceProvider>()));
+
+            // These ones are not windows, but sub-views (UserControls)
+
+            RegisterLazySingletonViewModel<SettingsPaneViewModel>(() =>
+                new SettingsPaneViewModel(resolver.GetService<IServiceProvider>()));
+
+            RegisterLazySingletonViewModel<SettingsManagerViewModel>(() =>
+                new SettingsManagerViewModel(resolver.GetService<IServiceProvider>()));
+
+            RegisterLazySingletonViewModel<SolveProcessViewModel>(() =>
+                new SolveProcessViewModel(resolver.GetService<IServiceProvider>()));
             
         }
 
@@ -48,6 +59,13 @@ namespace WatneyAstrometry.SolverVizTools.DI
         {
             _services.RegisterLazySingleton<TViewModel>(valueFactory);
             _viewProvider.Register<TView, TViewModel>();
+        }
+
+        private static void RegisterLazySingletonViewModel<TViewModel>(
+            Func<TViewModel> valueFactory)
+            where TViewModel : ViewModelBase
+        {
+            _services.RegisterLazySingleton<TViewModel>(valueFactory);
         }
 
         private static void RegisterViewModel<TViewModel, TView>(

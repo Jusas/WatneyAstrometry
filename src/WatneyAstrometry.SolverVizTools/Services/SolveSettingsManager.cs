@@ -11,37 +11,43 @@ using System.Text.Json.Serialization;
 using DynamicData;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Exceptions;
+using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Utils;
 
 namespace WatneyAstrometry.SolverVizTools.Services;
 
-public class SolveProfileManager : ISolveProfileManager
+public class SolveSettingsManager : ISolveSettingsManager
 {
 
     public class Options
     {
         public string StorageFolder { get; set; }
         public string ProfilesFileName { get; set; }
+        public string WatneyConfigFileName { get; set; }
     }
 
     private readonly Options _options;
     public string ProfilesJsonFilename => Path.Combine(_options.StorageFolder, _options.ProfilesFileName);
+    public string WatneyConfigJsonFilename => Path.Combine(_options.StorageFolder, _options.WatneyConfigFileName);
     public ObservableCollection<SolveProfile> Profiles { get; } = new ObservableCollection<SolveProfile>();
 
+    private WatneyConfiguration _watneyConfiguration;
+    public WatneyConfiguration WatneyConfiguration => _watneyConfiguration;
     
     public static Options DefaultOptions => new Options()
     {
         StorageFolder = ProgramEnvironment.ApplicationDataFolder,
-        ProfilesFileName = "solverprofiles.json"
+        ProfilesFileName = "solverprofiles.json",
+        WatneyConfigFileName = "watneyconfig.json"
     };
 
-    public SolveProfileManager()
+    public SolveSettingsManager()
     {
         _options = DefaultOptions;
     }
 
-    public SolveProfileManager(Options options)
+    public SolveSettingsManager(Options options)
     {
         _options = options ?? DefaultOptions;
     }
@@ -116,6 +122,53 @@ public class SolveProfileManager : ISolveProfileManager
         }
 
         return Profiles;
+    }
+
+    public WatneyConfiguration GetWatneyConfiguration(bool fromDisk, bool copy)
+    {
+        if (fromDisk)
+        {
+            if (File.Exists(WatneyConfigJsonFilename))
+            {
+                var configJson = File.ReadAllText(WatneyConfigJsonFilename);
+                var watneyConfig = JsonSerializer.Deserialize<WatneyConfiguration>(configJson);
+                _watneyConfiguration = watneyConfig;
+            }
+
+            EnsureMinimalValidWatneyConfiguration();
+        }
+
+        if (copy)
+        {
+            var clonedInstance = WatneyConfiguration.CloneInstance();
+            return clonedInstance;
+        }
+
+        return _watneyConfiguration;
+        
+    }
+
+    public void SaveWatneyConfiguration()
+    {
+        var serialized = JsonSerializer.Serialize(WatneyConfiguration, new JsonSerializerOptions()
+        {
+            MaxDepth = 32,
+            WriteIndented = true
+        });
+
+        var profileFullPath = Path.GetDirectoryName(WatneyConfigJsonFilename);
+        Directory.CreateDirectory(profileFullPath);
+
+        File.WriteAllText(WatneyConfigJsonFilename, serialized);
+    }
+
+    private void EnsureMinimalValidWatneyConfiguration()
+    {
+        if(_watneyConfiguration == null)
+            _watneyConfiguration = new WatneyConfiguration();
+
+        if (_watneyConfiguration.QuadDatabasePath == null)
+            _watneyConfiguration.QuadDatabasePath = "";
     }
 
 

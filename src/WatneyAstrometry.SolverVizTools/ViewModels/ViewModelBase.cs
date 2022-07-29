@@ -27,6 +27,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         protected virtual void OnViewCreated()
         {
         }
+        
+
 
     }
 }

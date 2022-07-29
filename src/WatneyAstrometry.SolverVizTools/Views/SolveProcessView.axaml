@@ -30,105 +30,166 @@
         </Animation>
       </Style.Animations>
     </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="4, 0, 4, 0" />
+    </Style>
   </UserControl.Styles>
   
     <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
       <Border Padding="16">
-        <Panel Name="ImageSelectionArea" Background="#000000">
-          <Border BorderThickness="2" BorderBrush="#222222">
-            <Grid>
-              <Image Source="{Binding SolverImage}"></Image>
-              <TextBlock
-                         Text="Click image button to open or drag &amp; drop image file here"
-                         FontSize="24"
-                         TextWrapping="Wrap"
-                         TextAlignment="Center"
-                         VerticalAlignment="Center"
-                         Foreground="#333333"
-                         Width="{Binding #ImageSelectionArea.Bounds.Width,
-                         Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=50}"
-                         IsVisible="{Binding PlaceHolderTextsVisible}">
-              </TextBlock>
-              <TextBlock Text="[ Solving ]"
-                         Name="SolvingText"
-                         IsVisible="{Binding IsSolving}"
-                         TextAlignment="Center"
-                         VerticalAlignment="Center"
-                         FontSize="30"
-                         Foreground="yellow"
-                         />
-              <TextBlock Text="{Binding SolverElapsedSeconds}"
-                         IsVisible="{Binding IsSolving}"
-                         Margin="0,80,00,0"
-                         TextAlignment="Center"
-                         VerticalAlignment="Center"
-                         FontSize="30"
-                         Foreground="yellow"
-              />
-              <!-- IMAGE TOOLBAR -->
-              <Border Padding="4" Background="#22FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top">
-                <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
-                  <Button Classes="ImageToolbarButton" Name="OpenImageButton" ToolTip.Tip="Open an image"
-                          Command="{Binding OpenImageViaDialog}"
-                          IsEnabled="{Binding OpenImageButtonEnabled}">
-                    <icons:Icon Value="mdi-folder-image" FontSize="18" />
-                  </Button>
-                  <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in"
-                          IsEnabled="{Binding ToolbarButtonsEnabled}"
-                          >
-                    <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
-                  </Button>
-                  <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out"
-                          IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
-                  </Button>
-                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show crosshairs"
-                                IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-crosshairs" />
-                  </ToggleButton>
-                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected stars"
-                                IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-shimmer" />
-                  </ToggleButton>
-                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected quads"
-                                IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-vector-square" />
-                  </ToggleButton>
-                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show RA/Dec grid"
-                                IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-web" />
-                  </ToggleButton>
-                  <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show Deep Sky Objects"
-                                IsEnabled="{Binding ToolbarButtonsEnabled}">
-                    <icons:Icon Value="mdi-origin" />
-                  </ToggleButton>
-                </StackPanel>
-              </Border>
-            </Grid>
-          </Border>
+        <Panel Name="ImageSelectionArea" Background="#000000" DragDrop.AllowDrop="True">
+          <StackPanel>
+            <Border BorderThickness="2" BorderBrush="#222222">
+              <Grid>
+                <Image Source="{Binding SolverImage}"></Image>
+                <TextBlock
+                           Text="Click image button to open or drag &amp; drop image file here"
+                           FontSize="24"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="#333333"
+                           Width="{Binding #ImageSelectionArea.Bounds.Width,
+                           Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=50}"
+                           IsVisible="{Binding PlaceHolderTextsVisible}">
+                </TextBlock>
+                <TextBlock Text="[ Solving ]"
+                           Name="SolvingText"
+                           IsVisible="{Binding IsSolving}"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="30"
+                           Foreground="yellow"
+                           />
+                <TextBlock Text="Please wait, loading image data..."
+                           IsVisible="{Binding SolveUiState, 
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static vm:SolveUiState.ImageOpening}}"
+                           Name="OpeningImageText"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="30"
+                />
+                <TextBlock Text="{Binding SolverElapsedSeconds}"
+                           IsVisible="{Binding IsSolving}"
+                           Margin="0,80,00,0"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="30"
+                           Foreground="yellow"
+                />
+                <TextBlock Text="{Binding ImageInfoLabel}"
+                           Margin="0,0,0,0"
+                           Padding="0,4,0,4"
+                           TextAlignment="Right"
+                           VerticalAlignment="Bottom"
+                           FontSize="12"
+                           Background="#0CFFFFFF"
+                />
+                
+                <!-- IMAGE TOOLBAR -->
+                <Border Padding="4" Background="#22FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top">
+                  <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Top">
+                    <Button Classes="ImageToolbarButton" Name="OpenImageButton" ToolTip.Tip="Open an image"
+                            Command="{Binding OpenImageViaDialog}"
+                            IsEnabled="{Binding OpenImageButtonEnabled}">
+                      <icons:Icon Value="mdi-folder-image" FontSize="18" />
+                    </Button>
+                    <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in"
+                            IsEnabled="{Binding ToolbarButtonsEnabled}"
+                            >
+                      <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
+                    </Button>
+                    <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out"
+                            IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
+                    </Button>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show crosshairs"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-crosshairs" />
+                    </ToggleButton>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected stars"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-shimmer" />
+                    </ToggleButton>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected quads"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-vector-square" />
+                    </ToggleButton>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show RA/Dec grid"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-web" />
+                    </ToggleButton>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show Deep Sky Objects"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-origin" />
+                    </ToggleButton>
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+            <TextBlock Text="{Binding SolverStatusText}"
+                       Background="#22FFFFFF"
+                       Margin="0,0,00,0"
+                       Padding="4"
+                       TextAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       Foreground="{Binding SolverStatusTextColor}"
+            />
+          </StackPanel>
         </Panel>
       </Border>
       <Border Padding="18, 0">
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-          <Button Margin="16, 0" IsEnabled="{Binding SolveButtonEnabled}">
+          <Button Margin="16, 0" IsEnabled="{Binding SolveButtonEnabled}"
+                  Command="{Binding StartSolve}">
             <TextBlock Margin="8" FontSize="16">Run solver</TextBlock>
           </Button>
-          <Button IsEnabled="{Binding CancelSolveButtonEnabled}">
+          <Button IsEnabled="{Binding CancelSolveButtonEnabled}"
+                  Command="{Binding CancelSolve}">
             <TextBlock Margin="8" FontSize="16">Cancel solve</TextBlock>
           </Button>
         </StackPanel>
       </Border>
       <Border Padding="18, 16">
         <StackPanel Orientation="Vertical">
-          <TextBlock Text="Image information" FontSize="16" Margin="0, 0, 0, 8"></TextBlock>
-          <DataGrid Items="{Binding SolverImageData}" CanUserResizeColumns="True">
+          <TextBlock Text="Solution" FontSize="16" Margin="0, 0, 0, 8" />
+          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
             <DataGrid.Columns>
-              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="File name" Binding="{Binding FileName}"></DataGridTextColumn>
-              <DataGridTextColumn IsReadOnly="True" Header="Format" Binding="{Binding SourceFormat}"></DataGridTextColumn>
-              <DataGridTextColumn IsReadOnly="True" Header="Width" Binding="{Binding Width}"></DataGridTextColumn>
-              <DataGridTextColumn IsReadOnly="True" Header="Height" Binding="{Binding Height}"></DataGridTextColumn>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA" 
+                                  Binding="{Binding Ra, Mode=OneWay, StringFormat={}{0:###.#####}}" />
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Dec"
+                                  Binding="{Binding Dec, Mode=OneWay, StringFormat={}{0:###.#####}}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA (HMS)"
+                                  Binding="{Binding RaHms, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Dec (DMS)"
+                                  Binding="{Binding DecDms, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Field radius (deg)"
+                                  Binding="{Binding FieldRadius, Mode=OneWay, StringFormat={}{0:###.###}}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Orientation (deg)"
+                                  Binding="{Binding Orientation, Mode=OneWay, StringFormat={}{0:###.###}}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Parity"
+                                  Binding="{Binding Parity, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars detected"
+                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars used"
+                                  Binding="{Binding StarsUsed, Mode=OneWay}"/>
             </DataGrid.Columns>
           </DataGrid>
+          <TextBlock Text="Solver log" FontSize="16" Margin="0, 16, 0, 8" />
+          <ListBox Height="200" Name="Log" Items="{Binding SolverLog}"
+                   Background="Black"
+                   BorderBrush="#22FFFFFF"
+                   BorderThickness="1"
+                   FontFamily="Consolas, SF Mono, DejaVu Sans Mono, Courier New">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock FontSize="12" Text="{Binding}" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
         </StackPanel>
 
       </Border>

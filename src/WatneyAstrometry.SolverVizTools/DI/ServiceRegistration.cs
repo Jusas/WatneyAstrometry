@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Splat;
+using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Services;
 using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
@@ -19,8 +20,9 @@ namespace WatneyAstrometry.SolverVizTools.DI
         {
             services.RegisterLazySingleton<IServiceProvider>(() => new ServiceProvider());
             services.RegisterLazySingleton<IDialogProvider>(() => new DialogProvider());
-            services.RegisterLazySingleton<ISolveProfileManager>(() => new SolveProfileManager());
+            services.RegisterLazySingleton<ISolveSettingsManager>(() => new SolveSettingsManager());
             services.RegisterLazySingleton<IImageManager>(() => new ImageManager());
+            services.RegisterLazySingleton<IVerboseMemoryLogger>(() => new VerboseMemoryLogger());
         }
     }
 }

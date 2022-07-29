@@ -18,7 +18,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
     public class NewSolveProfileDialogViewModel : ViewModelBase
     {
-        private readonly ISolveProfileManager _solveProfileManager;
+        private readonly ISolveSettingsManager _solveSettingsManager;
 
 
         public ObservableCollection<string> Types { get; set; } = new ObservableCollection<string>()
@@ -60,7 +60,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         public NewSolveProfileDialogViewModel(IServiceProvider serviceProvider)
         {
             Initialize();
-            _solveProfileManager = serviceProvider.GetService<ISolveProfileManager>();
+            _solveSettingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             this.WhenAnyValue(x => x.ProfileName)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Throttle(TimeSpan.FromMilliseconds(100))
@@ -77,11 +77,11 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         {
             if (!string.IsNullOrEmpty(ProfileType) && !string.IsNullOrEmpty(ProfileName))
             {
-                var profiles = _solveProfileManager.GetProfiles(true, false);
+                var profiles = _solveSettingsManager.GetProfiles(true, false);
                 try
                 {
                     var type = ProfileType == BlindTypeString ? SolveProfileType.Blind : SolveProfileType.Nearby;
-                    var createdProfile = _solveProfileManager.CreateNewProfile(ProfileName, type);
+                    var createdProfile = _solveSettingsManager.CreateNewProfile(ProfileName, type);
                     OwnerWindow.Close(createdProfile);
                 }
                 catch (Exception e)

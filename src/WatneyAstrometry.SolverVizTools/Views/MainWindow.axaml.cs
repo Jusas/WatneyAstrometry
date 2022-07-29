@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -11,10 +12,18 @@ namespace WatneyAstrometry.SolverVizTools.Views
 {
     public partial class MainWindow : Window
     {
-        
+
+        private MainWindowViewModel _viewModel => DataContext as MainWindowViewModel;
+
         public MainWindow()
         {
             InitializeComponent();
+            this.Closing += OnClosing;
+        }
+
+        private void OnClosing(object sender, CancelEventArgs e)
+        {
+            _viewModel?.OnClosing();
         }
 
 

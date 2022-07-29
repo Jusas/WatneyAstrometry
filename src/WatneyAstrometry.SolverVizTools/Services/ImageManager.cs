@@ -28,7 +28,7 @@ namespace WatneyAstrometry.SolverVizTools.Services
 
         private const string BaseImageFilename = "ui_base.png";
 
-        public ImageData LoadImage(string filename)
+        public async Task<ImageData> LoadImage(string filename)
         {
             if (!File.Exists(filename))
                 throw new FileNotFoundException($"File {filename} was not found");
@@ -39,37 +39,47 @@ namespace WatneyAstrometry.SolverVizTools.Services
             if (isFits)
             {
                 var reader = new DefaultFitsReader();
-                imageData.WatneyImage = reader.FromFile(filename);
-                var rgbaImage = FitsImagePixelBufferToRgbaImage((FitsImage)imageData.WatneyImage);
-                imageData.EditableImage = rgbaImage;
-                imageData.SourceFormat = "FITS";
 
-                //var uiImageFilename = SaveAsBaseImage(rgbaImage);
-                //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
+                await Task.Run(() =>
+                {
+                    imageData.WatneyImage = reader.FromFile(filename);
+                    var rgbaImage = FitsImagePixelBufferToRgbaImage((FitsImage)imageData.WatneyImage);
+                    imageData.EditableImage = rgbaImage;
+                    imageData.SourceFormat = "FITS";
 
-                imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
+                    //var uiImageFilename = SaveAsBaseImage(rgbaImage);
+                    //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
+
+                    imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
+                });
+
             }
             else if (CommonFormatsImageReader.IsSupported(filename))
             {
                 var reader = new CommonFormatsImageReader();
-                imageData.WatneyImage = reader.FromFile(filename);
-                var imageSharpImage = Image.Load(filename);
-                imageData.SourceFormat = Image.DetectFormat(filename).DefaultMimeType;
 
-                if (imageSharpImage is Image<Rgba32> rgbaImage)
+                await Task.Run(() =>
                 {
-                    //var uiImageFilename = SaveAsBaseImage(rgbaImage);
-                    //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
-                    imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
-                }
-                else
-                {
-                    rgbaImage = imageSharpImage.CloneAs<Rgba32>();
-                    //var uiImageFilename = SaveAsBaseImage(rgbaImage);
-                    //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
+                    imageData.WatneyImage = reader.FromFile(filename);
+                    var imageSharpImage = Image.Load(filename);
+                    imageData.SourceFormat = Image.DetectFormat(filename).DefaultMimeType;
 
-                    imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
-                }
+                    if (imageSharpImage is Image<Rgba32> rgbaImage)
+                    {
+                        //var uiImageFilename = SaveAsBaseImage(rgbaImage);
+                        //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
+                        imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
+                    }
+                    else
+                    {
+                        rgbaImage = imageSharpImage.CloneAs<Rgba32>();
+                        //var uiImageFilename = SaveAsBaseImage(rgbaImage);
+                        //imageData.UiImage = new Avalonia.Media.Imaging.Bitmap(uiImageFilename);
+
+                        imageData.UiImage = ToAvaloniaBitmap(rgbaImage);
+                    }
+                });
+
             }
             else
             {

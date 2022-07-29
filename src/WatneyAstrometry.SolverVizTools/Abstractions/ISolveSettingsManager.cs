@@ -7,15 +7,18 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 
 namespace WatneyAstrometry.SolverVizTools.Abstractions
 {
-    public interface ISolveProfileManager
+    public interface ISolveSettingsManager
     {
         SolveProfile CreateNewProfile(string name, SolveProfileType type);
         void SaveProfiles();
         void DeleteProfile(SolveProfile profile);
         ObservableCollection<SolveProfile> GetProfiles(bool fromDisk, bool copy);
+        WatneyConfiguration GetWatneyConfiguration(bool fromDisk, bool copy);
+        void SaveWatneyConfiguration();
     }
 }

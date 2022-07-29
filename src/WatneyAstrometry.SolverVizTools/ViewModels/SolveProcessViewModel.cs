@@ -1,20 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using ReactiveUI;
+using WatneyAstrometry.Core;
+using WatneyAstrometry.Core.Fits;
+using WatneyAstrometry.Core.MathUtils;
+using WatneyAstrometry.Core.QuadDb;
+using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.DI;
+using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Images;
+using WatneyAstrometry.SolverVizTools.Models.Profile;
+using WatneyAstrometry.SolverVizTools.Services;
 using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
+    
+    public enum SolveUiState
+    {
+        Uninitialized = 0,
+        ImageOpening = 1,
+        ImageLoaded = 2,
+        Solving = 3,
+        SolveCompleteSuccess = 4,
+        SolveCompleteFailure = 5
+    }
+
     public class SolveProcessViewModel : ViewModelBase
     {
         private readonly IServiceProvider _serviceProvider;
@@ -29,10 +53,12 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         private ImageData _solverImageData;
         private readonly IAssetLoader _assetManager;
 
-        public ImageData[] SolverImageData
+        public ImageData SolverImageData
         {
-            get => _solverImageData == null ? new ImageData[0] : new ImageData[] { _solverImageData };
+            get => _solverImageData;
+            set => this.RaiseAndSetIfChanged(ref _solverImageData, value);
         }
+
 
         public IImage SolverImage
         {
@@ -40,60 +66,90 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _solverImage, value);
         }
 
-        private bool _isSolving = false;
-
-        public bool IsSolving
-        {
-            get => _isSolving;
-            set => this.RaiseAndSetIfChanged(ref _isSolving, value);
-        }
-
-        public bool ToolbarButtonsEnabled
-        {
-            get
-            {
-                return !_isSolving && SolverImage != PlaceholderImage;
-            }
-        }
-
-        public bool OpenImageButtonEnabled
-        {
-            get
-            {
-                return !IsSolving;
-            }
-        }
-
-        public bool SolveButtonEnabled
-        {
-            get
-            {
-                return !_isSolving && SolverImage != PlaceholderImage;
-            }
-        }
-
-        public bool CancelSolveButtonEnabled
-        {
-            get
-            {
-                return _isSolving;
-            }
-        }
-
-        public bool PlaceHolderTextsVisible
-        {
-            get
-            {
-                return PlaceholderImage == SolverImage;
-            }
-        }
+        public bool IsSolving => SolveUiState == SolveUiState.Solving;
+        public bool ToolbarButtonsEnabled => SolveUiState > SolveUiState.Uninitialized && SolveUiState != SolveUiState.Solving;
+        public bool OpenImageButtonEnabled => SolveUiState != SolveUiState.Solving;
+        public bool SolveButtonEnabled => SolveUiState > SolveUiState.Uninitialized && SolveUiState != SolveUiState.Solving;
+        public bool CancelSolveButtonEnabled => SolveUiState == SolveUiState.Solving;
+        public bool PlaceHolderTextsVisible => SolveUiState == SolveUiState.Uninitialized;
+        public string ImageInfoLabel { get; set; }
 
         private string _solverElapsedSeconds = "0.0";
+
+        private Solver _solverInstance;
+        private CompactQuadDatabase _quadDatabaseInstance;
+        private CancellationTokenSource _cancellationTokenSource;
+        private Task _counterTask;
 
         public string SolverElapsedSeconds
         {
             get => _solverElapsedSeconds;
             set => this.RaiseAndSetIfChanged(ref _solverElapsedSeconds, value);
+        }
+
+        private string _solverStatusText = "";
+        public string SolverStatusText
+        {
+            get => _solverStatusText;
+            set => this.RaiseAndSetIfChanged(ref _solverStatusText, value);
+        }
+
+        private static readonly IBrush NormalStatusTextColor = Brush.Parse("yellow");
+        private static readonly IBrush SuccessStatusTextColor = Brush.Parse("lime");
+        private static readonly IBrush FailedStatusTextColor = Brush.Parse("red");
+
+        private IBrush _solverStatusTextColor = NormalStatusTextColor;
+        public IBrush SolverStatusTextColor
+        {
+            get => _solverStatusTextColor;
+            set => this.RaiseAndSetIfChanged(ref _solverStatusTextColor, value);
+        }
+
+        private SolveUiState _solveUiState = ViewModels.SolveUiState.Uninitialized;
+        private readonly ISolveSettingsManager _settingsManager;
+
+        public SolveUiState SolveUiState
+        {
+            get => _solveUiState;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _solveUiState, value);
+                RefreshStateDependentUiFlags();
+            }
+        }
+
+        private SolutionGridModel _solutionGridModel;
+        private readonly IVerboseMemoryLogger _verboseLogger;
+
+        public SolutionGridModel SolutionGridModel
+        {
+            get => _solutionGridModel;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _solutionGridModel, value);
+                this.RaisePropertyChanged(nameof(SolutionGridModels));
+            }
+        }
+
+        public SolutionGridModel[] SolutionGridModels =>
+            SolutionGridModel != null ? new SolutionGridModel[] { SolutionGridModel } : Array.Empty<SolutionGridModel>();
+
+        private IReadOnlyList<string> _solverLog;
+        public IReadOnlyList<string> SolverLog
+        {
+            get => _solverLog;
+            set => this.RaiseAndSetIfChanged(ref _solverLog, value);
+        }
+
+        public void RefreshStateDependentUiFlags()
+        {
+            this.RaisePropertyChanged(nameof(ImageInfoLabel));
+            this.RaisePropertyChanged(nameof(IsSolving));
+            this.RaisePropertyChanged(nameof(ToolbarButtonsEnabled));
+            this.RaisePropertyChanged(nameof(OpenImageButtonEnabled));
+            this.RaisePropertyChanged(nameof(SolveButtonEnabled));
+            this.RaisePropertyChanged(nameof(CancelSolveButtonEnabled));
+            this.RaisePropertyChanged(nameof(PlaceHolderTextsVisible));
         }
 
         public SolveProcessViewModel()
@@ -105,6 +161,19 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 SourceFormat = "PNG",
                 Width = 1024,
                 Height = 768
+            };
+            SolutionGridModel = new SolutionGridModel()
+            {
+                Dec = 23.45678901234,
+                Ra = 23.54646467,
+                FieldRadius = 1.54646775,
+                Orientation = 45.6786867867,
+                Parity = "Normal"
+            };
+            SolverLog = new string[]
+            {
+                "Line 1",
+                "Line 2"
             };
             _serviceProvider = new ServiceProvider();
             _assetManager = _serviceProvider.GetAvaloniaService<IAssetLoader>();
@@ -118,6 +187,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _dialogProvider = serviceProvider.GetService<IDialogProvider>();
             _imageManager = serviceProvider.GetService<IImageManager>();
             _assetManager = serviceProvider.GetAvaloniaService<IAssetLoader>();
+            _settingsManager = serviceProvider.GetService<ISolveSettingsManager>();
+            _verboseLogger = serviceProvider.GetService<IVerboseMemoryLogger>();
             Initialize();
         }
         
@@ -142,18 +213,268 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
             if (filename != null)
             {
-                var imageData = _imageManager.LoadImage(filename);
-                SolverImage = imageData.UiImage;
-                _solverImageData = imageData;
-                this.RaisePropertyChanged(nameof(SolverImageData));
+                await OpenImage(filename);
             }
 
         }
 
+        public async Task OpenImage(string filename)
+        {
+            SolveUiState = SolveUiState.ImageOpening;
+
+            try
+            {
+                var imageData = await _imageManager.LoadImage(filename);
+                SolverImage = imageData.UiImage;
+                SolverImageData = imageData;
+
+                ImageInfoLabel = $"{imageData.FileName} ({imageData.Width}x{imageData.Height})";
+                SolveUiState = SolveUiState.ImageLoaded;
+            }
+            catch (Exception e)
+            {
+                await _dialogProvider.ShowMessageBox(OwnerWindow, "Error opening image", $"Failed to open image: {e.Message}");
+                SolveUiState = SolveUiState.Uninitialized;
+            }
+
+            SolverStatusText = "";
+        }
+
+        private void StartCounterUpdate(Stopwatch sw, CancellationToken token)
+        {
+            _counterTask = Task.Run(async () =>
+            {
+                while (IsSolving && !token.IsCancellationRequested)
+                {
+                    await Task.Delay(100);
+                    await Dispatcher.UIThread.InvokeAsync(() => SolverElapsedSeconds = $"{sw.Elapsed.TotalSeconds:F1}");
+                }
+            });
+        }
+
+        public async Task CancelSolve()
+        {
+            _cancellationTokenSource?.Cancel();
+        }
+
         public async Task StartSolve()
         {
+          
+            SolveUiState = SolveUiState.Solving;
+            SolverStatusText = "";
+            SolverElapsedSeconds = "0.0";
+            SolverStatusTextColor = NormalStatusTextColor;
+            _verboseLogger.Clear();
+            SolverLog = new string[0];
+            await Task.Yield();
 
+            Stopwatch sw = Stopwatch.StartNew();
+            _cancellationTokenSource = new CancellationTokenSource();
+            CancellationToken cancellationToken = _cancellationTokenSource.Token;
+            StartCounterUpdate(sw, cancellationToken);
+
+            try
+            {
+                if (_solverInstance == null)
+                {
+                    _solverInstance = new Solver(_verboseLogger);
+                    _solverInstance.OnSolveProgress += OnSolveProgress;
+                }
+
+                if (_quadDatabaseInstance == null)
+                {
+                    // Note: if the database location changes, we need to re-create the db instance todo
+                    _quadDatabaseInstance = new CompactQuadDatabase();
+                    _quadDatabaseInstance.UseDataSource(_settingsManager.GetWatneyConfiguration(false, false)
+                        .QuadDatabasePath);
+                    _solverInstance.UseQuadDatabase(_quadDatabaseInstance);
+                }
+
+                // Construct the strategy
+
+                var settingsPane = _serviceProvider.GetService<SettingsPaneViewModel>();
+                var profile = settingsPane.SelectedPresetProfile;
+
+                if (profile == null)
+                    throw new Exception("Solve profile was null");
+
+                ISearchStrategy strategy = null;
+                if (profile.ProfileType == SolveProfileType.Blind)
+                {
+                    strategy = new BlindSearchStrategy(new BlindSearchStrategyOptions
+                    {
+                        MaxNegativeDensityOffset = (uint)profile.GenericOptions.LowerDensityOffset,
+                        MaxPositiveDensityOffset = (uint)profile.GenericOptions.HigherDensityOffset,
+                        MinRadiusDegrees = profile.BlindOptions.MinRadius ?? 0.1,
+                        StartRadiusDegrees = profile.BlindOptions.MaxRadius ?? 8,
+                        SearchOrderDec = profile.BlindOptions.SearchOrder == SearchOrder.NorthFirst
+                            ? BlindSearchStrategyOptions.DecSearchOrder.NorthFirst
+                            : BlindSearchStrategyOptions.DecSearchOrder.SouthFirst,
+                        UseParallelism = true // todo parameterize this
+                    });
+                }
+                else
+                {
+                    var opts = new NearbySearchStrategyOptions
+                    {
+                        UseParallelism = true,
+                        //MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMax, // todo support ranges
+                        //MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMin,
+                        MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadius,
+                        MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadius,
+                        SearchAreaRadiusDegrees = profile.NearbyOptions.SearchRadius,
+                        MaxNegativeDensityOffset = (uint)profile.GenericOptions.LowerDensityOffset,
+                        MaxPositiveDensityOffset = (uint)profile.GenericOptions.HigherDensityOffset
+                    };
+
+                    if (profile.NearbyOptions.InputSource == InputSource.FitsHeaders)
+                    {
+                        if (_solverImageData.WatneyImage is FitsImage fits)
+                        {
+                            var centerPos = fits.Metadata.CenterPos;
+                            if (centerPos == null)
+                                throw new Exception(
+                                    "FITS headers set as source for initial coordinate, but no initial coordinate was available");
+                            strategy = new NearbySearchStrategy(centerPos, opts);
+                        }
+                        else
+                        {
+                            throw new Exception("Could not get initial position from FITS headers, because the image is not a FITS file");
+                        }
+                    }
+                    else
+                    {
+                        var centerPos = ParseCoordsFromProfileRaDec(profile);
+                        if (centerPos == null)
+                            throw new Exception(
+                                "Could not parse valid initial coordinates from profile RA and Dec");
+                        strategy = new NearbySearchStrategy(centerPos, opts);
+                    }
+
+                }
+
+                var solverOpts = new SolverOptions()
+                {
+                    UseMaxStars = profile.GenericOptions.MaxStars,
+                    UseSampling = profile.GenericOptions.Sampling
+                };
+
+                // todo event listeners
+                var result = await _solverInstance.SolveFieldAsync(_solverImageData.WatneyImage, strategy, solverOpts, cancellationToken);
+                
+                if (result.Success)
+                {
+                    SolutionGridModel = new SolutionGridModel
+                    {
+                        Ra = result.Solution.PlateCenter.Ra,
+                        Dec = result.Solution.PlateCenter.Dec,
+                        FieldRadius = result.Solution.Radius,
+                        Orientation = result.Solution.Orientation,
+                        Parity = result.Solution.Parity.ToString(),
+                        StarsDetected = result.StarsDetected,
+                        StarsUsed = result.StarsUsedInSolve
+                    };
+
+                    SolveUiState = SolveUiState.SolveCompleteSuccess;
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        SolverStatusText = "Solved successfully!";
+                        SolverStatusTextColor = SuccessStatusTextColor;
+                    });
+                }
+                else
+                {
+                    SolutionGridModel = null;
+                    SolveUiState = SolveUiState.SolveCompleteFailure;
+                    Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        SolverStatusText = "Solve was unsuccessful!";
+                        SolverStatusTextColor = FailedStatusTextColor;
+                    });
+                }
+
+                SolverLog = _verboseLogger.FullLog;
+
+                _cancellationTokenSource.Cancel();
+            }
+            catch (Exception e)
+            {
+                SolveUiState = SolveUiState.SolveCompleteFailure;
+                _cancellationTokenSource.Cancel();
+            }
+            
         }
+
+        private void OnSolveProgress(SolverStep step)
+        {
+            
+            if (step == SolverStep.ImageReadStarted)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Reading image...");
+
+            if (step == SolverStep.ImageReadFinished)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Image read finished");
+
+            if (step == SolverStep.QuadFormationStarted)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Forming quads from stars...");
+
+            if (step == SolverStep.QuadFormationFinished)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solver is running...");
+
+            if (step == SolverStep.SolveProcessStarted)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solving image...");
+
+            if (step == SolverStep.SolveProcessFinished)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solver finished");
+
+            if (step == SolverStep.StarDetectionStarted)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Detecting stars...");
+
+            if (step == SolverStep.StarDetectionStarted)
+                Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Star detection finished");
+        }
+
+        private EquatorialCoords ParseCoordsFromProfileRaDec(SolveProfile profile)
+        {
+            var ra = profile.NearbyOptions.Ra;
+            var dec = profile.NearbyOptions.Dec;
+
+            // Decimal numbers
+            var raRegex = new Regex(@"^[-+]{0,1}\d+\.{0,1}\d*$");
+            var decRegex = new Regex(@"^\d+\.{0,1}\d*$");
+
+            if (raRegex.IsMatch(ra) && decRegex.IsMatch(dec))
+            {
+                try
+                {
+                    var raVal = double.Parse(ra, CultureInfo.InvariantCulture);
+                    var decVal = double.Parse(dec, CultureInfo.InvariantCulture);
+                    return new EquatorialCoords(raVal, decVal);
+                }
+                catch (Exception e)
+                {
+                    _dialogProvider.ShowMessageBox(OwnerWindow, "Error parsing RA/Dec coordinates",
+                        $"Cannot use given RA/Dec coordinates: {e.Message}");
+                }
+            }
+            else
+            {
+                try
+                {
+                    var raVal = Conversions.RaToDecimal(ra);
+                    var decVal = Conversions.DecToDecimal(dec);
+                    return new EquatorialCoords(raVal, decVal);
+                }
+                catch (Exception e)
+                {
+                    _dialogProvider.ShowMessageBox(OwnerWindow, "Error parsing RA/Dec coordinates",
+                        $"Cannot use given RA/Dec coordinates: {e.Message}");
+                }
+            }
+
+            return null;
+        }
+
+
 
     }
 }

@@ -6,17 +6,18 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using DynamicData;
 using WatneyAstrometry.SolverVizTools.Abstractions;
+using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Utils;
 
 namespace WatneyAstrometry.SolverVizTools.Services;
 
-public class MockSolverProfileManager : ISolveProfileManager
+public class MockSolverSettingsManager : ISolveSettingsManager
 {
 
     private ObservableCollection<SolveProfile> _profiles = new ObservableCollection<SolveProfile>();
 
-    public MockSolverProfileManager()
+    public MockSolverSettingsManager()
     {
         _profiles.Add(new SolveProfile
         {
@@ -64,5 +65,17 @@ public class MockSolverProfileManager : ISolveProfileManager
             return cloneCollection;
         }
         return _profiles;
+    }
+
+    public WatneyConfiguration GetWatneyConfiguration(bool fromDisk, bool copy)
+    {
+        return new WatneyConfiguration()
+        {
+            QuadDatabasePath = @"C:\watney\db"
+        };
+    }
+
+    public void SaveWatneyConfiguration()
+    {
     }
 }

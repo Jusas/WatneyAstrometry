@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using MessageBox.Avalonia.Enums;
 using Microsoft.CodeAnalysis;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 
@@ -28,5 +29,19 @@ namespace WatneyAstrometry.SolverVizTools.Services
             return selection;
         }
 
+        public async Task<string> ShowOpenFolderDialog(IWindow owner, string title, string initialDirectory)
+        {
+            var dialog = new OpenFolderDialog();
+            dialog.Directory = initialDirectory;
+            dialog.Title = title;
+            var directory = await dialog.ShowAsync((owner.NativeWindow as Window)!);
+            return directory;
+        }
+
+        public async Task ShowMessageBox(IWindow owner, string title, string message)
+        {
+            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok);
+            await box.ShowDialog((owner.NativeWindow as Window)!);
+        }
     }
 }
