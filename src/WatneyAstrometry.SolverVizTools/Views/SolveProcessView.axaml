@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:icons="clr-namespace:Projektanker.Icons.Avalonia;assembly=Projektanker.Icons.Avalonia"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="950"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="1250"
              xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
@@ -104,23 +104,33 @@
                             IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
                     </Button>
-                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show crosshairs"
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw crosshairs"
+                                  IsChecked="{Binding ToggleCrosshairVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-crosshairs" />
                     </ToggleButton>
-                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected stars"
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw detected stars"
+                                  IsChecked="{Binding ToggleDetectedStarsVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-shimmer" />
                     </ToggleButton>
-                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show detected quads"
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw detected quads"
+                                  IsChecked="{Binding ToggleQuadsVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-vector-square" />
                     </ToggleButton>
-                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show RA/Dec grid"
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw RA/Dec grid"
+                                  IsChecked="{Binding ToggleGridVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-web" />
                     </ToggleButton>
-                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Show Deep Sky Objects"
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw Deep Sky Objects"
+                                  IsChecked="{Binding ToggleDsoVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-origin" />
                     </ToggleButton>
@@ -154,31 +164,69 @@
       </Border>
       <Border Padding="18, 16">
         <StackPanel Orientation="Vertical">
-          <TextBlock Text="Solution" FontSize="16" Margin="0, 0, 0, 8" />
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="Solution" FontSize="16" Margin="0, 8, 0, 8" />
+            <Button Margin="8, 0, 0, 0" ToolTip.Tip="Save solution to disk..."
+                    IsEnabled="{Binding SaveResultsButtonsEnabled}"
+                    Command="{Binding SaveSolutionWcsToDiskViaDialog}">
+              <StackPanel Orientation="Horizontal">
+                <icons:Icon Value="mdi-content-save" FontSize="14"></icons:Icon>
+                <TextBlock Margin="8,0,0,0">WCS</TextBlock>
+              </StackPanel>
+            </Button>
+            <Button Margin="8, 0, 0, 0" ToolTip.Tip="Save solution to disk..."
+                    IsEnabled="{Binding SaveResultsButtonsEnabled}"
+                    Command="{Binding SaveSolutionJsonToDiskViaDialog}">
+              <StackPanel Orientation="Horizontal">
+                <icons:Icon Value="mdi-content-save" FontSize="14"></icons:Icon>
+                <TextBlock Margin="8,0,0,0">JSON</TextBlock>
+              </StackPanel>
+            </Button>
+          </StackPanel>
           <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
             <DataGrid.Columns>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA" 
-                                  Binding="{Binding Ra, Mode=OneWay, StringFormat={}{0:###.#####}}" />
+                                  Binding="{Binding Ra, Mode=OneWay, StringFormat={}{0:F5}}" />
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Dec"
-                                  Binding="{Binding Dec, Mode=OneWay, StringFormat={}{0:###.#####}}"/>
+                                  Binding="{Binding Dec, Mode=OneWay, StringFormat={}{0:F5}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA (HMS)"
                                   Binding="{Binding RaHms, Mode=OneWay}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Dec (DMS)"
                                   Binding="{Binding DecDms, Mode=OneWay}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Field radius (deg)"
-                                  Binding="{Binding FieldRadius, Mode=OneWay, StringFormat={}{0:###.###}}"/>
+                                  Binding="{Binding FieldRadius, Mode=OneWay, StringFormat={}{0:F3}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Orientation (deg)"
-                                  Binding="{Binding Orientation, Mode=OneWay, StringFormat={}{0:###.###}}"/>
+                                  Binding="{Binding Orientation, Mode=OneWay, StringFormat={}{0:F2}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Parity"
                                   Binding="{Binding Parity, Mode=OneWay}"/>
+            </DataGrid.Columns>
+          </DataGrid>
+          <TextBlock Text="Solve process statistics" FontSize="16" Margin="0, 16, 0, 8" />
+          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
+            <DataGrid.Columns>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Star detection duration (s)"
+                                  Binding="{Binding StarDetectionDuration, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Solver duration (s)"
+                                  Binding="{Binding SolverDuration, Mode=OneWay, StringFormat={}{0:F2}}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Full duration (s)"
+                                  Binding="{Binding FullDuration, Mode=OneWay, StringFormat={}{0:F2}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars detected"
                                   Binding="{Binding StarsDetected, Mode=OneWay}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars used"
                                   Binding="{Binding StarsUsed, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Matches"
+                                  Binding="{Binding Matches, Mode=OneWay}"/>
             </DataGrid.Columns>
           </DataGrid>
-          <TextBlock Text="Solver log" FontSize="16" Margin="0, 16, 0, 8" />
-          <ListBox Height="200" Name="Log" Items="{Binding SolverLog}"
+
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="Solver log" FontSize="16" Margin="0, 16, 0, 8" />
+            <Button Margin="8, 8, 0, 0" ToolTip.Tip="Save to disk..."
+                    Command="{Binding SaveLogToDiskViaDialog}">
+              <icons:Icon Value="mdi-content-save" FontSize="14"></icons:Icon>
+            </Button>
+          </StackPanel>
+          <ListBox Height="100" Name="Log" Items="{Binding SolverLog}"
                    Background="Black"
                    BorderBrush="#22FFFFFF"
                    BorderThickness="1"
@@ -189,6 +237,9 @@
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
+          <Button Width="{Binding #Log.Bounds.Width}" Click="OnExpandLogClicked">
+            <icons:Icon Value="mdi-unfold-more-horizontal" FontSize="14"></icons:Icon>
+          </Button>
 
         </StackPanel>
 

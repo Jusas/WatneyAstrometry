@@ -55,17 +55,17 @@ namespace WatneyAstrometry.ImageReaders
 
         private void WriteImageBytesToStream<T>(Image<T> image, Stream stream) where T : unmanaged, IPixel<T>
         {
-            if (image.TryGetSinglePixelSpan(out var pixels))
+            if (image.DangerousTryGetSinglePixelMemory(out var pixels))
             {
-                var buf = MemoryMarshal.AsBytes(pixels).ToArray();
+                var buf = MemoryMarshal.AsBytes(pixels.Span).ToArray();
                 stream.Write(buf, 0, buf.Length);
             }
             else
             {
                 for (int y = 0; y < image.Height; y++)
                 {
-                    var pixelRowSpan = image.GetPixelRowSpan(y);
-                    var buf = MemoryMarshal.AsBytes(pixelRowSpan).ToArray();
+                    var pixelRowSpan = image.DangerousGetPixelRowMemory(y);
+                    var buf = MemoryMarshal.AsBytes(pixelRowSpan.Span).ToArray();
                     stream.Write(buf, 0, buf.Length);
                 }
             }

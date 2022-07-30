@@ -38,10 +38,23 @@ namespace WatneyAstrometry.SolverVizTools.Services
             return directory;
         }
 
+        public async Task<string> ShowSaveFileDialog(IWindow owner, string title, string initialDirectory, string initialFilename, string defaultExtension)
+        {
+            var dialog = new SaveFileDialog();
+            dialog.DefaultExtension = defaultExtension;
+            dialog.Directory = initialDirectory;
+            dialog.InitialFileName = initialFilename;
+            dialog.Title = title;
+            var filename = await dialog.ShowAsync((owner.NativeWindow as Window)!);
+            return filename;
+        }
+
         public async Task ShowMessageBox(IWindow owner, string title, string message)
         {
             var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok);
             await box.ShowDialog((owner.NativeWindow as Window)!);
         }
+
+        
     }
 }

@@ -8,5 +8,8 @@ public interface IDialogProvider
         string initialDirectory, bool allowMultiple);
     Task<string> ShowOpenFolderDialog(IWindow owner, string title, string initialDirectory);
 
+    Task<string> ShowSaveFileDialog(IWindow owner, string title, string initialDirectory, string initialFilename,
+        string defaultExtension);
+
     Task ShowMessageBox(IWindow owner, string title, string message);
 }

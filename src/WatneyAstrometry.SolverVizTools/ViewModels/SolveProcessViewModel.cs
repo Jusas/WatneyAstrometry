@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -67,9 +69,12 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         }
 
         public bool IsSolving => SolveUiState == SolveUiState.Solving;
-        public bool ToolbarButtonsEnabled => SolveUiState > SolveUiState.Uninitialized && SolveUiState != SolveUiState.Solving;
+        public bool ToolbarButtonsEnabled => SolveUiState > SolveUiState.Solving;
         public bool OpenImageButtonEnabled => SolveUiState != SolveUiState.Solving;
         public bool SolveButtonEnabled => SolveUiState > SolveUiState.Uninitialized && SolveUiState != SolveUiState.Solving;
+
+        public bool SaveResultsButtonsEnabled =>
+            SolveUiState == SolveUiState.SolveCompleteSuccess && _solveResult != null;
         public bool CancelSolveButtonEnabled => SolveUiState == SolveUiState.Solving;
         public bool PlaceHolderTextsVisible => SolveUiState == SolveUiState.Uninitialized;
         public string ImageInfoLabel { get; set; }
@@ -80,6 +85,11 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         private CompactQuadDatabase _quadDatabaseInstance;
         private CancellationTokenSource _cancellationTokenSource;
         private Task _counterTask;
+        private Stopwatch _starDetectionStopwatch;
+        private Stopwatch _solverStopwatch;
+        private Stopwatch _fullSolveProcessStopwatch;
+
+        private SolveResult _solveResult;
 
         public string SolverElapsedSeconds
         {
@@ -135,13 +145,50 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             SolutionGridModel != null ? new SolutionGridModel[] { SolutionGridModel } : Array.Empty<SolutionGridModel>();
 
         private IReadOnlyList<string> _solverLog;
+        private readonly IVisualizer _visualizer;
+
         public IReadOnlyList<string> SolverLog
         {
             get => _solverLog;
             set => this.RaiseAndSetIfChanged(ref _solverLog, value);
         }
 
-        public void RefreshStateDependentUiFlags()
+        private bool _toggleGridVisualization = false;
+        public bool ToggleGridVisualization
+        {
+            get => _toggleGridVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleGridVisualization, value);
+        }
+
+        private bool _toggleCrosshairVisualization;
+        public bool ToggleCrosshairVisualization
+        {
+            get => _toggleCrosshairVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleCrosshairVisualization, value);
+        }
+
+        private bool _toggleDetectedStarsVisualization;
+        public bool ToggleDetectedStarsVisualization
+        {
+            get => _toggleDetectedStarsVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleDetectedStarsVisualization, value);
+        }
+
+        private bool _toggleQuadsVisualization;
+        public bool ToggleQuadsVisualization
+        {
+            get => _toggleQuadsVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleQuadsVisualization, value);
+        }
+
+        private bool _toggleDsoVisualization;
+        public bool ToggleDsoVisualization
+        {
+            get => _toggleDsoVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleDsoVisualization, value);
+        }
+
+        private void RefreshStateDependentUiFlags()
         {
             this.RaisePropertyChanged(nameof(ImageInfoLabel));
             this.RaisePropertyChanged(nameof(IsSolving));
@@ -150,6 +197,16 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             this.RaisePropertyChanged(nameof(SolveButtonEnabled));
             this.RaisePropertyChanged(nameof(CancelSolveButtonEnabled));
             this.RaisePropertyChanged(nameof(PlaceHolderTextsVisible));
+            this.RaisePropertyChanged(nameof(SaveResultsButtonsEnabled));
+        }
+
+        private void ResetVisualizationToggles()
+        {
+            ToggleCrosshairVisualization = false;
+            ToggleDetectedStarsVisualization = false;
+            ToggleQuadsVisualization = false;
+            ToggleGridVisualization = false;
+            ToggleDsoVisualization = false;
         }
 
         public SolveProcessViewModel()
@@ -189,6 +246,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _assetManager = serviceProvider.GetAvaloniaService<IAssetLoader>();
             _settingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             _verboseLogger = serviceProvider.GetService<IVerboseMemoryLogger>();
+            _visualizer = serviceProvider.GetService<IVisualizer>();
             Initialize();
         }
         
@@ -230,6 +288,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
                 ImageInfoLabel = $"{imageData.FileName} ({imageData.Width}x{imageData.Height})";
                 SolveUiState = SolveUiState.ImageLoaded;
+                ResetVisualizationToggles();
             }
             catch (Exception e)
             {
@@ -259,22 +318,29 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task StartSolve()
         {
-          
+
+            _solveResult = null;
             SolveUiState = SolveUiState.Solving;
             SolverStatusText = "";
             SolverElapsedSeconds = "0.0";
             SolverStatusTextColor = NormalStatusTextColor;
             _verboseLogger.Clear();
+            _starDetectionStopwatch = new Stopwatch();
+            _solverStopwatch = new Stopwatch();
+            _fullSolveProcessStopwatch = new Stopwatch();
+
             SolverLog = new string[0];
             await Task.Yield();
 
-            Stopwatch sw = Stopwatch.StartNew();
+            Stopwatch visualCounterStopwatch = Stopwatch.StartNew();
             _cancellationTokenSource = new CancellationTokenSource();
             CancellationToken cancellationToken = _cancellationTokenSource.Token;
-            StartCounterUpdate(sw, cancellationToken);
+            StartCounterUpdate(visualCounterStopwatch, cancellationToken);
 
             try
             {
+                _fullSolveProcessStopwatch.Start();
+
                 if (_solverInstance == null)
                 {
                     _solverInstance = new Solver(_verboseLogger);
@@ -361,7 +427,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
                 // todo event listeners
                 var result = await _solverInstance.SolveFieldAsync(_solverImageData.WatneyImage, strategy, solverOpts, cancellationToken);
-                
+                _solveResult = result;
+
+                _fullSolveProcessStopwatch.Stop();
+
                 if (result.Success)
                 {
                     SolutionGridModel = new SolutionGridModel
@@ -372,7 +441,11 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                         Orientation = result.Solution.Orientation,
                         Parity = result.Solution.Parity.ToString(),
                         StarsDetected = result.StarsDetected,
-                        StarsUsed = result.StarsUsedInSolve
+                        StarsUsed = result.StarsUsedInSolve,
+                        StarDetectionDuration = _starDetectionStopwatch.Elapsed.TotalSeconds,
+                        SolverDuration = _solverStopwatch.Elapsed.TotalSeconds,
+                        FullDuration = _fullSolveProcessStopwatch.Elapsed.TotalSeconds,
+                        Matches = result.MatchedQuads
                     };
 
                     SolveUiState = SolveUiState.SolveCompleteSuccess;
@@ -393,15 +466,104 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                     });
                 }
 
+                
                 SolverLog = _verboseLogger.FullLog;
 
                 _cancellationTokenSource.Cancel();
             }
             catch (Exception e)
             {
+                _solveResult = null;
                 SolveUiState = SolveUiState.SolveCompleteFailure;
                 _cancellationTokenSource.Cancel();
             }
+
+            _fullSolveProcessStopwatch.Reset();
+            _solverStopwatch.Reset();
+            _starDetectionStopwatch.Reset();
+
+        }
+
+        public async Task SaveLogToDiskViaDialog()
+        {
+            var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save log file as...", 
+                null, "watney_log.txt", ".txt");
+            if(filename != null)
+                SaveLogToDisk(filename);
+        }
+
+        public void SaveLogToDisk(string filename)
+        {
+            File.WriteAllLines(filename, SolverLog ?? new List<string>());
+        }
+
+        public async Task SaveSolutionWcsToDiskViaDialog()
+        {
+            var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save WCS file as...",
+                null, "watney_solution.wcs", ".wcs");
+            if (filename != null)
+                SaveSolutionWcsToDisk(filename);
+        }
+
+        public void SaveSolutionWcsToDisk(string filename)
+        {
+            using FileStream fs = new FileStream(filename, FileMode.Create);
+            var wcsWriter = new WcsFitsWriter(fs);
+            wcsWriter.WriteWcsFile(_solveResult.Solution.FitsHeaders, _solveResult.Solution.ImageWidth, _solveResult.Solution.ImageHeight);
+        }
+
+        public async Task SaveSolutionJsonToDiskViaDialog()
+        {
+            var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save JSON file as...",
+                null, "watney_solution.json", ".json");
+            if (filename != null)
+                SaveSolutionJsonToDisk(filename);
+        }
+
+        public void SaveSolutionJsonToDisk(string filename)
+        {
+            var outputData = new Dictionary<string, object>();
+        
+            outputData.Add("ra", _solveResult.Solution.PlateCenter.Ra);
+            outputData.Add("dec", _solveResult.Solution.PlateCenter.Dec);
+            outputData.Add("ra_hms", Conversions.RaDegreesToHhMmSs(_solveResult.Solution.PlateCenter.Ra));
+            outputData.Add("dec_dms", Conversions.DecDegreesToDdMmSs(_solveResult.Solution.PlateCenter.Dec));
+            outputData.Add("fieldRadius", _solveResult.Solution.Radius);
+            outputData.Add("orientation", _solveResult.Solution.Orientation);
+            outputData.Add("pixScale", _solveResult.Solution.PixelScale);
+            outputData.Add("parity", _solveResult.Solution.Parity.ToString().ToLowerInvariant());
+
+            outputData.Add("starsDetected", _solveResult.StarsDetected);
+            outputData.Add("starsUsed", _solveResult.StarsUsedInSolve);
+            outputData.Add("timeSpent", _solveResult.TimeSpent.ToString());
+            outputData.Add("searchIterations", _solveResult.AreasSearched);
+
+            outputData.Add("imageWidth", _solveResult.Solution.ImageWidth);
+            outputData.Add("imageHeight", _solveResult.Solution.ImageHeight);
+            outputData.Add("searchRunCenter", _solveResult.SearchRun.Center.ToString());
+            outputData.Add("searchRunRadius", _solveResult.SearchRun.RadiusDegrees);
+            outputData.Add("quadMatches", _solveResult.MatchedQuads);
+            outputData.Add("fieldWidth", _solveResult.Solution.FieldWidth);
+            outputData.Add("fieldHeight", _solveResult.Solution.FieldHeight);
+            outputData.Add("fits_cd1_1", _solveResult.Solution.FitsHeaders.CD1_1);
+            outputData.Add("fits_cd1_2", _solveResult.Solution.FitsHeaders.CD1_2);
+            outputData.Add("fits_cd2_1", _solveResult.Solution.FitsHeaders.CD2_1);
+            outputData.Add("fits_cd2_2", _solveResult.Solution.FitsHeaders.CD2_2);
+            outputData.Add("fits_cdelt1", _solveResult.Solution.FitsHeaders.CDELT1);
+            outputData.Add("fits_cdelt2", _solveResult.Solution.FitsHeaders.CDELT2);
+            outputData.Add("fits_crota1", _solveResult.Solution.FitsHeaders.CROTA1);
+            outputData.Add("fits_crota2", _solveResult.Solution.FitsHeaders.CROTA2);
+            outputData.Add("fits_crpix1", _solveResult.Solution.FitsHeaders.CRPIX1);
+            outputData.Add("fits_crpix2", _solveResult.Solution.FitsHeaders.CRPIX2);
+            outputData.Add("fits_crval1", _solveResult.Solution.FitsHeaders.CRVAL1);
+            outputData.Add("fits_crval2", _solveResult.Solution.FitsHeaders.CRVAL2);
+
+            var json = JsonSerializer.Serialize(outputData, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+
+            File.WriteAllText(filename, json);
             
         }
 
@@ -421,16 +583,30 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solver is running...");
 
             if (step == SolverStep.SolveProcessStarted)
+            {
                 Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solving image...");
+                _solverStopwatch.Start();
+            }
 
             if (step == SolverStep.SolveProcessFinished)
+            {
+                _solverStopwatch.Stop();
                 Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Solver finished");
+            }
 
             if (step == SolverStep.StarDetectionStarted)
+            {
                 Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Detecting stars...");
+                _starDetectionStopwatch.Start();
+            }
 
-            if (step == SolverStep.StarDetectionStarted)
+
+            if (step == SolverStep.StarDetectionFinished)
+            {
+                _starDetectionStopwatch.Stop();
                 Dispatcher.UIThread.InvokeAsync(() => SolverStatusText = "Star detection finished");
+            }
+                
         }
 
         private EquatorialCoords ParseCoordsFromProfileRaDec(SolveProfile profile)
@@ -474,7 +650,27 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             return null;
         }
 
+        public async Task GenerateVisualizationImage()
+        {
+            var flags = VisualizationModes.None;
 
+            if (ToggleCrosshairVisualization)
+                flags |= VisualizationModes.Crosshair;
+
+            if (ToggleDetectedStarsVisualization)
+                flags |= VisualizationModes.DetectedStars;
+
+            if (ToggleDsoVisualization)
+                flags |= VisualizationModes.DeepSkyObjects;
+
+            if (ToggleGridVisualization)
+                flags |= VisualizationModes.Grid;
+
+            if (ToggleQuadsVisualization)
+                flags |= VisualizationModes.Quads;
+            
+            SolverImage = await _visualizer.BuildVisualization(_solverImageData.EditableImage, _solveResult, flags);
+        }
 
     }
 }

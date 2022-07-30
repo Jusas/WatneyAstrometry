@@ -18,6 +18,16 @@ namespace WatneyAstrometry.SolverVizTools.Models
         private int _starsDetected;
         private int _starsUsed;
 
+        private double _starDetectionDuration;
+        private double _solverDuration;
+        private double _fullDuration;
+        private int _matches;
+
+        /*              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Star detection duration (s)"
+                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Solver duration (s)"
+                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
+              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Full duration (s)"*/
         public string RaHms { get; set; }
         public double Ra
         {
@@ -73,6 +83,27 @@ namespace WatneyAstrometry.SolverVizTools.Models
         {
             get => _starsUsed;
             set => this.RaiseAndSetIfChanged(ref _starsUsed, value);
+        }
+
+        public double StarDetectionDuration
+        {
+            get => _starDetectionDuration;
+            set => this.RaiseAndSetIfChanged(ref _starDetectionDuration, value);
+        }
+        public double SolverDuration
+        {
+            get => _solverDuration;
+            set => this.RaiseAndSetIfChanged(ref _solverDuration, value);
+        }
+        public double FullDuration
+        {
+            get => _fullDuration;
+            set => this.RaiseAndSetIfChanged(ref _fullDuration, value);
+        }
+        public int Matches
+        {
+            get => _matches;
+            set => this.RaiseAndSetIfChanged(ref _matches, value);
         }
     }
 }

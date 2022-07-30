@@ -30,6 +30,7 @@
     <PackageReference Include="Projektanker.Icons.Avalonia" Version="5.1.0" />
     <PackageReference Include="Projektanker.Icons.Avalonia.FontAwesome" Version="5.1.0" />
     <PackageReference Include="Projektanker.Icons.Avalonia.MaterialDesign" Version="5.1.0" />
+    <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta15" />
     <PackageReference Include="XamlNameReferenceGenerator" Version="1.3.4" />
   </ItemGroup>
   <ItemGroup>
