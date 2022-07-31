@@ -104,6 +104,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _solverStatusText, value);
         }
 
+        private double _zoomLevel = 1;
+        public double ZoomLevel
+        {
+            get => _zoomLevel;
+            set => this.RaiseAndSetIfChanged(ref _zoomLevel, value);
+        }
+
         private static readonly IBrush NormalStatusTextColor = Brush.Parse("yellow");
         private static readonly IBrush SuccessStatusTextColor = Brush.Parse("lime");
         private static readonly IBrush FailedStatusTextColor = Brush.Parse("red");
@@ -259,6 +266,19 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             //PlaceholderImage = new Bitmap("z:\\firefox_61OAoUIBsW2.jpg");
             SolverImage = PlaceholderImage;
         }
+
+        public void ZoomIn()
+        {
+            if (_zoomLevel < 8)
+                ZoomLevel *= 2;
+        }
+
+        public void ZoomOut()
+        {
+            if (_zoomLevel > 0.25)
+                ZoomLevel /= 2;
+        }
+
 
         public async Task OpenImageViaDialog()
         {

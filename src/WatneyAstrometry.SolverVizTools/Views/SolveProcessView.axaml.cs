@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using Splat;
 using WatneyAstrometry.SolverVizTools.ViewModels;
 
@@ -86,6 +87,41 @@ namespace WatneyAstrometry.SolverVizTools.Views
                 log.Height *= 3;
             else
                 log.Height /= 3;
+        }
+
+
+        private IPointer _imagePanTrackedPointer;
+        private Point _imagePanStartingPos;
+        private void Image_OnPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (e.Pointer.IsPrimary)
+            {
+                _imagePanTrackedPointer = e.Pointer;
+                _imagePanStartingPos = e.GetPosition((IVisual)sender);
+            }
+        }
+
+        private void Image_OnPointerReleased(object sender, PointerReleasedEventArgs e)
+        {
+            _imagePanTrackedPointer = null;
+        }
+
+        private void Image_OnPointerMoved(object sender, PointerEventArgs e)
+        {
+            
+            if (e.Pointer == _imagePanTrackedPointer)
+            {
+                var scrollViewer = this.GetControl<ScrollViewer>("ImageScrollView");
+                var pos = e.GetPosition((IVisual)sender);
+                var delta = _imagePanStartingPos - pos;
+                e.Handled = true;
+                scrollViewer.Offset += new Vector(delta.X, delta.Y);
+            }
+        }
+
+        private void Image_OnPointerCaptureLost(object sender, PointerCaptureLostEventArgs e)
+        {
+            _imagePanTrackedPointer = null;
         }
     }
 }

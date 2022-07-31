@@ -33,6 +33,9 @@
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="4, 0, 4, 0" />
     </Style>
+    <Style Selector="Image#SolverImage">
+      <Setter Property="Cursor" Value="SizeAll"></Setter>
+    </Style>
   </UserControl.Styles>
   
     <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
@@ -41,7 +44,24 @@
           <StackPanel>
             <Border BorderThickness="2" BorderBrush="#222222">
               <Grid>
-                <Image Source="{Binding SolverImage}"></Image>
+                <ScrollViewer Name="ImageScrollView" Height="{Binding $self.Bounds.Width,
+                              Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=66}"
+                              HorizontalScrollBarVisibility="Auto"
+                              MaxHeight="{Binding $parent[Window].Bounds.Height,
+                              Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=70}">
+                  <Image Source="{Binding SolverImage}" Name="SolverImage"
+                         PointerCaptureLost="Image_OnPointerCaptureLost"
+                         PointerMoved="Image_OnPointerMoved"
+                         PointerPressed="Image_OnPointerPressed"
+                         PointerReleased="Image_OnPointerReleased">
+                    <Image.Width>
+                      <MultiBinding Converter="{x:Static converters:SizeConverters.Multiply}">
+                        <Binding Path="#ImageScrollView.Bounds.Width" />
+                        <Binding Path="ZoomLevel" />
+                      </MultiBinding>
+                    </Image.Width>
+                  </Image>
+                </ScrollViewer>
                 <TextBlock
                            Text="Click image button to open or drag &amp; drop image file here"
                            FontSize="24"
@@ -78,14 +98,6 @@
                            FontSize="30"
                            Foreground="yellow"
                 />
-                <TextBlock Text="{Binding ImageInfoLabel}"
-                           Margin="0,0,0,0"
-                           Padding="0,4,0,4"
-                           TextAlignment="Right"
-                           VerticalAlignment="Bottom"
-                           FontSize="12"
-                           Background="#0CFFFFFF"
-                />
                 
                 <!-- IMAGE TOOLBAR -->
                 <Border Padding="4" Background="#22FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Top">
@@ -96,12 +108,11 @@
                       <icons:Icon Value="mdi-folder-image" FontSize="18" />
                     </Button>
                     <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in"
-                            IsEnabled="{Binding ToolbarButtonsEnabled}"
-                            >
+                            Command="{Binding ZoomIn}">
                       <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
                     </Button>
                     <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out"
-                            IsEnabled="{Binding ToolbarButtonsEnabled}">
+                            Command="{Binding ZoomOut}">
                       <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
                     </Button>
                     <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw crosshairs"
@@ -138,6 +149,14 @@
                 </Border>
               </Grid>
             </Border>
+            <TextBlock Text="{Binding ImageInfoLabel}"
+                       Margin="0,0,0,0"
+                       Padding="0,4,0,4"
+                       TextAlignment="Center"
+                       VerticalAlignment="Bottom"
+                       FontSize="12"
+                       Background="#22FFFFFF"
+            />
             <TextBlock Text="{Binding SolverStatusText}"
                        Background="#22FFFFFF"
                        Margin="0,0,00,0"
