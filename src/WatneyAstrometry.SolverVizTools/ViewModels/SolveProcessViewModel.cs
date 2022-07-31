@@ -404,6 +404,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                             if (centerPos == null)
                                 throw new Exception(
                                     "FITS headers set as source for initial coordinate, but no initial coordinate was available");
+                            opts.MaxFieldRadiusDegrees = fits.Metadata.ViewSize.DiameterDeg * 0.5;
+                            opts.MinFieldRadiusDegrees = fits.Metadata.ViewSize.DiameterDeg * 0.5;
                             strategy = new NearbySearchStrategy(centerPos, opts);
                         }
                         else
