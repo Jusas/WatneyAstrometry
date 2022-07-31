@@ -130,7 +130,7 @@
                     </ToggleButton>
                     <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw Deep Sky Objects"
                                   IsChecked="{Binding ToggleDsoVisualization}"
-                                  Command="{Binding GenerateVisualizationImage}"
+                                  Command="{Binding ShowDeepSkyObjects}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-origin" />
                     </ToggleButton>
@@ -211,7 +211,7 @@
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Full duration (s)"
                                   Binding="{Binding FullDuration, Mode=OneWay, StringFormat={}{0:F2}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars detected"
-                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
+                                  Binding="{Binding StarsDetected, Mode=OneWay, StringFormat={}{0:F2}}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Stars used"
                                   Binding="{Binding StarsUsed, Mode=OneWay}"/>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Matches"

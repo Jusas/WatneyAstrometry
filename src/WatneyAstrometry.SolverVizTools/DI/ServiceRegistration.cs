@@ -24,7 +24,8 @@ namespace WatneyAstrometry.SolverVizTools.DI
             services.RegisterLazySingleton<ISolveSettingsManager>(() => new SolveSettingsManager());
             services.RegisterLazySingleton<IImageManager>(() => new ImageManager());
             services.RegisterLazySingleton<IVerboseMemoryLogger>(() => new VerboseMemoryLogger());
-            services.RegisterLazySingleton<IVisualizer>(() => new Visualizer());
+            services.RegisterLazySingleton<IVisualizer>(() => new Visualizer(resolver.GetService<IServiceProvider>()));
+            services.RegisterLazySingleton<IDsoDatabase>(() => new DsoDatabase());
         }
     }
 }

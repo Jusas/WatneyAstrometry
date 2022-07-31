@@ -182,6 +182,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         }
 
         private bool _toggleDsoVisualization;
+        private readonly IDsoDatabase _dsoDatabase;
+
         public bool ToggleDsoVisualization
         {
             get => _toggleDsoVisualization;
@@ -247,6 +249,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _settingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             _verboseLogger = serviceProvider.GetService<IVerboseMemoryLogger>();
             _visualizer = serviceProvider.GetService<IVisualizer>();
+            _dsoDatabase = serviceProvider.GetService<IDsoDatabase>();
             Initialize();
         }
         
@@ -648,6 +651,34 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             }
 
             return null;
+        }
+
+        public async Task ShowDeepSkyObjects()
+        {
+            if (!_dsoDatabase.IsLoaded)
+            {
+                if (!_dsoDatabase.HasDatabaseFileDownloaded)
+                {
+                    var downloadDialog = _viewProvider.Instantiate<DsoDatabaseDownloadViewModel>();
+                    downloadDialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                    var databaseFilename = await downloadDialog.ShowDialog<string>(OwnerWindow);
+                    if (databaseFilename != null)
+                    {
+                        await _dsoDatabase.Load(databaseFilename);
+                    }
+                    else
+                    {
+                        ToggleDsoVisualization = false;
+                        return;
+                    }
+                }
+                else
+                {
+                    await _dsoDatabase.Load();
+                }
+            }
+
+            await GenerateVisualizationImage();
         }
 
         public async Task GenerateVisualizationImage()

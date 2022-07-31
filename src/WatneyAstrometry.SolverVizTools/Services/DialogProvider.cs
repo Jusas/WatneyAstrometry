@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using MessageBox.Avalonia.DTO;
 using MessageBox.Avalonia.Enums;
 using Microsoft.CodeAnalysis;
 using WatneyAstrometry.SolverVizTools.Abstractions;
@@ -55,6 +56,23 @@ namespace WatneyAstrometry.SolverVizTools.Services
             await box.ShowDialog((owner.NativeWindow as Window)!);
         }
 
-        
+        public async Task<bool> ShowMessageBoxYesNo(IWindow owner, string title, string message, int? minHeight = null, int? minWidth = null)
+        {
+            var @params = new MessageBoxStandardParams();
+            @params.ButtonDefinitions = ButtonEnum.YesNo;
+            @params.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            @params.ContentTitle = title;
+            @params.ContentHeader = message;
+            if (minHeight != null)
+                @params.MinHeight = minHeight.Value;
+            if (minWidth != null)
+                @params.MinWidth = minWidth.Value;
+
+            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(@params);
+            
+            var result = await box.ShowDialog((owner.NativeWindow as Window)!);
+            return (result & ButtonResult.Yes) != 0;
+        }
+
     }
 }

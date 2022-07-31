@@ -21,3 +21,5 @@ benchmarking/*.ods
 benchmarking/*.csv
 benchmarking/results*
 todo.txt
+src/WatneyAstrometry.SolverVizTools/Data/
+src/WatneyAstrometry.SolverVizTools/todos.txt

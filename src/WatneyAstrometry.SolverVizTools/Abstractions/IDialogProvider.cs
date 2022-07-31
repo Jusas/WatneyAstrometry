@@ -12,4 +12,7 @@ public interface IDialogProvider
         string defaultExtension);
 
     Task ShowMessageBox(IWindow owner, string title, string message);
+
+    Task<bool> ShowMessageBoxYesNo(IWindow owner, string title, string message, int? minHeight = null,
+        int? minWidth = null);
 }

@@ -38,6 +38,10 @@ namespace WatneyAstrometry.SolverVizTools.DI
             RegisterViewModel<NewSolveProfileDialogViewModel, NewSolveProfileDialog>(() => 
                 new NewSolveProfileDialogViewModel(resolver.GetService<IServiceProvider>()));
 
+            RegisterViewModel<DsoDatabaseDownloadViewModel, DsoDatabaseDownloadDialog>(() =>
+                new DsoDatabaseDownloadViewModel(resolver.GetService<IServiceProvider>()));
+
+
             // These ones are not windows, but sub-views (UserControls)
 
             RegisterLazySingletonViewModel<SettingsPaneViewModel>(() =>
@@ -48,6 +52,7 @@ namespace WatneyAstrometry.SolverVizTools.DI
 
             RegisterLazySingletonViewModel<SolveProcessViewModel>(() =>
                 new SolveProcessViewModel(resolver.GetService<IServiceProvider>()));
+
             
         }
 
