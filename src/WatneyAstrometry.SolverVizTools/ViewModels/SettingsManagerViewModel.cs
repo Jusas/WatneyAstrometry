@@ -101,6 +101,19 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         public void SaveCurrentProfile()
         {
             _solveSettingsManager.SaveProfiles();
+
+            var (name, type) = (_selectedProfile.Name, _selectedProfile.ProfileType);
+            
+            RefreshSettingsPaneProfiles();
+
+            SelectedProfile = SolveProfiles.First(x => x.Name == name && x.ProfileType == type);
+        }
+
+        private void RefreshSettingsPaneProfiles()
+        {
+
+            var settingsPane = _serviceProvider.GetService<SettingsPaneViewModel>();
+            settingsPane?.RefreshProfiles();
         }
 
         public void DeleteCurrentProfile()
@@ -114,6 +127,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
                     CommandInfoText = $"Deleted profile '{profileName}'";
                     this.RaisePropertyChanged(nameof(CommandInfoText));
+
+                    RefreshSettingsPaneProfiles();
+                    SelectedProfile = SolveProfiles.First();
+
                 }
                 catch (SolveProfileException e)
                 {

@@ -71,7 +71,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
             });
         }
 
-        private void DrawQuads(Image<Rgba32> baseImage, SolveResult solveResult)
+        private void DrawMatchingQuads(Image<Rgba32> baseImage, SolveResult solveResult)
         {
             var matches = solveResult.GetDiagnosticsData().MatchInstances;
 
@@ -98,6 +98,33 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                 {
                     DrawQuadSymbolTo(context, font, quadCenter, match.ImageStarQuad, points, color,
                         $"{Math.Round(match.ScaleRatio, 1)} | {match.CatalogStarQuad.MidPoint.ToStringRounded(3)}");
+                });
+            }
+        }
+
+        private void DrawFormedQuads(Image<Rgba32> baseImage, SolveResult solveResult)
+        {
+            var quads = solveResult.GetDiagnosticsData().FormedImageStarQuads;
+
+            foreach (var quad in quads)
+            {
+                // With image quads we can draw lines between stars, and also a shape
+                // representing the ratios.
+
+                var points = new List<PointF>();
+                foreach (var star in quad.ImageStars)
+                {
+                    points.Add(new PointF((float)star.X, (float)star.Y));
+                }
+
+                var font = GetDefaultFont(GetQuadSymbolFontSize(solveResult));
+
+                points.Add(new PointF(points.First().X, points.First().Y));
+                var color = GenerateQuadColor((double)points.First().X, (double)points.First().Y);
+                
+                baseImage.Mutate(context =>
+                {
+                    context.DrawLines(_defaultDrawingOptions, color, 1.0f, points.ToArray());
                 });
             }
         }
@@ -226,34 +253,65 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
         }
 
 
+        private void StretchLevels(Image<Rgba32> baseImage)
+        {
+            baseImage.Mutate(Configuration.Default,
+                new HistogramTransformation<Rgba32>(Configuration.Default, baseImage, baseImage.Bounds()));
+        }
+
         public async Task<AvaloniaIImage> BuildVisualization(IImage sourceImage, SolveResult solveResult, VisualizationModes flags)
         {
-            var img = (Image<Rgba32>)sourceImage;
-            var targetImage = img.Clone();
 
-            if (flags.HasFlag(VisualizationModes.Grid))
-                DrawGridLines(targetImage, solveResult);
+            Avalonia.Media.Imaging.Bitmap avaloniaBitmap = null;
 
-            if (flags.HasFlag(VisualizationModes.DetectedStars))
-                DrawDetectedStars(targetImage, solveResult);
+            await Task.Run(() =>
+            {
+                var img = (Image<Rgba32>)sourceImage;
+                var targetImage = img.Clone();
 
-            if (flags.HasFlag(VisualizationModes.Quads))
-                DrawQuads(targetImage, solveResult);
+                if (flags.HasFlag(VisualizationModes.StretchLevels))
+                    StretchLevels(targetImage);
 
-            if (flags.HasFlag(VisualizationModes.Crosshair))
-                DrawCrosshair(targetImage);
+                if (flags.HasFlag(VisualizationModes.Grid))
+                    DrawGridLines(targetImage, solveResult);
 
-            if (flags.HasFlag(VisualizationModes.DeepSkyObjects))
-                DrawDeepSkyObjects(targetImage, solveResult);
+                if (flags.HasFlag(VisualizationModes.DetectedStars))
+                    DrawDetectedStars(targetImage, solveResult);
 
-            var avaloniaBitmap = ImageConversionUtils.ImageSharpToAvaloniaBitmap(targetImage);
-            targetImage.Dispose();
+                if (flags.HasFlag(VisualizationModes.FormedQuads))
+                    DrawFormedQuads(targetImage, solveResult);
+
+                if (flags.HasFlag(VisualizationModes.QuadMatches))
+                    DrawMatchingQuads(targetImage, solveResult);
+
+                if (flags.HasFlag(VisualizationModes.Crosshair))
+                    DrawCrosshair(targetImage);
+
+                if (flags.HasFlag(VisualizationModes.DeepSkyObjects))
+                    DrawDeepSkyObjects(targetImage, solveResult);
+
+                avaloniaBitmap = ImageConversionUtils.ImageSharpToAvaloniaBitmap(targetImage);
+                targetImage.Dispose();
+            });
+
+            
             return avaloniaBitmap;
         }
 
         private static Color GenerateQuadColor(EquatorialCoords location)
         {
             var symbolColorSeed = new Random((int)location.Ra * 1000 + (int)location.Dec * 1000);
+            var symbolColor = new Argb32(
+                (byte)symbolColorSeed.Next(40, 255),
+                (byte)symbolColorSeed.Next(40, 255),
+                (byte)symbolColorSeed.Next(40, 255),
+                255);
+            return symbolColor;
+        }
+
+        private static Color GenerateQuadColor(double x, double y)
+        {
+            var symbolColorSeed = new Random((int)x + (int)y);
             var symbolColor = new Argb32(
                 (byte)symbolColorSeed.Next(40, 255),
                 (byte)symbolColorSeed.Next(40, 255),

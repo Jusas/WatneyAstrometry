@@ -63,7 +63,18 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             SolveProfiles = _solveSettingsManager.GetProfiles(true, true);
             SelectedPresetProfile = SolveProfiles.First();
         }
-        
+
+        public void RefreshProfiles()
+        {
+            var (name, type) = (_selectedPresetProfile.Name, _selectedPresetProfile.ProfileType);
+
+            SolveProfiles = _solveSettingsManager.GetProfiles(true, true);
+            this.RaisePropertyChanged(nameof(SolveProfiles));
+
+            SelectedPresetProfile = SolveProfiles.FirstOrDefault(x => x.Name == name && x.ProfileType == type);
+            if (SelectedPresetProfile == null)
+                SelectedPresetProfile = SolveProfiles.First();
+        }
 
     }
 }

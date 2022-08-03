@@ -69,7 +69,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         }
 
         public bool IsSolving => SolveUiState == SolveUiState.Solving;
-        public bool ToolbarButtonsEnabled => SolveUiState > SolveUiState.Solving;
+        public bool ToolbarButtonsEnabled => SolveUiState > SolveUiState.Solving && !IsBusyVisualizing;
         public bool OpenImageButtonEnabled => SolveUiState != SolveUiState.Solving;
         public bool SolveButtonEnabled => SolveUiState > SolveUiState.Uninitialized && SolveUiState != SolveUiState.Solving;
 
@@ -97,18 +97,18 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _solverElapsedSeconds, value);
         }
 
+        private bool _isBusyVisualizing;
+        public bool IsBusyVisualizing
+        {
+            get => _isBusyVisualizing;
+            set => this.RaiseAndSetIfChanged(ref _isBusyVisualizing, value);
+        }
+
         private string _solverStatusText = "";
         public string SolverStatusText
         {
             get => _solverStatusText;
             set => this.RaiseAndSetIfChanged(ref _solverStatusText, value);
-        }
-
-        private double _zoomLevel = 1;
-        public double ZoomLevel
-        {
-            get => _zoomLevel;
-            set => this.RaiseAndSetIfChanged(ref _zoomLevel, value);
         }
 
         private static readonly IBrush NormalStatusTextColor = Brush.Parse("yellow");
@@ -181,11 +181,18 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _toggleDetectedStarsVisualization, value);
         }
 
-        private bool _toggleQuadsVisualization;
-        public bool ToggleQuadsVisualization
+        private bool _toggleMatchingQuadsVisualization;
+        public bool ToggleMatchingQuadsVisualization
         {
-            get => _toggleQuadsVisualization;
-            set => this.RaiseAndSetIfChanged(ref _toggleQuadsVisualization, value);
+            get => _toggleMatchingQuadsVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleMatchingQuadsVisualization, value);
+        }
+
+        private bool _toggleFormedQuadsVisualization;
+        public bool ToggleFormedQuadsVisualization
+        {
+            get => _toggleFormedQuadsVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleFormedQuadsVisualization, value);
         }
 
         private bool _toggleDsoVisualization;
@@ -195,6 +202,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         {
             get => _toggleDsoVisualization;
             set => this.RaiseAndSetIfChanged(ref _toggleDsoVisualization, value);
+        }
+
+        private bool _toggleStretchLevelsVisualization;
+        public bool ToggleStretchLevelsVisualization
+        {
+            get => _toggleStretchLevelsVisualization;
+            set => this.RaiseAndSetIfChanged(ref _toggleStretchLevelsVisualization, value);
         }
 
         private void RefreshStateDependentUiFlags()
@@ -213,7 +227,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         {
             ToggleCrosshairVisualization = false;
             ToggleDetectedStarsVisualization = false;
-            ToggleQuadsVisualization = false;
+            ToggleMatchingQuadsVisualization = false;
             ToggleGridVisualization = false;
             ToggleDsoVisualization = false;
         }
@@ -267,18 +281,11 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             SolverImage = PlaceholderImage;
         }
 
-        public void ZoomIn()
-        {
-            if (_zoomLevel < 8)
-                ZoomLevel *= 2;
-        }
 
-        public void ZoomOut()
+        public async Task StretchLevels()
         {
-            if (_zoomLevel > 0.25)
-                ZoomLevel /= 2;
+            await GenerateVisualizationImage();
         }
-
 
         public async Task OpenImageViaDialog()
         {
@@ -311,6 +318,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
                 ImageInfoLabel = $"{imageData.FileName} ({imageData.Width}x{imageData.Height})";
                 SolveUiState = SolveUiState.ImageLoaded;
+                SolutionGridModel = null;
                 ResetVisualizationToggles();
             }
             catch (Exception e)
@@ -328,7 +336,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             {
                 while (IsSolving && !token.IsCancellationRequested)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(33);
                     await Dispatcher.UIThread.InvokeAsync(() => SolverElapsedSeconds = $"{sw.Elapsed.TotalSeconds:F1}");
                 }
             });
@@ -677,6 +685,9 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task ShowDeepSkyObjects()
         {
+            IsBusyVisualizing = true;
+            RefreshStateDependentUiFlags();
+
             if (!_dsoDatabase.IsLoaded)
             {
                 if (!_dsoDatabase.HasDatabaseFileDownloaded)
@@ -706,6 +717,14 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         public async Task GenerateVisualizationImage()
         {
             var flags = VisualizationModes.None;
+            IsBusyVisualizing = true;
+            RefreshStateDependentUiFlags();
+
+            if (ToggleStretchLevelsVisualization)
+                flags |= VisualizationModes.StretchLevels;
+
+            if (ToggleFormedQuadsVisualization)
+                flags |= VisualizationModes.FormedQuads;
 
             if (ToggleCrosshairVisualization)
                 flags |= VisualizationModes.Crosshair;
@@ -719,10 +738,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             if (ToggleGridVisualization)
                 flags |= VisualizationModes.Grid;
 
-            if (ToggleQuadsVisualization)
-                flags |= VisualizationModes.Quads;
+            if (ToggleMatchingQuadsVisualization)
+                flags |= VisualizationModes.QuadMatches;
             
             SolverImage = await _visualizer.BuildVisualization(_solverImageData.EditableImage, _solveResult, flags);
+
+            IsBusyVisualizing = false;
+            RefreshStateDependentUiFlags();
         }
 
     }

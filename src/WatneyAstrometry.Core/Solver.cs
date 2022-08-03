@@ -351,7 +351,8 @@ namespace WatneyAstrometry.Core
                 DetectedStars = stars,
                 DetectedQuadDensity = countInFirstPass,
                 MatchInstances = null,
-                UsedStarCount = chosenDetectedStars.Count
+                UsedStarCount = chosenDetectedStars.Count,
+                FormedImageStarQuads = imageStarQuads
             };
 
             diagnosticsData.FoundUsingRunType = SolveRunType.SampledRun;

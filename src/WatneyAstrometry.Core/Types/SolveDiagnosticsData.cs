@@ -21,6 +21,8 @@ namespace WatneyAstrometry.Core.Types
         // Get the actual matches.
         public List<StarQuadMatch> MatchInstances { get; set; }
 
+        public ImageStarQuad[] FormedImageStarQuads { get; set; }
+
         // Get the detected stars.
         public IList<ImageStar> DetectedStars { get; set; }
 

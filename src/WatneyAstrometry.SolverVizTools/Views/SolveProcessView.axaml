@@ -8,7 +8,8 @@
              xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
-             x:Class="WatneyAstrometry.SolverVizTools.Views.SolveProcessView">
+             x:Class="WatneyAstrometry.SolverVizTools.Views.SolveProcessView"
+             >
 
   <Design.DataContext>
     <vm:SolveProcessViewModel/>
@@ -48,18 +49,20 @@
                               Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=66}"
                               HorizontalScrollBarVisibility="Auto"
                               MaxHeight="{Binding $parent[Window].Bounds.Height,
-                              Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=70}">
+                              Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=70}"
+                              ScrollChanged="ImageScrollView_OnScrollChanged">
                   <Image Source="{Binding SolverImage}" Name="SolverImage"
                          PointerCaptureLost="Image_OnPointerCaptureLost"
                          PointerMoved="Image_OnPointerMoved"
                          PointerPressed="Image_OnPointerPressed"
-                         PointerReleased="Image_OnPointerReleased">
-                    <Image.Width>
+                         PointerReleased="Image_OnPointerReleased"
+                         EffectiveViewportChanged="SolverImage_OnEffectiveViewportChanged">
+                    <!--<Image.Width>
                       <MultiBinding Converter="{x:Static converters:SizeConverters.Multiply}">
                         <Binding Path="#ImageScrollView.Bounds.Width" />
-                        <Binding Path="ZoomLevel" />
+                        <Binding Path="#SolveProcessView.ZoomLevel" />
                       </MultiBinding>
-                    </Image.Width>
+                    </Image.Width>-->
                   </Image>
                 </ScrollViewer>
                 <TextBlock
@@ -90,6 +93,12 @@
                            VerticalAlignment="Center"
                            FontSize="30"
                 />
+                <TextBlock Text="Generating visualization..."
+                           IsVisible="{Binding IsBusyVisualizing}"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="30"
+                />
                 <TextBlock Text="{Binding SolverElapsedSeconds}"
                            IsVisible="{Binding IsSolving}"
                            Margin="0,80,00,0"
@@ -108,13 +117,18 @@
                       <icons:Icon Value="mdi-folder-image" FontSize="18" />
                     </Button>
                     <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom in"
-                            Command="{Binding ZoomIn}">
+                            Click="ZoomIn_OnClick">
                       <icons:Icon Value="mdi-magnify-plus" FontSize="18" />
                     </Button>
                     <Button Classes="ImageToolbarButton" ToolTip.Tip="Zoom out"
-                            Command="{Binding ZoomOut}">
+                            Click="ZoomOut_OnClick">
                       <icons:Icon Value="mdi-magnify-minus" FontSize="18" />
                     </Button>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Stretch levels"
+                            Command="{Binding StretchLevels}"
+                            IsChecked="{Binding ToggleStretchLevelsVisualization}">
+                      <icons:Icon Value="mdi-chart-histogram" FontSize="18" />
+                    </ToggleButton>
                     <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw crosshairs"
                                   IsChecked="{Binding ToggleCrosshairVisualization}"
                                   Command="{Binding GenerateVisualizationImage}"
@@ -128,10 +142,16 @@
                       <icons:Icon Value="mdi-shimmer" />
                     </ToggleButton>
                     <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw detected quads"
-                                  IsChecked="{Binding ToggleQuadsVisualization}"
+                                  IsChecked="{Binding ToggleFormedQuadsVisualization}"
                                   Command="{Binding GenerateVisualizationImage}"
                                   IsEnabled="{Binding ToolbarButtonsEnabled}">
                       <icons:Icon Value="mdi-vector-square" />
+                    </ToggleButton>
+                    <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw match quads"
+                                  IsChecked="{Binding ToggleMatchingQuadsVisualization}"
+                                  Command="{Binding GenerateVisualizationImage}"
+                                  IsEnabled="{Binding ToolbarButtonsEnabled}">
+                      <icons:Icon Value="mdi-bullseye-arrow" />
                     </ToggleButton>
                     <ToggleButton Classes="ImageToolbarButton" ToolTip.Tip="Draw RA/Dec grid"
                                   IsChecked="{Binding ToggleGridVisualization}"

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml;
 using Avalonia.VisualTree;
 using Splat;
@@ -13,11 +14,22 @@ namespace WatneyAstrometry.SolverVizTools.Views
     public partial class SolveProcessView : UserControl
     {
         private bool _logExpanded = false;
+        public double ZoomLevel { get; set; } = 1;
+
+        private SolveProcessViewModel _viewModel => DataContext as SolveProcessViewModel;
 
         public SolveProcessView()
         {
             InitializeComponent();
             SetupDragAndDrop();
+            
+        }
+
+        private void SetImageControlSize()
+        {
+            var solverImage = this.GetControl<Image>("SolverImage");
+            var imageScrollView = this.GetControl<ScrollViewer>("ImageScrollView");
+            solverImage.Width = imageScrollView.Bounds.Width * ZoomLevel;
         }
 
         private void InitializeComponent()
@@ -46,8 +58,8 @@ namespace WatneyAstrometry.SolverVizTools.Views
                 var filenames = e.Data.GetFileNames();
                 var file = filenames.First();
 
-                var viewModel = Locator.Current.GetService<SolveProcessViewModel>();
-                viewModel.OpenImage(file);
+                //var viewModel = Locator.Current.GetService<SolveProcessViewModel>();
+                _viewModel.OpenImage(file);
             }
         }
 
@@ -122,6 +134,52 @@ namespace WatneyAstrometry.SolverVizTools.Views
         private void Image_OnPointerCaptureLost(object sender, PointerCaptureLostEventArgs e)
         {
             _imagePanTrackedPointer = null;
+        }
+
+        private void ZoomIn_OnClick(object sender, RoutedEventArgs e)
+        {
+            if(ZoomLevel < 4)
+                ZoomLevel *= 2;
+
+            SetImageControlSize();
+        }
+
+        private void ZoomOut_OnClick(object sender, RoutedEventArgs e)
+        {
+            if (ZoomLevel > 0.5)
+                ZoomLevel /= 2;
+
+            SetImageControlSize();
+        }
+
+        private void ImageScrollView_OnScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (e.ExtentDelta != Vector.Zero)
+            {
+                var scrollViewer = (ScrollViewer)sender;
+                var newExtents = scrollViewer.Extent;
+                var oldExtents = new Vector(scrollViewer.Extent.Width - e.ExtentDelta.X, scrollViewer.Extent.Height - e.ExtentDelta.Y);
+
+                if (oldExtents == Vector.Zero)
+                    return;
+
+                if (e.ViewportDelta != Vector.Zero)
+                    return;
+
+                var sign = e.ExtentDelta.X < 0 ? 0 : 1;
+
+                var scrollPos = scrollViewer.Offset;
+                var relativeScrollX = scrollPos.X / oldExtents.X;
+                var relativeScrollY = scrollPos.Y / oldExtents.Y;
+
+                var newScrollPos = new Vector(relativeScrollX * newExtents.Width + (scrollViewer.Viewport.Width * 0.5 * sign), relativeScrollY * newExtents.Height + (scrollViewer.Viewport.Height * 0.5 * sign));
+                scrollViewer.Offset = newScrollPos;
+            }
+        }
+
+        private void SolverImage_OnEffectiveViewportChanged(object sender, EffectiveViewportChangedEventArgs e)
+        {
+            SetImageControlSize();
         }
     }
 }

@@ -12,7 +12,7 @@
         Height="768"
         x:Class="WatneyAstrometry.SolverVizTools.Views.MainWindow"
         Icon="/Assets/wicon.ico"
-        Title="WatneyAstrometry Desktop">
+        Title="Watney Astrometry Desktop">
 
   <Window.Styles>
     <Style Selector="Button#DisplaySettingsPaneButton">
