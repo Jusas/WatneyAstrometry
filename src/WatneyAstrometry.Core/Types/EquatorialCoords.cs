@@ -138,10 +138,12 @@ namespace WatneyAstrometry.Core.Types
             var raRad = Conversions.Deg2Rad(Ra);
             var decRad = Conversions.Deg2Rad(Dec);
 
-            var starX = Math.Cos(decRad) * Math.Sin(raRad - centerRaRad) /
-                        (Math.Cos(centerDecRad) * Math.Cos(decRad) * Math.Cos(raRad - centerRaRad) + Math.Sin(centerDecRad) * Math.Sin(decRad));
+            var divider = (Math.Cos(centerDecRad) * Math.Cos(decRad) * Math.Cos(raRad - centerRaRad) +
+                           Math.Sin(centerDecRad) * Math.Sin(decRad));
+
+            var starX = Math.Cos(decRad) * Math.Sin(raRad - centerRaRad) / divider;
             var starY = (Math.Sin(centerDecRad) * Math.Cos(decRad) * Math.Cos(raRad - centerRaRad) - Math.Cos(centerDecRad) * Math.Sin(decRad)) /
-                        (Math.Cos(centerDecRad) * Math.Cos(decRad) * Math.Cos(raRad - centerRaRad) + Math.Sin(centerDecRad) * Math.Sin(decRad));
+                        divider;
 
             return (starX, starY);
         }

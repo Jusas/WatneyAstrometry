@@ -38,5 +38,7 @@ namespace WatneyAstrometry.Core.Types
         // Quad density per square deg
         public int DetectedQuadDensity { get; set; }
         
+        public int ImageWidth { get; set; }
+        public int ImageHeight { get; set; }
     }
 }

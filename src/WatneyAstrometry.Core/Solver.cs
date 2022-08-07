@@ -226,7 +226,9 @@ namespace WatneyAstrometry.Core
                     DiagnosticsData = new SolveDiagnosticsData()
                     {
                         DetectedQuadDensity = 0,
-                        DetectedStars = detectedStars
+                        DetectedStars = detectedStars,
+                        ImageWidth = image.Metadata.ImageWidth,
+                        ImageHeight = image.Metadata.ImageHeight
                     }
                 };
 
@@ -299,7 +301,9 @@ namespace WatneyAstrometry.Core
                     DiagnosticsData = new SolveDiagnosticsData()
                     {
                         DetectedQuadDensity = 0,
-                        DetectedStars = stars
+                        DetectedStars = stars,
+                        ImageWidth = imageDimensions.ImageWidth,
+                        ImageHeight = imageDimensions.ImageHeight
                     }
                 };
             }
@@ -352,7 +356,9 @@ namespace WatneyAstrometry.Core
                 DetectedQuadDensity = countInFirstPass,
                 MatchInstances = null,
                 UsedStarCount = chosenDetectedStars.Count,
-                FormedImageStarQuads = imageStarQuads
+                FormedImageStarQuads = imageStarQuads,
+                ImageWidth = imageDimensions.ImageWidth,
+                ImageHeight = imageDimensions.ImageHeight,
             };
 
             diagnosticsData.FoundUsingRunType = SolveRunType.SampledRun;

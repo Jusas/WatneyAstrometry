@@ -24,6 +24,8 @@ namespace WatneyAstrometry.Core.QuadDb
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
             new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
 
+        public string DatabaseDirectory { get; private set; }
+
         /// <summary>
         /// New instance of quad database.
         /// </summary>
@@ -45,6 +47,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
             if (!Directory.Exists(directoryPath))
                 throw new QuadDatabaseException($"Directory {directoryPath} does not exist, unable to load/use star database");
+
+            DatabaseDirectory = directoryPath;
 
             var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
             _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
