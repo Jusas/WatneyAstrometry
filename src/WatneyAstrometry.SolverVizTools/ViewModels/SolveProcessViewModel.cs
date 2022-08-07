@@ -14,6 +14,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using MessageBox.Avalonia.Enums;
 using ReactiveUI;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.Fits;
@@ -347,8 +348,25 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _cancellationTokenSource?.Cancel();
         }
 
+        private bool IsDatabaseAvailable()
+        {
+            var currentConfig = _settingsManager.GetWatneyConfiguration(false, false);
+            if (!currentConfig.IsValidQuadDatabasePath)
+                return false;
+            
+            return true;
+        }
+
         public async Task StartSolve()
         {
+
+            if (!IsDatabaseAvailable())
+            {
+                await _dialogProvider.ShowMessageBox(OwnerWindow, "Error",
+                    "Cannot start solve, quad database path is not configured. Check the Settings Manager.",
+                    DialogIcon.Error);
+                return;
+            }
 
             _solveResult = null;
             SolveUiState = SolveUiState.Solving;
@@ -370,6 +388,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
             try
             {
+
+                var currentConfig = _settingsManager.GetWatneyConfiguration(false, false);
                 _fullSolveProcessStopwatch.Start();
 
                 if (_solverInstance == null)
@@ -378,8 +398,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                     _solverInstance.OnSolveProgress += OnSolveProgress;
                 }
 
-                if (_quadDatabaseInstance == null)
+                if (_quadDatabaseInstance == null || _quadDatabaseInstance.DatabaseDirectory != currentConfig.QuadDatabasePath)
                 {
+                    _quadDatabaseInstance?.Dispose();
+
                     // Note: if the database location changes, we need to re-create the db instance todo
                     _quadDatabaseInstance = new CompactQuadDatabase();
                     _quadDatabaseInstance.UseDataSource(_settingsManager.GetWatneyConfiguration(false, false)
@@ -508,7 +530,15 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             {
                 _solveResult = null;
                 SolveUiState = SolveUiState.SolveCompleteFailure;
+                Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    SolverStatusText = "Error!";
+                    SolverStatusTextColor = FailedStatusTextColor;
+                });
                 _cancellationTokenSource.Cancel();
+                _verboseLogger.WriteError($"Solver failed due to an error: {e.Message}");
+                _verboseLogger.WriteError($"Stacktrace: {e.StackTrace}");
+                SolverLog = _verboseLogger.FullLog;
             }
 
             _fullSolveProcessStopwatch.Reset();

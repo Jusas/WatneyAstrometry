@@ -71,7 +71,7 @@ public class MockSolverSettingsManager : ISolveSettingsManager
     {
         return new WatneyConfiguration()
         {
-            QuadDatabasePath = @"C:\watney\db"
+            QuadDatabasePath = @"C:\temp"
         };
     }
 

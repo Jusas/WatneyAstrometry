@@ -6,8 +6,10 @@
              xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
+             xmlns:controls="clr-namespace:MessageBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsManagerView">
+             x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsManagerView"
+             Name="SettingManagerMainView">
 
   <Design.DataContext>
     <vm:SettingsManagerViewModel/>
@@ -158,13 +160,76 @@
 
       </StackPanel>
     </TabItem>
-    <TabItem Header="Watney configuration">
+    <TabItem Header="Watney configuration" IsSelected="True">
       <StackPanel Orientation="Vertical" Margin="0">
         <TextBlock Text="Quad database path:" Classes="FormItemLabel" />
         <StackPanel Orientation="Horizontal">
-          <TextBox Text="{Binding WatneyConfiguration.QuadDatabasePath}" MinWidth="300"></TextBox>
+          <TextBox Text="{Binding WatneyConfiguration.QuadDatabasePath}" MinWidth="300"
+                   PropertyChanged="QuadDatabasePathControl_OnPropertyChanged"/>
           <Button Margin="8,0,0,0"
                   Command="{Binding OpenBrowseWatneyDatabaseFolderDialog}">Browse...</Button>
+          <TextBlock Foreground="Red" FontWeight="Bold" Text="Select a valid, existing directory" VerticalAlignment="Center" 
+                     Margin="8,0,0,0"
+                     IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath,
+                     Converter={x:Static BoolConverters.Not}}"/>
+        </StackPanel>
+        <StackPanel Margin="0,16,0,0" HorizontalAlignment="Left" 
+                    IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath}">
+          <TextBlock Text="Quad database data sets:" />
+          <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,16,0,0">
+            <avalonia:Icon Value="mdi-information" FontSize="16" />
+            <TextBlock Text="Database files are downloaded from " Margin="8,0,0,0" FontSize="12"/>
+            <controls:Hyperlink Foreground="#569cd6" FontSize="12" Url="https://github.com/Jusas/WatneyAstrometry/releases">
+              https://github.com/Jusas/WatneyAstrometry/releases
+            </controls:Hyperlink>
+          </StackPanel>
+          <ListBox Margin="0, 16, 0, 0" MinWidth="500" Items="{Binding DatabaseDataSets}"
+                   Background="{Binding $parent[Window].Background}">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Background" Value="{Binding $parent[Window].Background}" />
+              </Style>
+              <Style Selector="ListBoxItem[IsSelected=True] /template/ ContentPresenter">
+                <Setter Property="Background" Value="{Binding $parent[Window].Background}" />
+              </Style>
+              <Style Selector="ListBoxItem[IsPointerOver=True] /template/ ContentPresenter">
+                <Setter Property="Background" Value="{Binding $parent[Window].Background}" />
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left">
+                  <Border Padding="6" Margin="0,0,0,0" IsVisible="{Binding IsDownloaded}" ToolTip.Tip="On disk">
+                    <avalonia:Icon Value="mdi-database-check" Margin="0,0,0,0" Foreground="#FF44DD44" FontSize="18" />
+                  </Border>
+                  <Border Padding="6" Margin="0,0,0,0" IsVisible="{Binding IsDownloading}" ToolTip.Tip="Download in progress">
+                    <avalonia:Icon Value="mdi-database-clock" Margin="0,0,0,0" Foreground="SkyBlue" FontSize="18" />
+                  </Border>
+                  <Button IsVisible="{Binding IsDownloadable}"
+                          Width="30"
+                          HorizontalContentAlignment="Center"
+                          Padding="4"
+                          ToolTip.Tip="Click to download and extract to the directory specified above"
+                          Command="{Binding $parent[UserControl].DataContext.DownloadDataSet}"
+                          CommandParameter="{Binding}">
+                    <avalonia:Icon Value="mdi-database-arrow-down" FontSize="18" Margin="0,0,0,0" Foreground="#569cd6" />
+                  </Button>
+                  <StackPanel Orientation="Vertical">
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding Description}" Foreground="White" FontSize="12" Height="18"
+                                 Margin="8,0,0,0"/>
+                      <TextBlock Text="{Binding Size}" Foreground="White" FontSize="12" Height="18"
+                                 Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <ProgressBar Value="{Binding DownloadProgress}" IsVisible="{Binding IsDownloading}"></ProgressBar>
+                  </StackPanel>
+                  <Button Content="Cancel" Margin="8,0,0,0" IsVisible="{Binding IsDownloading}"
+                          Command="{Binding $parent[UserControl].DataContext.CancelDownloadingDataSet}"
+                          CommandParameter="{Binding}"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
         </StackPanel>
       </StackPanel>
     </TabItem>

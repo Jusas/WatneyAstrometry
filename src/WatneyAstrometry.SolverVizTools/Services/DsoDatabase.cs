@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Models;
+using WatneyAstrometry.SolverVizTools.Utils;
 using FileStream = System.IO.FileStream;
 
 namespace WatneyAstrometry.SolverVizTools.Services
@@ -138,46 +139,51 @@ namespace WatneyAstrometry.SolverVizTools.Services
 
         public async Task<string> DownloadDatabase(Action<double> progressCallback, CancellationToken cancellationToken)
         {
-            using var httpClient = new HttpClient();
+            //using var httpClient = new HttpClient();
 
-            using var response = await httpClient.GetAsync(DsoDatabaseUrl, HttpCompletionOption.ResponseHeadersRead);
-            var contentLength = response.Content.Headers.ContentLength;
-            Directory.CreateDirectory(Path.GetDirectoryName(DatabaseFilePath));
+            //using var response = await httpClient.GetAsync(DsoDatabaseUrl, HttpCompletionOption.ResponseHeadersRead);
+            //var contentLength = response.Content.Headers.ContentLength;
+            //Directory.CreateDirectory(Path.GetDirectoryName(DatabaseFilePath));
 
-            using FileStream fileStream = new FileStream(DatabaseFilePath, FileMode.Create);
+            //using FileStream fileStream = new FileStream(DatabaseFilePath, FileMode.Create);
         
-            using var download = await response.Content.ReadAsStreamAsync();
+            //using var download = await response.Content.ReadAsStreamAsync();
 
-            if (!contentLength.HasValue)
-            {
-                progressCallback(0.0);
-                Task t = download.CopyToAsync(fileStream, cancellationToken);
-                await t;
-                if (t.IsCanceled)
-                {
-                    if(File.Exists(DatabaseFilePath))
-                        File.Delete(DatabaseFilePath);
+            //if (!contentLength.HasValue)
+            //{
+            //    progressCallback(0.0);
+            //    Task t = download.CopyToAsync(fileStream, cancellationToken);
+            //    await t;
+            //    if (t.IsCanceled)
+            //    {
+            //        if(File.Exists(DatabaseFilePath))
+            //            File.Delete(DatabaseFilePath);
 
-                    return null;
-                }
+            //        return null;
+            //    }
 
-                progressCallback(100.0);
-            }
-            else
-            {
-                var buf = new byte[81920];
-                var totalBytesRead = 0l;
-                var bytesRead = 0;
+            //    progressCallback(100.0);
+            //}
+            //else
+            //{
+            //    var buf = new byte[81920];
+            //    var totalBytesRead = 0l;
+            //    var bytesRead = 0;
 
-                while ((bytesRead = await download.ReadAsync(buf, 0, buf.Length, cancellationToken)) > 0)
-                {
-                    await fileStream.WriteAsync(buf, 0, bytesRead, cancellationToken);
-                    totalBytesRead += bytesRead;
-                    progressCallback((double)totalBytesRead / contentLength.Value * 100.0);
-                }
-            }
+            //    while ((bytesRead = await download.ReadAsync(buf, 0, buf.Length, cancellationToken)) > 0)
+            //    {
+            //        await fileStream.WriteAsync(buf, 0, bytesRead, cancellationToken);
+            //        totalBytesRead += bytesRead;
+            //        progressCallback((double)totalBytesRead / contentLength.Value * 100.0);
+            //    }
+            //}
 
-            return DatabaseFilePath;
+            //return DatabaseFilePath;
+
+            var downloadedFile = await DownloadUtils.DownloadWithProgressReporting(DsoDatabaseUrl, ProgramEnvironment.ApplicationDataFolder,
+                "dso.csv", true, (percent, bytes) => progressCallback(percent), cancellationToken);
+
+            return downloadedFile.FullName;
         }
     }
 }

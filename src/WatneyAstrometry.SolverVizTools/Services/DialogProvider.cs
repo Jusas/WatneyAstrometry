@@ -50,9 +50,16 @@ namespace WatneyAstrometry.SolverVizTools.Services
             return filename;
         }
 
-        public async Task ShowMessageBox(IWindow owner, string title, string message)
+        public async Task ShowMessageBox(IWindow owner, string title, string message, DialogIcon icon = DialogIcon.None)
         {
-            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok);
+            var boxIcon = icon switch
+            {
+                DialogIcon.None => Icon.None,
+                DialogIcon.Info => Icon.Info,
+                DialogIcon.Error => Icon.Error
+            };
+
+            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok, boxIcon);
             await box.ShowDialog((owner.NativeWindow as Window)!);
         }
 

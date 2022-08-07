@@ -26,6 +26,8 @@ namespace WatneyAstrometry.SolverVizTools.DI
             services.RegisterLazySingleton<IVerboseMemoryLogger>(() => new VerboseMemoryLogger());
             services.RegisterLazySingleton<IVisualizer>(() => new Visualizer(resolver.GetService<IServiceProvider>()));
             services.RegisterLazySingleton<IDsoDatabase>(() => new DsoDatabase());
+            services.RegisterLazySingleton<IQuadDatabaseDownloadService>(() => new QuadDatabaseDownloadService());
+
         }
     }
 }

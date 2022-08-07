@@ -1,24 +1,30 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Exceptions;
 using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Services;
+using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.ViewModels
 {
 
     public class SettingsManagerViewModel : ViewModelBase
     {
+        
         private readonly IServiceProvider _serviceProvider;
 
 
@@ -45,11 +51,21 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             InputSource.Manual
         };
 
-        public WatneyConfiguration WatneyConfiguration { get; private set; }
+        public ObservableCollection<QuadDatabaseDataSet> DatabaseDataSets { get; set; }
+
+        private WatneyConfiguration _watneyConfiguration;
+        public WatneyConfiguration WatneyConfiguration
+        {
+            get => _watneyConfiguration;
+            set => this.RaiseAndSetIfChanged(ref _watneyConfiguration, value);
+        }
 
         private readonly ISolveSettingsManager _solveSettingsManager;
         private readonly IViewProvider _viewProvider;
         private readonly IDialogProvider _dialogProvider;
+        private readonly IQuadDatabaseDownloadService _quadDatabaseDownloadService;
+
+        private Dictionary<QuadDatabaseDataSet, CancellationTokenSource> _downloadCancellationTokenSources = new();
 
         /// <summary>
         /// For designer only.
@@ -57,7 +73,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         public SettingsManagerViewModel()
         {
             _solveSettingsManager = new MockSolverSettingsManager();
+            _quadDatabaseDownloadService = new QuadDatabaseDownloadService();
             PopulateInitialData();
+
+            
         }
 
         public SettingsManagerViewModel(IServiceProvider serviceProvider)
@@ -66,7 +85,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _solveSettingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             _viewProvider = serviceProvider.GetService<IViewProvider>();
             _dialogProvider = serviceProvider.GetService<IDialogProvider>();
+            _quadDatabaseDownloadService = serviceProvider.GetService<IQuadDatabaseDownloadService>();
             PopulateInitialData();
+
+            this.WhenAnyValue(x => x.WatneyConfiguration.QuadDatabasePath)
+                .Throttle(TimeSpan.FromMilliseconds(200))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(s => RefreshQuadDatabaseInfo(s));
         }
 
         private void PopulateInitialData()
@@ -74,6 +99,10 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             SolveProfiles = _solveSettingsManager.GetProfiles(true, false);
             WatneyConfiguration = _solveSettingsManager.GetWatneyConfiguration(true, false);
             SelectedProfile = SolveProfiles.First();
+            _quadDatabaseDownloadService.SetDatabaseDirectory(WatneyConfiguration.QuadDatabasePath);
+            DatabaseDataSets =
+                new ObservableCollection<QuadDatabaseDataSet>(_quadDatabaseDownloadService
+                    .DownloadableQuadDatabaseDataSets);
         }
 
         public async Task OpenNewProfileDialog()
@@ -94,9 +123,17 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 WatneyConfiguration.QuadDatabasePath = folder;
                 this.RaisePropertyChanged(nameof(WatneyConfiguration));
                 _solveSettingsManager.SaveWatneyConfiguration();
+                _quadDatabaseDownloadService.SetDatabaseDirectory(folder);
             }
         }
-        
+
+        private void RefreshQuadDatabaseInfo(string path)
+        {
+            _quadDatabaseDownloadService.SetDatabaseDirectory(path);
+            
+        }
+
+
 
         public void SaveCurrentProfile()
         {
@@ -138,6 +175,39 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                     this.RaisePropertyChanged(nameof(CommandInfoText));
                 }
             }
+        }
+
+        public async Task DownloadDataSet(QuadDatabaseDataSet dataSet)
+        {
+            // Skip possible double download initiations
+            if (_downloadCancellationTokenSources.ContainsKey(dataSet))
+                return;
+
+            var cts = new CancellationTokenSource();
+            _downloadCancellationTokenSources[dataSet] = cts;
+
+            if (WatneyConfiguration.QuadDatabasePath != _quadDatabaseDownloadService.DatabaseDir)
+                _quadDatabaseDownloadService.SetDatabaseDirectory(WatneyConfiguration.QuadDatabasePath);
+
+            
+            try
+            {
+                await _quadDatabaseDownloadService.DownloadDataSet(dataSet, cts.Token);
+            }
+            catch (Exception e)
+            {
+                await _dialogProvider.ShowMessageBox(OwnerWindow, "Error", e.Message, DialogIcon.Error);
+            }
+
+            _downloadCancellationTokenSources.Remove(dataSet);
+
+
+        }
+
+        public async Task CancelDownloadingDataSet(QuadDatabaseDataSet dataSet)
+        {
+            _downloadCancellationTokenSources[dataSet].Cancel();
+            _downloadCancellationTokenSources.Remove(dataSet);
         }
 
     }

@@ -1,4 +1,6 @@
-﻿using ReactiveUI;
+﻿using System.IO;
+using System.Text.Json.Serialization;
+using ReactiveUI;
 
 namespace WatneyAstrometry.SolverVizTools.Models;
 
@@ -10,5 +12,11 @@ public class WatneyConfiguration : ReactiveObject
     {
         get => _quadDatabasePath;
         set => this.RaiseAndSetIfChanged(ref _quadDatabasePath, value);
+    }
+
+    [JsonIgnore]
+    public bool IsValidQuadDatabasePath
+    {
+        get => Directory.Exists(_quadDatabasePath);
     }
 }

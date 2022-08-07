@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.ViewModels;
@@ -25,6 +26,12 @@ namespace WatneyAstrometry.SolverVizTools.Views
         {
             //var n = nameof(_viewModel.SelectedProfile);
             //_viewModel.RaisePropertyChanged(nameof(_viewModel.SelectedProfile));
+        }
+        
+        private void QuadDatabasePathControl_OnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
+        {
+            if(e.Property.Name == "Text")
+                _viewModel.WatneyConfiguration.RaisePropertyChanged(nameof(_viewModel.WatneyConfiguration.IsValidQuadDatabasePath));
         }
     }
 }
