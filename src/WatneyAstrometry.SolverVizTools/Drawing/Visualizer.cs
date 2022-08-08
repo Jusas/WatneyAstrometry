@@ -185,13 +185,18 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                 mainRaInterval = 1;
                 mainDecInterval = 1;
             }
-            else
+            else if (solution.Radius > 0.5)
             {
                 mainRaInterval = 0.5;
                 mainDecInterval = 0.5;
             }
+            else
+            {
+                mainRaInterval = 0.25;
+                mainDecInterval = 0.25;
+            }
 
-            var interpolationPoints = 3;
+            var interpolationPoints = 5;
             var decDelta = mainDecInterval / (interpolationPoints + 1);
             var raDelta = mainRaInterval / (interpolationPoints + 1);
 
@@ -276,8 +281,40 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
             List<PointF[]> raLinesToDraw = new List<PointF[]>();
             List<PointF[]> decLinesToDraw = new List<PointF[]>();
 
+            var lineThickness = MathF.Round(MathF.Max(1.0f, baseImage.Width / 1000.0f));
+            var labelFontSize = MathF.Round(MathF.Max(12.0f, 0.013f * baseImage.Width));
+            var raColor = Color.FromRgba(135, 206, 235, 128);
+            var decColor = Color.FromRgba(50, 192, 122, 128);
+
+            var edges = new List<PointF[]>()
+            {
+                new PointF[]
+                {
+                    new PointF(0, 0),
+                    new PointF(baseImage.Width-1, 0)
+                },
+                new PointF[]
+                {
+                    new PointF(0, baseImage.Height-1),
+                    new PointF(baseImage.Width-1, baseImage.Height-1)
+                },
+                new PointF[]
+                {
+                    new PointF(0, 0),
+                    new PointF(0, baseImage.Height-1)
+                },
+                new PointF[]
+                {
+                    new PointF(baseImage.Width-1, 0),
+                    new PointF(baseImage.Width-1, baseImage.Height-1)
+                }
+            };
+
             baseImage.Mutate(context =>
             {
+                var raValues = raLines.Keys.ToArray();
+                var decValues = decLines.Keys.ToArray();
+
                 foreach (var line in raLines)
                 {
                     raLinesToDraw.Add(line.Value.Select(x =>
@@ -295,133 +332,167 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                         return new PointF(xy.x, xy.y);
                     }).ToArray());
                 }
+                
 
-                foreach(var l in decLinesToDraw)
-                    context.DrawLines(_defaultDrawingOptions, Color.FromRgba(135, 206, 235, 128), 1.0f, l);
+                for(var d = 0; d < decLinesToDraw.Count; d++)
+                {
+                    var l = decLinesToDraw[d];
+                    var decValue = decValues[d];
 
+                    context.DrawLines(_defaultDrawingOptions, decColor, lineThickness, l);
+
+                    // Draw labels at the edges
+                    var pt1 = l.First();
+                    for (var i = 1; i < l.Length; i++)
+                    {
+                        var pt2 = l[i];
+                        foreach (var edge in edges)
+                        {
+                            var intersection = LineIntersection(edge[0], edge[1], pt1, pt2);
+                            if (intersection != null &&
+                                IsEdgeIntersection(intersection.Value, pt1, pt2, baseImage.Width, baseImage.Height))
+                            {
+                                var text = $"{decValue:F2}°";
+                                var textDrawPt = FitLabelInside(intersection.Value, text, labelFontSize,
+                                    baseImage.Width, baseImage.Height);
+                                context.DrawText(text, GetDefaultFont((int)labelFontSize), decColor, textDrawPt);
+                            }
+                        }
+
+
+                        pt1 = l[i];
+                    }
+                }
+
+                for (var r = 0; r < raLinesToDraw.Count; r++)
+                {
+                    var l = raLinesToDraw[r];
+                    var raValue = raValues[r];
+
+                    context.DrawLines(_defaultDrawingOptions, raColor, lineThickness, l);
+
+                    // Draw labels at the edges
+                    var pt1 = l.First();
+                    for (var i = 1; i < l.Length; i++)
+                    {
+                        var pt2 = l[i];
+                        foreach (var edge in edges)
+                        {
+                            var intersection = LineIntersection(edge[0], edge[1], pt1, pt2);
+                            if (intersection != null &&
+                                IsEdgeIntersection(intersection.Value, pt1, pt2, baseImage.Width, baseImage.Height))
+                            {
+                                var text = $"{raValue:F2}°";
+                                var textDrawPt = FitLabelInside(intersection.Value, text, labelFontSize,
+                                    baseImage.Width, baseImage.Height);
+                                context.DrawText(text, GetDefaultFont((int)labelFontSize), raColor, textDrawPt);
+                            }
+                        }
+
+
+                        pt1 = l[i];
+                    }
+                }
                 foreach (var l in raLinesToDraw)
-                    context.DrawLines(_defaultDrawingOptions, Color.FromRgba(135, 206, 235, 128), 1.0f, l);
+                {
+                    context.DrawLines(_defaultDrawingOptions, Color.FromRgba(135, 206, 235, 128), lineThickness, l);
+                }
+
             });
 
         }
 
-        private void DrawGridLinesOld(Image<Rgba32> baseImage, SolveResult solveResult)
+        private PointF FitLabelInside(PointF pt, string text, float fontSize, int width, int height)
         {
-            try
+            var neededHeightSpace = fontSize * 1.25f;
+            var neededWidthSpace = fontSize * 0.55f * text.Length;
+
+            var fitPt = new PointF(pt.X, pt.Y);
+
+            if (width - pt.X < neededWidthSpace)
+                fitPt.X = pt.X - neededWidthSpace;
+
+            if (height - pt.Y < neededHeightSpace)
+                fitPt.Y = pt.Y - neededHeightSpace;
+
+            fitPt.X += 4;
+            fitPt.Y += 4;
+
+            return fitPt;
+
+        }
+
+        private bool IsEdgeIntersection(PointF intersectPt, PointF pt1, PointF pt2, int width, int height)
+        {
+            int ipX = (int)Math.Round(intersectPt.X);
+            int ipY = (int)Math.Round(intersectPt.Y);
+
+            var pt1IsInside = pt1.X >= 0 && pt1.X < width && pt1.Y >= 0 && pt1.Y < height;
+            var pt2IsInside = pt2.X >= 0 && pt2.X < width && pt2.Y >= 0 && pt2.Y < height;
+            
+            if (pt1IsInside && pt2IsInside)
+                return false;
+
+            if (!pt1IsInside && !pt2IsInside)
+                return false;
+
+            if ((ipX == 0 || ipX == width-1) && ipY >= 0 && ipY < height)
             {
-                var gridStep = solveResult.Solution.Radius / 5;
-                var c = solveResult.Solution.PlateCenter;
 
-                for (int i = -6; i <= 6; i++)
+                if (ipX == 0)
                 {
-                    var dec = c.Dec - (i * gridStep);
-                    var ra = c.Ra;
-
-
+                    if (pt1.X > 0 && pt2.X > 0)
+                        return false;
                 }
 
-                var lines = new List<PointF[]>();
-                var center = solveResult.Solution.PlateCenter;
-
-                // TODO determine how many lines need to be drawn by drawing until we fully reach out of bounds
-                // TODO draw text (ra, dec) to the edges
-
-                baseImage.Mutate(context =>
+                if (ipX == width-1)
                 {
-                    var pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(0.0, 89.9999));
-                    context.DrawText("P", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
+                    if (pt1.X < width && pt2.X < width)
+                        return false;
+                }
 
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(0.0, 89.5));
-                    context.DrawText("0", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(30.0, 89.5));
-                    context.DrawText("30", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(60.0, 89.5));
-                    context.DrawText("60", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(90.0, 89.5));
-                    context.DrawText("90", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(120.0, 89.5));
-                    context.DrawText("120", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(150.0, 89.5));
-                    context.DrawText("150", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(180.0, 89.5));
-                    context.DrawText("180", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(210.0, 89.5));
-                    context.DrawText("210", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(240.0, 89.5));
-                    context.DrawText("240", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(270.0, 89.5));
-                    context.DrawText("270", GetDefaultFont(12), Color.Lime, new PointF(pos.x, pos.y));
-
-
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(0.0, 89));
-                    context.DrawText("0", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(30.0, 89));
-                    context.DrawText("30", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(60.0, 89));
-                    context.DrawText("60", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(90.0, 89));
-                    context.DrawText("90", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(120.0, 89));
-                    context.DrawText("120", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(150.0, 89));
-                    context.DrawText("150", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(180.0, 89));
-                    context.DrawText("180", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(210.0, 89));
-                    context.DrawText("210", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(240.0, 89));
-                    context.DrawText("240", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-
-                    pos = solveResult.Solution.EquatorialCoordsToPixel(new EquatorialCoords(270.0, 89));
-                    context.DrawText("270", GetDefaultFont(12), Color.Green, new PointF(pos.x, pos.y));
-                });
-
-                baseImage.Mutate(context =>
-                {
-                    var xStep = baseImage.Width / 10;
-                    var yStep = baseImage.Height / 10;
-
-                    for (var x = 0; x < 10; x++)
-                    {
-                        for (var y = 0; y < 10; y++)
-                        {
-                            var pos = new PointF(x * xStep, y * yStep);
-                            var eq = solveResult.Solution.PixelToEquatorialCoords((int)pos.X, (int)pos.Y);
-                            context.DrawText($"{eq.Ra:F2}, {eq.Dec:F2}", GetDefaultFont(12), Color.SkyBlue, pos);
-                        }
-                    }
-                });
-                
-
-                baseImage.Mutate(context =>
-                {
-                    foreach (var line in lines)
-                        context.DrawLines(_defaultDrawingOptions, Color.SkyBlue, 2.0f, line);
-                });
+                return true;
             }
-            catch (Exception e)
+
+
+            if ((ipY == 0 || ipY == height-1) && ipX >= 0 && ipX < width)
             {
+
+                if (ipY == 0)
+                {
+                    if (pt1.Y > 0 && pt2.Y > 0)
+                        return false;
+                }
+
+                if (ipY == height-1)
+                {
+                    if (pt1.Y < height && pt2.Y < height)
+                        return false;
+                }
+
+                return true;
             }
-            
+
+            return false;
         }
+
+        private PointF? LineIntersection(PointF s1, PointF e1, PointF s2, PointF e2)
+        {
+            float a1 = e1.Y - s1.Y;
+            float b1 = s1.X - e1.X;
+            float c1 = a1 * s1.X + b1 * s1.Y;
+
+            float a2 = e2.Y - s2.Y;
+            float b2 = s2.X - e2.X;
+            float c2 = a2 * s2.X + b2 * s2.Y;
+
+            float delta = a1 * b2 - a2 * b1;
+
+            // If lines are parallel, the result will be null.
+            return delta == 0 ? null
+                : new PointF((b2 * c1 - b1 * c2) / delta, (a1 * c2 - a2 * c1) / delta);
+        }
+        
 
         private void DrawDeepSkyObjects(Image<Rgba32> baseImage, SolveResult solveResult)
         {
@@ -441,18 +512,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                     {
                         var dsoPosition = solveResult.Solution.EquatorialCoordsToPixel(dso.Coords);
                         float dsoRadius = 1;
-                        float dsoWidth = 1;
-                        float dsoHeight = 1;
-                        bool drawRotatedEllipse = false;
 
-                        //if(dso.Size2 == 0)
-                        //    dsoRadius = (float)Math.Max(1, dso.Size1); // if size2 == 0, then size1 is radius
-                        //else
-                        //{
-                        //    dsoWidth = (float)dso.Size1; // else size is two diameters
-                        //    dsoHeight = (float)dso.Size2;
-                        //    drawRotatedEllipse = true;
-                        //}
 
                         dsoRadius = (float)Math.Max(dso.Size1, dso.Size2);
                         if (dso.Size2 > 0)
@@ -462,34 +522,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                             (float)dsoPosition.y,
                             dsoRadius / (float)solveResult.Solution.PixelScale);
                         context.Draw(Color.Lime, 2.0f, ellipse);
-
-                        //if (!drawRotatedEllipse)
-                        //{
-                        //    var ellipse = new EllipsePolygon((float)dsoPosition.x,
-                        //        (float)dsoPosition.y,
-                        //        dsoRadius / (float)solveResult.Solution.PixelScale);
-                        //    context.Draw(Color.Lime, 2.0f, ellipse);
-                        //}
-                        //else
-                        //{
-                        //    var ellipse = new EllipsePolygon((float)dsoPosition.x,
-                        //        (float)dsoPosition.y,
-                        //        dsoWidth / (float)solveResult.Solution.PixelScale,
-                        //        dsoHeight / (float)solveResult.Solution.PixelScale);
-
-                        //    var dsoCenter = new Vector2(dsoPosition.x, dsoPosition.y);
-                        //    var transformedEllipse = ellipse
-                        //        .Transform(Matrix3x2.CreateRotation(
-                        //            (float)Conversions.Deg2Rad(solveResult.Solution.Orientation), dsoCenter))
-                        //        .Transform(Matrix3x2.CreateRotation(
-                        //            (float)Conversions.Deg2Rad(dso.Angle), dsoCenter));
-
-                        //    if (solveResult.Solution.Parity == Parity.Flipped)
-                        //        transformedEllipse = transformedEllipse.Transform(Matrix3x2.CreateScale(-1, 1, dsoCenter));
-
-                        //    context.Draw(Color.Lime, 2.0f, transformedEllipse);
-                        //}
-
+                        
                         var glyphs = TextBuilder.GenerateGlyphs(dso.DisplayName, new TextOptions(font)
                         {
                             Origin = new PointF(dsoPosition.x, dsoPosition.y) + new PointF(4.0f, 4.0f)
@@ -659,9 +692,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
             
             if (starPoints != null)
                 context.DrawLines(_defaultDrawingOptions, color, 1.0f, starPoints.ToArray());
-
-            //var glyphs = TextBuilder.GenerateGlyphs(text, new PointF(quadCenter.X, quadCenter.Y) + new PointF(4.0f, 4.0f),
-            //    new RendererOptions(font, 72));
+            
             var glyphs = TextBuilder.GenerateGlyphs(text, new TextOptions(font)
             {
                 Origin = new PointF(quadCenter.X, quadCenter.Y) + new PointF(4.0f, 4.0f)
