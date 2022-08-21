@@ -13,13 +13,16 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    # Needs windows, because .NET compilation in Linux will result in a console
+    # window to spawn when running the program in Windows.
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     
     - name: Set build vars
       id: buildvars
+      shell: bash
       run: |
         echo "::set-output name=version_string::$(echo '${{ github.ref_name }}' | sed 's@desktop-v@@')"
         echo "::set-output name=builddate::$(date +'%Y-%m-%d')"
@@ -32,6 +35,7 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
+      shell: bash
       run: | 
         for f in builds/desktop/notices/*
         do 
@@ -40,10 +44,12 @@ jobs:
         done
       
     - name: Build all architectures DesktopApp
+      shell: bash
       run: |
         for a in $OSARCHS_ALL
         do
           dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true -p:PublishSingleFile=true -o "bin-desktop-$a/" src/WatneyAstrometry.SolverVizTools/WatneyAstrometry.SolverVizTools.csproj
+          rm -f bin-desktop-$a/*.xml
           cp builds/desktop/notices/* bin-desktop-$a
           rm -f bin-desktop-$a/*BLEEDING*          
         done        
@@ -53,16 +59,24 @@ jobs:
       uses: montudor/action-zip@v1
 
     - name: Zip windows binaries for DesktopApp
+      shell: pwsh
       run: |
-        for a in $OSARCHS_WIN
-        do
-          [ -d "watney-desktop" ] && rm -rf watney-desktop
-          mv bin-desktop-$a watney-desktop
-          rm -f watney-desktop/*.xml
-          zip -r watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip watney-desktop/
-        done
+        $winArchs = $env:OSARCHS_WIN.Split(" ");
+        $currentDir = (Get-Location).Path;
+        for($a in $winArchs) {
+          $workDir = [System.IO.Path]::Combine($currentDir, "watney-desktop");
+          $binDir = [System.IO.Path]::Combine($currentDir, "bin-desktop-$a");
+          if (Test-Path $workDir) {
+            [System.IO.Directory]::Delete($workDir, $True);
+          }
+          [System.IO.Directory]::Move($binDir, $workDir);
+          $destinationPath = [System.IO.Path]::Combine($workDir, "watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip");
+          Compress-Archive -Path $workDir -DestinationPath $destinationPath -CompressionLevel Optimal;
+        }
+      
       
     - name: Tar linux and osx binaries for DesktopApp
+      shell: bash
       run: | 
         for a in $OSARCHS_OTHER
         do
