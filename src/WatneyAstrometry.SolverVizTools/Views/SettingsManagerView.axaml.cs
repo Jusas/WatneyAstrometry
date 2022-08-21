@@ -21,12 +21,6 @@ namespace WatneyAstrometry.SolverVizTools.Views
         {
             AvaloniaXamlLoader.Load(this);
         }
-
-        private void OnComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            //var n = nameof(_viewModel.SelectedProfile);
-            //_viewModel.RaisePropertyChanged(nameof(_viewModel.SelectedProfile));
-        }
         
         private void QuadDatabasePathControl_OnPropertyChanged(object sender, AvaloniaPropertyChangedEventArgs e)
         {

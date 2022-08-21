@@ -5,7 +5,7 @@
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
              xmlns:viewModels="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="1500"
+             mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="1500"
              x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsPaneView">
 
     <Design.DataContext>
@@ -46,6 +46,11 @@
         <TextBlock Classes="FormItemLabel">Data source:</TextBlock>
           <ComboBox MinWidth="220" Items="{Binding NearbyInputSources}"
                     SelectedItem="{Binding SelectedPresetProfile.NearbyOptions.InputSource}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Converter={x:Static converters:EnumConverters.EnumDescription}}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
           </ComboBox>
       </StackPanel>
       <StackPanel Orientation="Vertical" IsVisible="{Binding SelectedPresetProfile.NearbyOptions.InputSource,
@@ -60,12 +65,68 @@
               <TextBox Text="{Binding SelectedPresetProfile.NearbyOptions.Dec}" />
           </StackPanel>
       </StackPanel>
-      <StackPanel Orientation="Vertical" IsVisible="{Binding SelectedPresetProfile.NearbyOptions.InputSource,
+      <!--<StackPanel Orientation="Vertical" IsVisible="{Binding SelectedPresetProfile.NearbyOptions.InputSource,
                  Converter={x:Static converters:EnumConverters.ValueEquals},
                  ConverterParameter={x:Static profile:InputSource.Manual}}">
         <TextBlock Classes="FormItemLabel">Field radius (deg):</TextBlock>
-          <TextBox Text="{Binding SelectedPresetProfile.NearbyOptions.FieldRadius}" />
-      </StackPanel>
+        <TextBox Text="{Binding SelectedPresetProfile.NearbyOptions.FieldRadius}" />
+      </StackPanel>-->
+
+      <WrapPanel Orientation="Horizontal" >
+        <StackPanel Orientation="Vertical"
+                    IsVisible="{Binding SelectedPresetProfile.NearbyOptions.InputSource,
+                         Converter={x:Static converters:EnumConverters.ValueEquals},
+                         ConverterParameter={x:Static profile:InputSource.Manual}}">
+          <TextBlock Classes="FormItemLabel">Assumed field radius:</TextBlock>
+          <ComboBox MinWidth="160" Items="{Binding FieldRadiusSources}"
+                    SelectedItem="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource}"
+                    >
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Converter={x:Static converters:EnumConverters.EnumDescription}}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+        </StackPanel>
+        <StackPanel Orientation="Vertical"
+                    IsVisible="{Binding SelectedPresetProfile.NearbyOptions.InputSource,
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static profile:InputSource.Manual}}">
+          <StackPanel Orientation="Vertical" Margin="20,0,0,0"
+                      IsVisible="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource,
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static profile:FieldRadiusSource.SingleValue}}">
+            <TextBlock Classes="FormItemLabel">Field radius (deg):</TextBlock>
+            <NumericUpDown Value="{Binding SelectedPresetProfile.NearbyOptions.FieldRadius}"
+                           ShowButtonSpinner="False"></NumericUpDown>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Margin="20,0,0,0"
+                    IsVisible="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource,
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
+          <TextBlock Classes="FormItemLabel">Field radius Min (deg):</TextBlock>
+          <NumericUpDown Value="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusMin}"
+                         ShowButtonSpinner="False"></NumericUpDown>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Margin="20,0,0,0"
+                    IsVisible="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource,
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
+          <TextBlock Classes="FormItemLabel">Field radius Max (deg):</TextBlock>
+          <NumericUpDown Value="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusMax}"
+                         ShowButtonSpinner="False"></NumericUpDown>
+        </StackPanel>
+        <StackPanel Orientation="Vertical" Margin="20,0,0,0"
+                    IsVisible="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource,
+                           Converter={x:Static converters:EnumConverters.ValueEquals},
+                           ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
+          <TextBlock Classes="FormItemLabel">Field radius Steps:</TextBlock>
+          <NumericUpDown Value="{Binding SelectedPresetProfile.NearbyOptions.IntermediateFieldRadiusSteps}"
+                         ShowButtonSpinner="False"></NumericUpDown>
+        </StackPanel>
+      </WrapPanel>
+
       <StackPanel Orientation="Vertical">
         <TextBlock Classes="FormItemLabel">Search radius (deg):</TextBlock>
           <TextBox Text="{Binding SelectedPresetProfile.NearbyOptions.SearchRadius}" />

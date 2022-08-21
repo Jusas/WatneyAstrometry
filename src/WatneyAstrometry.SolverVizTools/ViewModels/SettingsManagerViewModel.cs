@@ -51,6 +51,12 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             InputSource.Manual
         };
 
+        public ObservableCollection<FieldRadiusSource> FieldRadiusSources { get; private set; } = new ObservableCollection<FieldRadiusSource>
+        {
+            FieldRadiusSource.SingleValue,
+            FieldRadiusSource.MinMaxWithSteps
+        };
+
         public ObservableCollection<QuadDatabaseDataSet> DatabaseDataSets { get; set; }
 
         private WatneyConfiguration _watneyConfiguration;

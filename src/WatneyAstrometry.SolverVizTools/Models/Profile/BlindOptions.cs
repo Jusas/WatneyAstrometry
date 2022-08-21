@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,10 @@ namespace WatneyAstrometry.SolverVizTools.Models.Profile
 
     public enum SearchOrder
     {
+        [Description("North first")]
         NorthFirst,
+
+        [Description("South first")]
         SouthFirst
     }
 

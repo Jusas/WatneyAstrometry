@@ -437,14 +437,31 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                     var opts = new NearbySearchStrategyOptions
                     {
                         UseParallelism = true,
-                        //MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMax, // todo support ranges
-                        //MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMin,
-                        MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadius,
-                        MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadius,
                         SearchAreaRadiusDegrees = profile.NearbyOptions.SearchRadius,
                         MaxNegativeDensityOffset = (uint)profile.GenericOptions.LowerDensityOffset,
                         MaxPositiveDensityOffset = (uint)profile.GenericOptions.HigherDensityOffset
                     };
+
+                    if (profile.NearbyOptions.FieldRadiusSource == FieldRadiusSource.SingleValue)
+                    {
+                        opts.MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadius;
+                        opts.MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadius;
+                    }
+                    else
+                    {
+                        opts.MaxFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMax;
+                        opts.MinFieldRadiusDegrees = profile.NearbyOptions.FieldRadiusMin;
+
+                        if (opts.MaxFieldRadiusDegrees <= opts.MinFieldRadiusDegrees)
+                            throw new Exception(
+                                "Max field radius degrees must be > min field radius degrees. Check your profile parameters.");
+
+                        if (profile.NearbyOptions.IntermediateFieldRadiusSteps < 0)
+                            throw new Exception(
+                                "Field radius steps must be >= 0. Check your profile parameters.");
+                        
+                        opts.IntermediateFieldRadiusSteps = (uint)profile.NearbyOptions.IntermediateFieldRadiusSteps;
+                    }
 
                     if (profile.NearbyOptions.InputSource == InputSource.FitsHeaders)
                     {
