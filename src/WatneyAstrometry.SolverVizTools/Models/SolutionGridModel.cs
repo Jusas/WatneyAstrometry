@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -22,12 +25,7 @@ namespace WatneyAstrometry.SolverVizTools.Models
         private double _solverDuration;
         private double _fullDuration;
         private int _matches;
-
-        /*              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Star detection duration (s)"
-                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
-              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Solver duration (s)"
-                                  Binding="{Binding StarsDetected, Mode=OneWay}"/>
-              <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Full duration (s)"*/
+        
         public string RaHms { get; set; }
         public double Ra
         {

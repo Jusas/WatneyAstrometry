@@ -1,4 +1,7 @@
-﻿using Avalonia;
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+using Avalonia;
 using Splat;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 
