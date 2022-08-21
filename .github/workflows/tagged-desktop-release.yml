@@ -55,9 +55,6 @@ jobs:
         done        
      
      
-    - name: Install zip
-      uses: montudor/action-zip@v1
-
     - name: Zip windows binaries for DesktopApp
       shell: pwsh
       run: |
