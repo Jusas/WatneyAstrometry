@@ -80,17 +80,20 @@
           <StackPanel Orientation="Vertical">
             <TextBlock Classes="FormItemLabel">Min field radius (deg):</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.BlindOptions.MinRadius}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipBlindMinRadius}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical"  Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Max field radius (deg):</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.BlindOptions.MaxRadius}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipBlindMaxRadius}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical"  Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Search order:</TextBlock>
             <ComboBox MinWidth="220" Items="{Binding SearchOrders}"
-                      SelectedItem="{Binding SelectedProfile.BlindOptions.SearchOrder}" >
+                      SelectedItem="{Binding SelectedProfile.BlindOptions.SearchOrder}" 
+                      ToolTip.Tip="{x:Static profile:ProfileToolTips.TipBlindSearchOrder}">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding Converter={x:Static converters:EnumConverters.EnumDescription}}" />
@@ -108,7 +111,7 @@
             <TextBlock Classes="FormItemLabel">Data source:</TextBlock>
             <ComboBox MinWidth="160" Items="{Binding NearbyInputSources}"
                       SelectedItem="{Binding SelectedProfile.NearbyOptions.InputSource}"
-                      >
+                      ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyInputSource}">
               <ComboBox.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding Converter={x:Static converters:EnumConverters.EnumDescription}}" />
@@ -121,20 +124,23 @@
                  Converter={x:Static converters:EnumConverters.ValueEquals},
                  ConverterParameter={x:Static profile:InputSource.Manual}}">
             <TextBlock Classes="FormItemLabel">RA:</TextBlock>
-            <TextBox Text="{Binding SelectedProfile.NearbyOptions.Ra}"></TextBox>
+            <TextBox Text="{Binding SelectedProfile.NearbyOptions.Ra}"
+                     ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyRA}"></TextBox>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0"
                       IsVisible="{Binding SelectedProfile.NearbyOptions.InputSource,
                  Converter={x:Static converters:EnumConverters.ValueEquals},
                  ConverterParameter={x:Static profile:InputSource.Manual}}">
             <TextBlock Classes="FormItemLabel">Dec:</TextBlock>
-            <TextBox Text="{Binding SelectedProfile.NearbyOptions.Dec}"></TextBox>
+            <TextBox Text="{Binding SelectedProfile.NearbyOptions.Dec}"
+                     ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyDec}"></TextBox>
           </StackPanel>
 
           <StackPanel Orientation="Vertical" Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Search radius (deg):</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.SearchRadius}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbySearchRadius}"></NumericUpDown>
           </StackPanel>
         </StackPanel>
 
@@ -146,11 +152,10 @@
                       IsVisible="{Binding SelectedProfile.NearbyOptions.InputSource,
                          Converter={x:Static converters:EnumConverters.ValueEquals},
                          ConverterParameter={x:Static profile:InputSource.Manual}}">
-            <TextBlock Classes="FormItemLabel">Assumed field radius:</TextBlock>
+            <TextBlock Classes="FormItemLabel">Field radius mode:</TextBlock>
             <ComboBox MinWidth="160" Items="{Binding FieldRadiusSources}"
                       SelectedItem="{Binding SelectedProfile.NearbyOptions.FieldRadiusSource}"
-                      >
-              <ComboBox.ItemTemplate>
+                      ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyInputSource}"><ComboBox.ItemTemplate>
                 <DataTemplate>
                   <TextBlock Text="{Binding Converter={x:Static converters:EnumConverters.EnumDescription}}" />
                 </DataTemplate>
@@ -167,7 +172,8 @@
                            ConverterParameter={x:Static profile:FieldRadiusSource.SingleValue}}">
               <TextBlock Classes="FormItemLabel">Field radius (deg):</TextBlock>
               <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.FieldRadius}"
-                             ShowButtonSpinner="False"></NumericUpDown>
+                             ShowButtonSpinner="False"
+                             ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyFieldRadius}"></NumericUpDown>
             </StackPanel>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0"
@@ -176,7 +182,8 @@
                            ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
             <TextBlock Classes="FormItemLabel">Field radius Min (deg):</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.FieldRadiusMin}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyFieldRadiusMin}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0"
                       IsVisible="{Binding SelectedProfile.NearbyOptions.FieldRadiusSource,
@@ -184,7 +191,8 @@
                            ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
             <TextBlock Classes="FormItemLabel">Field radius Max (deg):</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.FieldRadiusMax}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyFieldRadiusMax}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0"
                       IsVisible="{Binding SelectedProfile.NearbyOptions.FieldRadiusSource,
@@ -192,7 +200,8 @@
                            ConverterParameter={x:Static profile:FieldRadiusSource.MinMaxWithSteps}}">
             <TextBlock Classes="FormItemLabel">Field radius Steps:</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.NearbyOptions.IntermediateFieldRadiusSteps}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyFieldRadiusSteps}"></NumericUpDown>
           </StackPanel>
         </StackPanel>
 
@@ -201,22 +210,26 @@
           <StackPanel Orientation="Vertical">
             <TextBlock Classes="FormItemLabel">Max stars:</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.MaxStars}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipGeneralMaxStars}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Sampling:</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.Sampling}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipGeneralSampling}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Higher density offset:</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.HigherDensityOffset}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipGeneralHigherDensityOffset}"></NumericUpDown>
           </StackPanel>
           <StackPanel Orientation="Vertical" Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Lower density offset:</TextBlock>
             <NumericUpDown Value="{Binding SelectedProfile.GenericOptions.LowerDensityOffset}"
-                           ShowButtonSpinner="False"></NumericUpDown>
+                           ShowButtonSpinner="False"
+                           ToolTip.Tip="{x:Static profile:ProfileToolTips.TipGeneralLowerDensityOffset}"></NumericUpDown>
           </StackPanel>
         </StackPanel>
 
@@ -227,7 +240,8 @@
         <TextBlock Text="Quad database path:" Classes="FormItemLabel" />
         <StackPanel Orientation="Horizontal">
           <TextBox Text="{Binding WatneyConfiguration.QuadDatabasePath}" MinWidth="300"
-                   PropertyChanged="QuadDatabasePathControl_OnPropertyChanged"/>
+                   PropertyChanged="QuadDatabasePathControl_OnPropertyChanged"
+                   ToolTip.Tip="Path to the quad database directory, where the quad database files are located."/>
           <Button Margin="8,0,0,0"
                   Command="{Binding OpenBrowseWatneyDatabaseFolderDialog}">Browse...</Button>
           <TextBlock Foreground="Red" FontWeight="Bold" Text="Select a valid, existing directory" VerticalAlignment="Center" 

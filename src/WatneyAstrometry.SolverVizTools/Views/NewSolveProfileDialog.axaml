@@ -22,7 +22,9 @@
     <Border Padding="15">
       <StackPanel Orientation="Vertical">
           <StackPanel Orientation="Vertical">
-              <TextBlock Classes="FormItemLabel">New profile name:</TextBlock>
+              <TextBlock Classes="FormItemLabel" ToolTip.Tip="Give the solve settings profile a unique name">
+                New profile name:
+              </TextBlock>
               <TextBox Text="{Binding ProfileName}"></TextBox>
           </StackPanel>
           <StackPanel Orientation="Vertical">
