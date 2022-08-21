@@ -12,8 +12,13 @@ The Watney Astrometry Engine (hereafter Watney or WatneyAstrometry) is an astrom
 The solver was designed from the beginning as a library with no dependencies. It is implemented as a .NET Standard 2.0 library and published as a Nuget package. The netstandard 2.0 profile provides compatibility with both .NET Framework and .NET Core 2.0 and later as well as .NET 6. This way if anyone wants to embed Watney to their .NET based apps, very little effort is required.
 
 Alongside the solver library two apps are provided for plate solving:
-- CLI Solver App (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64, arm and arm64 and Mac OSX x64.
-- API Solver App (watney-api) if provided for plate solving via REST API. The API also contains Astrometry.net compatibility API, allowing it to be used as a substitute to nova.astrometry.net online solver.
+- **CLI Solver App** (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64, arm and arm64 and Mac OSX x64.
+- **API Solver App** (watney-api) if provided for plate solving via REST API. The API also contains Astrometry.net compatibility API, allowing it to be used as a substitute to nova.astrometry.net online solver.
+
+In addition, the multi-platform **Watney Desktop Solver** GUI app is provided for testing and demoing.
+
+![image](https://user-images.githubusercontent.com/5293904/185812351-11741c3f-7e99-4739-8451-213467004ce9.png)
+
 
 See Watney in action: **https://watney-astrometry.net**
 
@@ -21,6 +26,7 @@ See Watney in action: **https://watney-astrometry.net**
 
 - watney-solve (CLI solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)** and **[Quickstart Guide here](https://github.com/Jusas/WatneyAstrometry/wiki/Quickstart-Guide)**
 - watney-api (API solver): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)** and **[Quickstart Guide here](https://github.com/Jusas/WatneyAstrometry/wiki/API-Quickstart-Guide)**
+- watney-desktop (Desktop solver demo): **[See the Releases page for downloads](https://github.com/Jusas/WatneyAstrometry/releases)**
 - watney-solve (CLI solver) bleeding edge automatic builds: **[See Releases here](https://github.com/Jusas/WatneyAstrometry/releases/tag/bleeding-cli)**
   - Note: these builds are automated and built straight from the master branch and may be unstable.
 - WatneyAstrometry.Core Nuget: https://www.nuget.org/packages/WatneyAstrometry.Core
