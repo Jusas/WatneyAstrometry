@@ -60,14 +60,20 @@ jobs:
       run: |
         $winArchs = $env:OSARCHS_WIN.Split(" ");
         $currentDir = (Get-Location).Path;
+        Write-Host "Current dir is $currentDir";
         foreach($a in $winArchs) {
           $workDir = [System.IO.Path]::Combine($currentDir, "watney-desktop");
           $binDir = [System.IO.Path]::Combine($currentDir, "bin-desktop-$a");
+          Write-Host "Work dir is $workDir";
+          Write-Host "Bin build dir is $binDir";
           if (Test-Path $workDir) {
             [System.IO.Directory]::Delete($workDir, $True);
           }
+          $ex = Test-Path $workDir;
+          Write-Host "Bin build dir exists: $ex";
           [System.IO.Directory]::Move($binDir, $workDir);
           $destinationPath = [System.IO.Path]::Combine($workDir, "watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip");
+          Write-Host "Destination: $destinationPath";
           Compress-Archive -Path $workDir -DestinationPath $destinationPath -CompressionLevel Optimal;
         }
       
@@ -75,6 +81,8 @@ jobs:
     - name: Tar linux and osx binaries for DesktopApp
       shell: bash
       run: | 
+        CURDIR=$(pwd)
+        echo $CURDIR
         for a in $OSARCHS_OTHER
         do
           [ -d "watney-desktop" ] && rm -rf watney-desktop
@@ -92,6 +100,6 @@ jobs:
         draft: true
         title: Watney Solver Desktop ${{ steps.buildvars.outputs.version_string }}
         files: |
-          watney-desktop-*.zip
+          *watney-desktop-*.zip
           watney-desktop-*.tar.gz
           
