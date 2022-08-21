@@ -69,10 +69,8 @@ jobs:
           if (Test-Path $workDir) {
             [System.IO.Directory]::Delete($workDir, $True);
           }
-          $ex = Test-Path $workDir;
-          Write-Host "Bin build dir exists: $ex";
           [System.IO.Directory]::Move($binDir, $workDir);
-          $destinationPath = [System.IO.Path]::Combine($workDir, "watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip");
+          $destinationPath = [System.IO.Path]::Combine($currentDir, "watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip");
           Write-Host "Destination: $destinationPath";
           Compress-Archive -Path $workDir -DestinationPath $destinationPath -CompressionLevel Optimal;
         }
@@ -100,6 +98,6 @@ jobs:
         draft: true
         title: Watney Solver Desktop ${{ steps.buildvars.outputs.version_string }}
         files: |
-          *watney-desktop-*.zip
+          watney-desktop-*.zip
           watney-desktop-*.tar.gz
           
