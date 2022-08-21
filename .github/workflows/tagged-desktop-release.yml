@@ -31,6 +31,13 @@ jobs:
       with:
         dotnet-version: 6.0.x
 
+    - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
+      run: | 
+        for f in builds/desktop/notices/*
+        do 
+          sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
+          sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f
+        done
       
     - name: Build all architectures DesktopApp
       run: |
