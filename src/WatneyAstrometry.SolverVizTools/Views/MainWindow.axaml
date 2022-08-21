@@ -12,7 +12,7 @@
         Height="768"
         x:Class="WatneyAstrometry.SolverVizTools.Views.MainWindow"
         Icon="/Assets/wicon.ico"
-        Title="Watney Astrometry Desktop">
+        Title="{Binding WindowTitle}">
 
   <Window.Styles>
     <Style Selector="Button#DisplaySettingsPaneButton">
@@ -66,6 +66,9 @@
       </TabItem>
       
     </TabControl>
+    <Button Content="About..." VerticalAlignment="Top" HorizontalAlignment="Right"
+            Margin="16" Background="#00000000"
+            Click="AboutButton_OnClick"></Button>
   </Grid>
 
 

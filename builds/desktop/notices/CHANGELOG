@@ -1,0 +1,16 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+
+## [1.0.0] - 2022-08-21
+
+### Initial release of Watney Astrometry Desktop
+
+- Release numbering will be independent from WatneyAstrometry.Core
+  versioning.
+- Additional version build information will be appended to identify
+  the build date and source git commit.
+
+

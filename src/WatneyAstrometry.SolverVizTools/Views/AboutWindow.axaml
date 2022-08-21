@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="clr-namespace:MessageBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="250"
+        Width="400" Height="250"
+        x:Class="WatneyAstrometry.SolverVizTools.Views.AboutWindow"
+        Title="AboutWindow">
+  <StackPanel>
+    <TextBlock Name="Title" Padding="16" Text="Watney Astrometry Desktop" FontSize="24" FontWeight="Bold"></TextBlock>
+    <Border BorderBrush="White" BorderThickness="1" Margin="0,0,0,0">
+    </Border>
+    <StackPanel>
+      <TextBlock Padding="16" TextWrapping="Wrap">A desktop solver tool for the Watney Astrometric Solver. Uses the WatneyAstrometry.Core .NET library.</TextBlock>
+      <TextBlock Padding="16,0,0,16" TextWrapping="Wrap">Copyright (c) Jussi Saarivirta. Released under Apache 2.0 license. Source, documentation and a lot more available at:</TextBlock>
+      <controls:Hyperlink Foreground="#569cd6" Url="https://github.com/Jusas/WatneyAstrometry"
+                          Padding="16,0,0,0">
+        https://github.com/Jusas/WatneyAstrometry
+      </controls:Hyperlink>
+    </StackPanel>
+    <Button Content="Dismiss" Margin="16" HorizontalAlignment="Right" Padding="32,8,32,8"
+            Click="Dismiss_OnClick"></Button>
+  </StackPanel>
+</Window>

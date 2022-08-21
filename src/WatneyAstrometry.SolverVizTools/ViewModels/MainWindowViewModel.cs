@@ -5,6 +5,7 @@ using ReactiveUI;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Text;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
@@ -26,6 +27,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isPaneOpen, value);
         }
 
+
+        private string _windowTitle;
+        public string WindowTitle
+        {
+            get => _windowTitle;
+            set => this.RaiseAndSetIfChanged(ref _windowTitle, value);
+        }
 
         public SettingsManagerViewModel SettingsManagerViewModel { get; private set; }
 
@@ -49,6 +57,9 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         private void PopulateInitialData()
         {
+            //var v = FileVersionInfo.GetVersionInfo(GetType().Assembly.Location).ProductVersion;
+            var v = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName)?.ProductVersion ?? "v?";
+            WindowTitle = $"Watney Astrometry Desktop ({v})";
         }
 
         protected override void OnViewCreated()

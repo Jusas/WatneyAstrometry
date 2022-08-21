@@ -1,0 +1,79 @@
+name: Desktop app release from new tag
+
+on:
+  push:
+    tags:
+      - 'desktop-v*'
+      
+env:
+  OSARCHS_ALL: win-x64 linux-x64 linux-arm64 linux-arm osx-x64
+  OSARCHS_WIN: win-x64
+  OSARCHS_OTHER: linux-x64 linux-arm64 linux-arm osx-x64
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set build vars
+      id: buildvars
+      run: |
+        echo "::set-output name=version_string::$(echo '${{ github.ref_name }}' | sed 's@desktop-v@@')"
+        echo "::set-output name=builddate::$(date +'%Y-%m-%d')"
+        echo "::set-output name=builddate2::$(date +'%Y%m%d')"
+        echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+          
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+
+      
+    - name: Build all architectures DesktopApp
+      run: |
+        for a in $OSARCHS_ALL
+        do
+          dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true -p:PublishSingleFile=true -o "bin-desktop-$a/" src/WatneyAstrometry.SolverVizTools/WatneyAstrometry.SolverVizTools.csproj
+          cp builds/desktop/notices/* bin-desktop-$a
+          rm -f bin-desktop-$a/*BLEEDING*          
+        done        
+     
+     
+    - name: Install zip
+      uses: montudor/action-zip@v1
+
+    - name: Zip windows binaries for DesktopApp
+      run: |
+        for a in $OSARCHS_WIN
+        do
+          [ -d "watney-desktop" ] && rm -rf watney-desktop
+          mv bin-desktop-$a watney-desktop
+          rm -f watney-desktop/*.xml
+          zip -r watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.zip watney-desktop/
+        done
+      
+    - name: Tar linux and osx binaries for DesktopApp
+      run: | 
+        for a in $OSARCHS_OTHER
+        do
+          [ -d "watney-desktop" ] && rm -rf watney-desktop
+          mv bin-desktop-$a watney-desktop
+          rm -f watney-desktop/*.xml
+          tar -czf watney-desktop-${{ steps.buildvars.outputs.version_string }}-${{ steps.buildvars.outputs.builddate2 }}.${{ steps.buildvars.outputs.sha_short }}-$a.tar.gz watney-desktop/
+        done
+
+    - name: Create release
+      uses: "marvinpinto/action-automatic-releases@v1.2.1"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: ${{ github.ref_name }}
+        prerelease: true
+        draft: true
+        title: Watney Solver Desktop ${{ steps.buildvars.outputs.version_string }}
+        files: |
+          watney-desktop-*.zip
+          watney-desktop-*.tar.gz
+          

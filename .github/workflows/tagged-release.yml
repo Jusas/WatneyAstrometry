@@ -1,4 +1,4 @@
-name: Release from new tag
+name: Core and CLI release from new tag
 
 on:
   push:
@@ -24,24 +24,14 @@ jobs:
       run: |
         echo "::set-output name=version_string::$(echo '${{ github.ref_name }}' | sed 's@v@@')"
         echo "::set-output name=builddate::$(date +'%Y-%m-%d')"
+        echo "::set-output name=builddate2::$(date +'%Y%m%d')"
+        echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
           
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.x
 
-    - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
-      run: | 
-        for f in builds/cli/notices/*
-        do 
-          sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
-          sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f
-        done
-        for f in builds/api/notices/*
-        do
-          sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
-          sed -i 's/CURRENT_VERSION_RELEASE_DATE/${{ steps.buildvars.outputs.builddate }}/g' $f
-        done
       
     - name: Build all architectures CLI
       run: |
@@ -62,6 +52,7 @@ jobs:
           rm -f bin-api-$a/*BLEEDING*
           cp bin-api-$a/config.template.yml bin-api-$a/config.yml
         done     
+     
      
     - name: Build Core Nuget
       run: dotnet pack -p:Version=${{ steps.buildvars.outputs.version_string }} -c Release -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg -o "lib-core/" src/WatneyAstrometry.Core/WatneyAstrometry.Core.csproj

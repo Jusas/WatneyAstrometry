@@ -280,7 +280,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         
         private void Initialize()
         {
-            PlaceholderImage = new Bitmap(_assetManager.Open(new Uri("avares://WatneyAstrometry.SolverVizTools/Assets/placeholder.jpg")));
+            PlaceholderImage = new Bitmap(_assetManager.Open(new Uri("avares://watney-desktop/Assets/placeholder.jpg")));
             //PlaceholderImage = new Bitmap("z:\\firefox_61OAoUIBsW2.jpg");
             SolverImage = PlaceholderImage;
         }

@@ -1,4 +1,4 @@
-name: 'Bleeding edge CI builds for watney-solve CLI app'
+name: 'Bleeding edge CI builds for watney-solve CLI and Desktop apps'
 
 on:
   workflow_dispatch:
@@ -12,6 +12,7 @@ on:
       - 'src/WatneyAstrometry.SolverApp/**'
       - 'src/WatneyAstrometry.Core/**'
       - 'src/WatneyAstrometry.ImageReaders/**'
+      - 'src/WatneyAstrometry.SolverVizTools/**'
 
 env:
   PKG_PREFIX: 'watney-solve-bleeding'
@@ -42,19 +43,54 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Replace commit hash in readmes
-      run: sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
+      run: |
+        sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
+        sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/desktop/notices/README-BLEEDING
 
-    - name: Build all architectures
-      run: for a in $OSARCHS_ALL; do dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj -o $PKG_PREFIX-$a/ && cp builds/cli/notices/* $PKG_PREFIX-$a && cp $PKG_PREFIX-$a/watney-solve-config.template.yml $PKG_PREFIX-$a/watney-solve-config.yml; done
+    - name: Build all architectures (CLI)
+      run: |
+        for a in $OSARCHS_ALL
+        do 
+          dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true src/WatneyAstrometry.SolverApp/WatneyAstrometry.SolverApp.csproj -o $PKG_PREFIX-$a/ && cp builds/cli/notices/* $PKG_PREFIX-$a && cp $PKG_PREFIX-$a/watney-solve-config.template.yml $PKG_PREFIX-$a/watney-solve-config.yml
+        done
+
+    - name: Build all architectures (DesktopApp)
+      run: |
+        for a in $OSARCHS_ALL
+        do 
+          dotnet publish --version-suffix bleeding-${{ steps.buildvars.outputs.sha_short }} -c Release -r $a --self-contained true -p:PublishSingleFile=true src/WatneyAstrometry.SolverVizTools/WatneyAstrometry.SolverVizTools.csproj -o $PKG_PREFIX-desktop-$a/ && cp builds/desktop/notices/* $PKG_PREFIX-desktop-$a
+        done
 
     - name: Install zip
       uses: montudor/action-zip@v1
 
-    - name: Zip windows binaries
-      run: for a in $OSARCHS_WIN; do zip -r ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-latest-$a.zip; done
+    - name: Zip windows binaries (CLI)
+      run: |
+        for a in $OSARCHS_WIN
+        do
+          zip -r ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.zip $PKG_PREFIX-latest-$a.zip
+        done
+      
+    - name: Zip windows binaries (DesktopApp)
+      run: |
+        for a in $OSARCHS_WIN
+        do
+          zip -r ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.zip $PKG_PREFIX-desktop-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.zip $PKG_PREFIX-desktop-latest-$a.zip
+        done
 
-    - name: Tar linux and osx binaries
-      run: for a in $OSARCHS_OTHER; do tar -czf ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-latest-$a.tar.gz; done
+    - name: Tar linux and osx binaries (CLI)
+      run: |
+        for a in $OSARCHS_OTHER
+        do
+          tar -czf ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-$a.tar.gz $PKG_PREFIX-latest-$a.tar.gz
+        done
+        
+    - name: Tar linux and osx binaries (DesktopApp)
+      run: |
+        for a in $OSARCHS_OTHER
+        do
+          tar -czf ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-latest-$a.tar.gz
+        done        
 
     - uses: pyTooling/Actions/releaser/composite@main
       name: Releaser

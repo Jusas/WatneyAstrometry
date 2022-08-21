@@ -47,5 +47,11 @@ namespace WatneyAstrometry.SolverVizTools.Views
         //    var result = await dialog.ShowDialog<NewSolveProfileDialogViewModel>(this);
         //    // set viewmodel's selected profile...
         //}
+        private void AboutButton_OnClick(object sender, RoutedEventArgs e)
+        {
+            var aboutWin = new AboutWindow();
+            aboutWin.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            aboutWin.ShowDialog(this);
+        }
     }
 }

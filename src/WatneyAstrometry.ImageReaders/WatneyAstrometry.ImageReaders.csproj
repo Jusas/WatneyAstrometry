@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>2.0.0</Version>
+    <Version>1.1.4</Version>
     <Authors>Jussi Saarivirta</Authors>
     <Product>WatneyAstrometry.ImageReaders</Product>
     <Description>Common image format (png, jpg) reader implementation for WatneyAstrometry.Core.</Description>
