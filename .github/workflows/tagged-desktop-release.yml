@@ -60,7 +60,7 @@ jobs:
       run: |
         $winArchs = $env:OSARCHS_WIN.Split(" ");
         $currentDir = (Get-Location).Path;
-        for($a in $winArchs) {
+        foreach($a in $winArchs) {
           $workDir = [System.IO.Path]::Combine($currentDir, "watney-desktop");
           $binDir = [System.IO.Path]::Combine($currentDir, "bin-desktop-$a");
           if (Test-Path $workDir) {
