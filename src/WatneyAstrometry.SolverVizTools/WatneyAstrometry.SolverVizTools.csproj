@@ -15,6 +15,12 @@
     <None Remove=".gitignore" />
   </ItemGroup>
   <ItemGroup>
+    <PublishReadyToRunExclude Include="SixLabors.ImageSharp.dll" />
+    <PublishReadyToRunExclude Include="SixLabors.ImageSharp.Drawing.dll" />
+    <PublishReadyToRunExclude Include="SixLabors.Fonts.dll" />
+    <!-- Not sure about this, but the CLI had issues without this, so assuming the same applies here; PublishReadyToRun somehow breaks things in ImageSharp -->
+  </ItemGroup>
+  <ItemGroup>
     <!--This helps with theme dll-s trimming.
 	If you will publish your application in self-contained mode with p:PublishTrimmed=true and it will use Fluent theme Default theme will be trimmed from the output and vice versa.
 	https://github.com/AvaloniaUI/Avalonia/issues/5593 -->
