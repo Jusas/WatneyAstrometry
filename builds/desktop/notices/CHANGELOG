@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.0.1] - 2022-08-23
+
+### Fixed
+
+- Dialogs now open properly at the center of their owner windows.
+
+- The version string is now properly displayed in the main window title
+  in Linux.
+  
+- Latest used paths in file open dialogs are persisted and saved to a 
+  config file.
+
+
+
 ## [1.0.0] - 2022-08-21
 
 ### Initial release of Watney Astrometry Desktop
