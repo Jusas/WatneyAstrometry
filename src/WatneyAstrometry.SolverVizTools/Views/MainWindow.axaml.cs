@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -6,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Splat;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
+using WatneyAstrometry.SolverVizTools.Utils;
 using WatneyAstrometry.SolverVizTools.ViewModels;
 
 namespace WatneyAstrometry.SolverVizTools.Views
@@ -50,8 +52,14 @@ namespace WatneyAstrometry.SolverVizTools.Views
         private void AboutButton_OnClick(object sender, RoutedEventArgs e)
         {
             var aboutWin = new AboutWindow();
-            aboutWin.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            aboutWin.WindowStartupLocation = WindowStartupLocation.CenterOwner;
             aboutWin.ShowDialog(this);
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            WindowWorkarounds.ApplyWindowCenteringWorkaround(this);
         }
     }
 }

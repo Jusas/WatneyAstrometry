@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 using System.Text;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
@@ -57,9 +59,21 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         private void PopulateInitialData()
         {
-            //var v = FileVersionInfo.GetVersionInfo(GetType().Assembly.Location).ProductVersion;
-            var v = FileVersionInfo.GetVersionInfo(Process.GetCurrentProcess().MainModule.FileName)?.ProductVersion ?? "v?";
+            string v = null;
+            try
+            {
+                v = GetType().Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                    ?.InformationalVersion;
+            }
+            catch (Exception)
+            {
+                v = "v?";
+            }
+            
             WindowTitle = $"Watney Astrometry Desktop ({v})";
+            
+            var settingsManager = _serviceProvider.GetService<ISolveSettingsManager>();
+            settingsManager.LoadStoredGeneralSettings();
         }
 
         protected override void OnViewCreated()
@@ -78,7 +92,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         {
             var settingsManager = _serviceProvider.GetService<ISolveSettingsManager>();
             settingsManager.SaveWatneyConfiguration();
-            //settingsManager.SaveProfiles();
+            settingsManager.SaveStoredGeneralSettings();
         }
 
         public void SetSolveSettingsPaneVisible()

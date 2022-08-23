@@ -78,4 +78,21 @@ public class MockSolverSettingsManager : ISolveSettingsManager
     public void SaveWatneyConfiguration()
     {
     }
+
+    public void LoadStoredGeneralSettings()
+    {
+    }
+
+    public string GetStoredGeneralSetting(string settingName)
+    {
+        return null;
+    }
+
+    public void SetStoredGeneralSetting(string settingName, string value)
+    {
+    }
+
+    public void SaveStoredGeneralSettings()
+    {
+    }
 }

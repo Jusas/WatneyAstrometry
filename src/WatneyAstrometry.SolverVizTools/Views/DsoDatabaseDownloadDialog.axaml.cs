@@ -1,6 +1,8 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using WatneyAstrometry.SolverVizTools.Utils;
 
 namespace WatneyAstrometry.SolverVizTools.Views
 {
@@ -17,6 +19,12 @@ namespace WatneyAstrometry.SolverVizTools.Views
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            WindowWorkarounds.ApplyWindowCenteringWorkaround(this);
         }
     }
 }

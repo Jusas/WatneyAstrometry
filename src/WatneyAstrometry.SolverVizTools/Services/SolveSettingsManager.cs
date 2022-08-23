@@ -7,7 +7,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using DynamicData;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using WatneyAstrometry.SolverVizTools.Exceptions;
@@ -25,21 +24,26 @@ public class SolveSettingsManager : ISolveSettingsManager
         public string StorageFolder { get; set; }
         public string ProfilesFileName { get; set; }
         public string WatneyConfigFileName { get; set; }
+        public string GeneralSettingsFilename { get; set; }
     }
 
     private readonly Options _options;
     public string ProfilesJsonFilename => Path.Combine(_options.StorageFolder, _options.ProfilesFileName);
     public string WatneyConfigJsonFilename => Path.Combine(_options.StorageFolder, _options.WatneyConfigFileName);
+    public string GeneralSettingsJsonFilename => Path.Combine(_options.StorageFolder, _options.GeneralSettingsFilename);
     public ObservableCollection<SolveProfile> Profiles { get; } = new ObservableCollection<SolveProfile>();
 
     private WatneyConfiguration _watneyConfiguration;
     public WatneyConfiguration WatneyConfiguration => _watneyConfiguration;
+
+    private Dictionary<string, string> _generalSettings = new Dictionary<string, string>();
     
     public static Options DefaultOptions => new Options()
     {
         StorageFolder = ProgramEnvironment.ApplicationDataFolder,
         ProfilesFileName = "solverprofiles.json",
-        WatneyConfigFileName = "watneyconfig.json"
+        WatneyConfigFileName = "watneyconfig.json",
+        GeneralSettingsFilename = "generalsettings.json"
     };
 
     public SolveSettingsManager()
@@ -160,6 +164,33 @@ public class SolveSettingsManager : ISolveSettingsManager
         Directory.CreateDirectory(profileFullPath);
 
         File.WriteAllText(WatneyConfigJsonFilename, serialized);
+    }
+
+    public void LoadStoredGeneralSettings()
+    {
+        if (File.Exists(GeneralSettingsJsonFilename))
+        {
+            var json = File.ReadAllText(GeneralSettingsJsonFilename);
+            _generalSettings = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+        }
+    }
+
+    public string GetStoredGeneralSetting(string settingName)
+    {
+        if (_generalSettings.ContainsKey(settingName))
+            return _generalSettings[settingName];
+        return null;
+    }
+
+    public void SetStoredGeneralSetting(string settingName, string value)
+    {
+        _generalSettings[settingName] = value;
+    }
+
+    public void SaveStoredGeneralSettings()
+    {
+        var json = JsonSerializer.Serialize(_generalSettings, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(GeneralSettingsJsonFilename, json);
     }
 
     private void EnsureMinimalValidWatneyConfiguration()

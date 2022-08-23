@@ -20,5 +20,10 @@ namespace WatneyAstrometry.SolverVizTools.Abstractions
         ObservableCollection<SolveProfile> GetProfiles(bool fromDisk, bool copy);
         WatneyConfiguration GetWatneyConfiguration(bool fromDisk, bool copy);
         void SaveWatneyConfiguration();
+
+        void LoadStoredGeneralSettings();
+        string GetStoredGeneralSetting(string settingName);
+        void SetStoredGeneralSetting(string settingName, string value);
+        void SaveStoredGeneralSettings();
     }
 }

@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="250"
         Width="400" Height="250"
         x:Class="WatneyAstrometry.SolverVizTools.Views.AboutWindow"
-        Title="AboutWindow">
+        Title="About Watney Desktop">
   <StackPanel>
     <TextBlock Name="Title" Padding="16" Text="Watney Astrometry Desktop" FontSize="24" FontWeight="Bold"></TextBlock>
     <Border BorderBrush="White" BorderThickness="1" Margin="0,0,0,0">

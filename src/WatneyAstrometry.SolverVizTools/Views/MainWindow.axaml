@@ -11,6 +11,7 @@
         Width="1024"
         Height="768"
         x:Class="WatneyAstrometry.SolverVizTools.Views.MainWindow"
+        WindowStartupLocation="CenterScreen"
         Icon="/Assets/wicon.ico"
         Title="{Binding WindowTitle}">
 

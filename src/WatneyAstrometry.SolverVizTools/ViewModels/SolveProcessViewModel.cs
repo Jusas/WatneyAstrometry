@@ -293,18 +293,20 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task OpenImageViaDialog()
         {
-            
+            var pathSetting = "lastImageDialogPath";
+            var initialDirectory = _settingsManager.GetStoredGeneralSetting(pathSetting) ?? "";
             var fileNames = await _dialogProvider.ShowOpenFileDialog(OwnerWindow, "Select image file",
                 new (string description, string[] extension)[]
                 {
                     ("FITS files", new[] { "fits", "fit" }),
                     ("Common image formats", new[] { "jpg", "jpeg", "png" })
-                }, "", false);
+                }, initialDirectory, false);
 
             var filename = fileNames?.FirstOrDefault();
 
             if (filename != null)
             {
+                _settingsManager.SetStoredGeneralSetting(pathSetting, Path.GetDirectoryName(filename));
                 await OpenImage(filename);
             }
 
@@ -569,10 +571,16 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task SaveLogToDiskViaDialog()
         {
+            var pathSetting = "lastSaveLogDialogPath";
+            var initialDirectory = _settingsManager.GetStoredGeneralSetting(pathSetting) ?? "";
             var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save log file as...", 
-                null, "watney_log.txt", ".txt");
-            if(filename != null)
+                initialDirectory, "watney_log.txt", ".txt");
+
+            if (filename != null)
+            {
+                _settingsManager.SetStoredGeneralSetting(pathSetting, Path.GetDirectoryName(filename));
                 SaveLogToDisk(filename);
+            }
         }
 
         public void SaveLogToDisk(string filename)
@@ -582,10 +590,16 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task SaveSolutionWcsToDiskViaDialog()
         {
+            var pathSetting = "lastSaveSolutionDialogPath";
+            var initialDirectory = _settingsManager.GetStoredGeneralSetting(pathSetting) ?? "";
             var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save WCS file as...",
-                null, "watney_solution.wcs", ".wcs");
+                initialDirectory, "watney_solution.wcs", ".wcs");
+
             if (filename != null)
+            {
+                _settingsManager.SetStoredGeneralSetting(pathSetting, Path.GetDirectoryName(filename));
                 SaveSolutionWcsToDisk(filename);
+            }
         }
 
         public void SaveSolutionWcsToDisk(string filename)
@@ -597,10 +611,16 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
 
         public async Task SaveSolutionJsonToDiskViaDialog()
         {
+            var pathSetting = "lastSaveSolutionDialogPath";
+            var initialDirectory = _settingsManager.GetStoredGeneralSetting(pathSetting) ?? "";
             var filename = await _dialogProvider.ShowSaveFileDialog(OwnerWindow, "Save JSON file as...",
-                null, "watney_solution.json", ".json");
+                initialDirectory, "watney_solution.json", ".json");
+            
             if (filename != null)
+            {
+                _settingsManager.SetStoredGeneralSetting(pathSetting, Path.GetDirectoryName(filename));
                 SaveSolutionJsonToDisk(filename);
+            }
         }
 
         public void SaveSolutionJsonToDisk(string filename)
