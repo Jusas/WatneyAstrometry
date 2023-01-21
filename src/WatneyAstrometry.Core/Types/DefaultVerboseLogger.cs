@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
 #pragma warning disable CS1591
@@ -11,6 +12,8 @@ namespace WatneyAstrometry.Core.Types
     public class DefaultVerboseLogger : IVerboseLogger
     {
         private static Encoding _encoding = new UTF8Encoding(false);
+
+        private static ConcurrentQueue<string> _writeQueue = new ConcurrentQueue<string>();
 
         public class Options
         {
@@ -39,8 +42,37 @@ namespace WatneyAstrometry.Core.Types
                 Console.WriteLine(message);
             if (_options.WriteToFile)
             {
-                lock (_mutex)
-                    File.AppendAllText(_options.LogFile, message + "\n", _encoding);
+                _writeQueue.Enqueue(message + Environment.NewLine);
+                if (_writeQueue.Count > 50_000)
+                {
+                    lock (_mutex)
+                    {
+                        Flush();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Flushes the log lines from memory to file.
+        /// This must be called when WriteToFile == true; until this is called,
+        /// the logged lines are just kept in memory, with the exception that every 50_000 lines,
+        /// Flush gets called automatically to release some memory.
+        /// </summary>
+        public void Flush()
+        {
+            if (_options.WriteToFile && !string.IsNullOrEmpty(_options.LogFile))
+            {
+                using (var stream = File.Open(_options.LogFile, FileMode.Append, FileAccess.Write, FileShare.Read))
+                {
+                    string line;
+                    byte[] bytes;
+                    while (_writeQueue.TryDequeue(out line))
+                    {
+                        bytes = _encoding.GetBytes(line);
+                        stream.Write(bytes, 0, bytes.Length);
+                    }
+                }
             }
         }
 

@@ -1,4 +1,7 @@
-﻿namespace WatneyAstrometry.Core.Types
+﻿// Copyright (c) Jussi Saarivirta.
+// Licensed under the Apache License, Version 2.0.
+
+namespace WatneyAstrometry.Core.Types
 {
     /// <summary>
     /// A null logger, which does not log to anywhere.
@@ -22,6 +25,11 @@
 
         /// <inheritdoc/>
         public void WriteError(string message)
+        {
+        }
+
+        /// <inheritdoc/>
+        public void Flush()
         {
         }
     }

@@ -32,5 +32,9 @@ namespace WatneyAstrometry.Core.Types
         /// </summary>
         /// <param name="message"></param>
         void WriteError(string message);
+        /// <summary>
+        /// Flush the logged lines in memory to output.
+        /// </summary>
+        void Flush();
     }
 }

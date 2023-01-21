@@ -200,6 +200,9 @@ public class SolveSettingsManager : ISolveSettingsManager
 
         if (_watneyConfiguration.QuadDatabasePath == null)
             _watneyConfiguration.QuadDatabasePath = "";
+
+        if(_watneyConfiguration.LimitThreads <= 0)
+            _watneyConfiguration.LimitThreads = Environment.ProcessorCount - 1;
     }
 
 

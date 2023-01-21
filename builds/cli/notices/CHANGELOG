@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.2.0] - 2023-01-21
+
+### Added
+
+- Optional CLI parameter to allow limiting how many threads the solver can use.
+  If the host is running other processes as well, it can be useful to limit
+  the number of threads that is allowed to be used by the solver.
+  By default when the parameter is not given then no limit is applied, i.e.
+  the used thread count will default to the number of your CPU logical cores. 
+
+  example usage:  
+  ./watney-solve --limit-threads 15 ...
+
+  And to override the default value (0 which means do not limit), in the 
+  watney-solve-config.yml you can add:
+
+  defaultLimitThreads: <number>
+
+
+
+### Fixed
+
+- When logging to file with the --log-file parameter the file I/O was
+  excessive, slowing down solves significantly since the verbose logging
+  produces so much log. This has been fixed by significantly reducing the
+  file writes and instead the logs are mostly kept in memory until they get
+  flushed to disk.
+
+
+
 ## [1.1.4] - 2022-08-21
 
 ### Maintenance release

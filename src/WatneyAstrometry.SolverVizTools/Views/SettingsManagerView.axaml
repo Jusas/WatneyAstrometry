@@ -7,7 +7,7 @@
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
              xmlns:controls="clr-namespace:MessageBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="550"
              x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsManagerView"
              Name="SettingManagerMainView">
 
@@ -237,17 +237,28 @@
     </TabItem>
     <TabItem Header="Watney configuration" IsSelected="False">
       <StackPanel Orientation="Vertical" Margin="0">
-        <TextBlock Text="Quad database path:" Classes="FormItemLabel" />
-        <StackPanel Orientation="Horizontal">
-          <TextBox Text="{Binding WatneyConfiguration.QuadDatabasePath}" MinWidth="300"
-                   PropertyChanged="QuadDatabasePathControl_OnPropertyChanged"
-                   ToolTip.Tip="Path to the quad database directory, where the quad database files are located."/>
-          <Button Margin="8,0,0,0"
-                  Command="{Binding OpenBrowseWatneyDatabaseFolderDialog}">Browse...</Button>
-          <TextBlock Foreground="Red" FontWeight="Bold" Text="Select a valid, existing directory" VerticalAlignment="Center" 
-                     Margin="8,0,0,0"
-                     IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath,
-                     Converter={x:Static BoolConverters.Not}}"/>
+        <StackPanel Orientation="Vertical">
+          <TextBlock Text="Quad database path:" Classes="FormItemLabel" />
+          <StackPanel Orientation="Horizontal">
+            <TextBox Text="{Binding WatneyConfiguration.QuadDatabasePath}" MinWidth="300"
+                     PropertyChanged="QuadDatabasePathControl_OnPropertyChanged"
+                     ToolTip.Tip="Path to the quad database directory, where the quad database files are located."/>
+            <Button Margin="8,0,0,0"
+                    Command="{Binding OpenBrowseWatneyDatabaseFolderDialog}">Browse...</Button>
+            <TextBlock Foreground="Red" FontWeight="Bold" Text="Select a valid, existing directory" VerticalAlignment="Center" 
+                       Margin="8,0,0,0"
+                       IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath,
+                       Converter={x:Static BoolConverters.Not}}"/>
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Orientation="Vertical">
+          <TextBlock Text="Limit solver threads to:" Classes="FormItemLabel" />
+          <StackPanel Orientation="Horizontal">
+            <TextBox Text="{Binding WatneyConfiguration.LimitThreads}" MinWidth="60"
+                     ToolTip.Tip="{Binding LogicalCoreCount, StringFormat='Limits the solver to use this many threads. The default value here is the number of logical cores on your CPU ({0}) minus 1. Max recommended value is the number of your CPU logical cores ({0}), any bigger number yields no practical gains. With a lower number the solves will be slower but more CPU will be left for other processes.'}"/>
+            <Button Margin="8,0,0,0"
+                    Command="{Binding ResetThreadLimit}">Reset to default</Button>
+          </StackPanel>
         </StackPanel>
         <StackPanel Margin="0,16,0,0" HorizontalAlignment="Left" 
                     IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath}">

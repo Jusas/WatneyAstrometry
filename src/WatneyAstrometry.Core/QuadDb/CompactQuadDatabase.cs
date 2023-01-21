@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.MathUtils;
+using WatneyAstrometry.Core.Threading;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
@@ -78,7 +79,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="imageQuads">The quads formed from the source image's stars.</param>
         /// <param name="solveContextId">Which solve context we're working on. Contexts are used for caching to speed up the process.</param>
         /// <returns></returns>
-        public async Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
+        public List<StarQuad> GetQuads(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
             int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId)
         {
             if (!_contexts.TryGetValue(solveContextId, out var cache))
@@ -112,9 +113,6 @@ namespace WatneyAstrometry.Core.QuadDb
             
             if (quadDensityOffsets == null || quadDensityOffsets.Length == 0)
                 quadDensityOffsets = new int[] {0};
-
-
-            List<Task> tasks = new List<Task>();
             
             var quadListByDensity = new StarQuad[quadDensityOffsets.Length][][];
 
@@ -129,16 +127,13 @@ namespace WatneyAstrometry.Core.QuadDb
                     var source = s;
                     var offset = quadDensityOffsets[i];
                     var idx = i;
-                    tasks.Add(Task.Run(() =>
-                    {
-                        quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(
-                            center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads, cache);
-                    }));
+
+                    quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(
+                        center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads, cache);
 
                 }
             }
-
-            await Task.WhenAll(tasks);
+            
             return quadListByDensity
                 .SelectMany(x => x ?? new StarQuad[0][])
                 .SelectMany(x => x ?? new StarQuad[0])

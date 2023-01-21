@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using WatneyAstrometry.Core;
+using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Repositories;
 using WatneyAstrometry.WebApi.Services;
 
@@ -56,6 +58,13 @@ internal static class ServiceRegistration
             // New config value, so we must also ensure we have a default value if it's left unconfigured.
             config.StarDetectionBgOffset = watneyApiConfiguration.StarDetectionBgOffset > 0 ? watneyApiConfiguration.StarDetectionBgOffset : 3.0;
         });
+
+        var solverGlobalConfiguration = new SolverGlobalConfiguration();
+        if((watneyApiConfiguration.LimitThreads ?? 0) > 0)
+        {
+            solverGlobalConfiguration.MaxThreads = watneyApiConfiguration.LimitThreads.Value;
+        };
+        Solver.SetGlobalConfiguration(solverGlobalConfiguration);
 
         services.AddHttpClient();
 

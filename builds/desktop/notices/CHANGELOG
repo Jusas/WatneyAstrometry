@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.0.2] - 2023-01-21
+
+### Added
+
+- A setting to allow limiting how many threads the solver can use.
+  It defaults to CPU logical core count - 1.
+
+
+
 ## [1.0.1] - 2022-08-23
 
 ### Fixed

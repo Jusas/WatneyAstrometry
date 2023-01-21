@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.2.0] - 2023-01-21
+
+### Added
+
+- Configuration option to allow limiting how many threads the solver can use:
+  
+  config.template.yml:
+  limitThreads: -1
+
+  By default the value is set to -1 which does not apply any limit, i.e.
+  the used thread count will default to the number of your CPU logical cores. 
+  If the host is running other processes as well, it can be useful to limit
+  the number of threads that is allowed to be used by the solver.
+  
+  
+
 ## [1.1.4] - 2022-08-21
 
 ### Maintenance release

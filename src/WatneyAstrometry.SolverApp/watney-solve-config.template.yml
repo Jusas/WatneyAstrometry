@@ -108,3 +108,10 @@ defaultBlindSampling: 16
 # ================================================================================
 defaultBlindParallelism: true
 
+# ================================================================================
+# Default --limit-threads value, when the parameter is not provided.
+# Values above 0 limit the number of threads used by the solver to that number.
+# The default value 0 will allow the solver to use as many threads as your CPU
+# has logical cores.
+# ================================================================================
+defaultLimitThreads: 0

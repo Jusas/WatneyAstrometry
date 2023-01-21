@@ -47,6 +47,8 @@ namespace WatneyAstrometry.SolverApp
         [YamlMember(Alias = "defaultStarDetectionBgOffset")]
         public double? DefaultStarDetectionBgOffset { get; set; }
 
+        [YamlMember(Alias = "defaultLimitThreads")]
+        public int? DefaultLimitThreads { get; set; }
 
         public Configuration()
         {

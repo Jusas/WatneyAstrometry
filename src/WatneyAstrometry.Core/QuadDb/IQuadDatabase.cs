@@ -33,7 +33,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="solveContextId">The solve context for this operation. Used for caching. A solve context must exist before calling this method.</param>
         /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
         /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
-        Task<List<StarQuad>> GetQuadsAsync(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId);
+        List<StarQuad> GetQuads(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId);
         
         /// <summary>
         /// Creates a new "solve context" for the quad database. This context can be for example used for caching things specific for a single solve.

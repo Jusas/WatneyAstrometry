@@ -17,6 +17,13 @@ public class WatneyConfiguration : ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _quadDatabasePath, value);
     }
 
+    private int _limitThreads;
+    public int LimitThreads
+    {
+        get => _limitThreads;
+        set => this.RaiseAndSetIfChanged(ref _limitThreads, value);
+    }
+
     [JsonIgnore]
     public bool IsValidQuadDatabasePath
     {

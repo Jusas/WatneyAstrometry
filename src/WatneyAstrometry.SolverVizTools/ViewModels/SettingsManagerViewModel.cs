@@ -35,6 +35,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             set => this.RaiseAndSetIfChanged(ref _selectedProfile, value);
         }
 
+        public int LogicalCoreCount => Environment.ProcessorCount;
+
         public ObservableCollection<SolveProfile> SolveProfiles { get; private set; }
 
         public string CommandInfoText { get; set; }
@@ -131,6 +133,13 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 _solveSettingsManager.SaveWatneyConfiguration();
                 _quadDatabaseDownloadService.SetDatabaseDirectory(folder);
             }
+        }
+
+        public void ResetThreadLimit()
+        {
+            WatneyConfiguration.LimitThreads = Environment.ProcessorCount - 1;
+            this.RaisePropertyChanged(nameof(WatneyConfiguration));
+            _solveSettingsManager.SaveWatneyConfiguration();
         }
 
         private void RefreshQuadDatabaseInfo(string path)

@@ -362,6 +362,14 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             return true;
         }
 
+        private void ApplySolverGlobalConfiguration(WatneyConfiguration desktopConfig)
+        {
+            var currentGlobalConfig = Solver.SolverGlobalConfiguration;
+
+            currentGlobalConfig.MaxThreads = desktopConfig.LimitThreads;
+            Solver.SetGlobalConfiguration(currentGlobalConfig);
+        }
+
         public async Task StartSolve()
         {
 
@@ -395,6 +403,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             {
 
                 var currentConfig = _settingsManager.GetWatneyConfiguration(false, false);
+                ApplySolverGlobalConfiguration(currentConfig);
+
                 _fullSolveProcessStopwatch.Start();
 
                 if (_solverInstance == null)

@@ -78,6 +78,11 @@ namespace WatneyAstrometry.SolverApp
             HelpText = "Benchmark mode, prints some output to stdout.")]
         public bool Benchmark { get; set; }
 
+        [Option("limit-threads", Required = false, Default = 0, 
+            HelpText = "Limit the number of threads used by the solver (by default uses as many as there are CPU logical cores)")]
+        public int LimitThreads { get; set; }
+        
+
 
 
     }

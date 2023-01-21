@@ -181,6 +181,12 @@ namespace WatneyAstrometry.SolverApp
                 .UseQuadDatabase(() => quadDatabase.UseDataSource(_configuration.QuadDatabasePath));
             solver.OnSolveProgress += BenchmarkProgressHandler;
 
+            var globalSolverConfiguration = Solver.SolverGlobalConfiguration;
+            if (options.LimitThreads > 0)
+                globalSolverConfiguration.MaxThreads = options.LimitThreads;
+            
+            Solver.SetGlobalConfiguration(globalSolverConfiguration);
+            
             var solverOptions = ParseSolverOptions(options);
             _verboseLogger.WriteInfo($"System is little endian: {BitConverter.IsLittleEndian}");
 
@@ -223,6 +229,7 @@ namespace WatneyAstrometry.SolverApp
                 catch (Exception e)
                 {
                     LogException(e);
+                    _verboseLogger.Flush();
                     throw;
                 }
                 
@@ -233,7 +240,7 @@ namespace WatneyAstrometry.SolverApp
 
             var result = solveTask.Result;
             SaveOutput(result, options, options.ExtendedOutput);
-
+            _verboseLogger.Flush();
         }
 
         private static void RunBlindSolve(BlindOptions options)
@@ -251,6 +258,7 @@ namespace WatneyAstrometry.SolverApp
             catch (Exception e)
             {
                 LogException(e);
+                _verboseLogger.Flush();
                 Environment.Exit(1);
             }
         }
@@ -270,6 +278,7 @@ namespace WatneyAstrometry.SolverApp
             catch (Exception e)
             {
                 LogException(e);
+                _verboseLogger.Flush();
                 Environment.Exit(1);
             }
         }
@@ -406,7 +415,12 @@ namespace WatneyAstrometry.SolverApp
                 if (_configuration.DefaultMaxStars != null)
                     options.MaxStars = (int)_configuration.DefaultMaxStars.Value;
             }
-            
+
+            if (options.LimitThreads == 0)
+            {
+                if (_configuration.DefaultLimitThreads != null)
+                    options.LimitThreads = _configuration.DefaultLimitThreads.Value;
+            }
         }
 
         private static void BenchmarkProgressHandler(SolverStep step)
@@ -700,6 +714,7 @@ namespace WatneyAstrometry.SolverApp
                         _verboseLogger.WriteError("Late validation produced errors.");
                         parseErrors.ForEach(err => _verboseLogger.WriteError(err));
                         ErrorAction(_parserResult, new Error[0], parseErrors);
+                        _verboseLogger.Flush();
                         Environment.Exit(1);
                     }
 
@@ -722,6 +737,7 @@ namespace WatneyAstrometry.SolverApp
                     _verboseLogger.WriteError("Late validation produced errors.");
                     parseErrors.ForEach(err => _verboseLogger.WriteError(err));
                     WriteConsoleError(errorMessage);
+                    _verboseLogger.Flush();
                     //ErrorAction(_parserResult, new Error[0], parseErrors);
                     Environment.Exit(1);
                 }
@@ -870,6 +886,7 @@ namespace WatneyAstrometry.SolverApp
                 _verboseLogger.WriteError("Late argument validation produced errors.");
                 errors.ForEach(err => _verboseLogger.WriteError(err));
                 ErrorAction(_parserResult, new Error[0], errors);
+                _verboseLogger.Flush();
                 Environment.Exit(1);
             }
         }
@@ -936,6 +953,7 @@ namespace WatneyAstrometry.SolverApp
                 _verboseLogger.WriteError("Late argument validation produced errors.");
                 errors.ForEach(err => _verboseLogger.WriteError(err));
                 ErrorAction(_parserResult, new Error[0], errors);
+                _verboseLogger.Flush();
                 Environment.Exit(1);
             }
         }

@@ -44,6 +44,9 @@ namespace WatneyAstrometry.WebApi
         [YamlMember(Alias = "starDetectionBgOffset", SerializeAs = typeof(double))]
         public double StarDetectionBgOffset { get; set; }
 
+        [YamlMember(Alias = "limitThreads")]
+        public int? LimitThreads { get; set; }
+
         [YamlIgnore]
         public IReadOnlyDictionary<string, string> ApiKeys { get; set; }
 

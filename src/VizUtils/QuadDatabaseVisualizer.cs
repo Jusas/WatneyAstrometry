@@ -59,7 +59,7 @@ namespace VizUtils
 
             var solveCtx = Guid.NewGuid();
             db.CreateSolveContext(solveCtx);
-            var quads = await db.GetQuadsAsync(center, Math.Max(degW, degH), quadsPerSqDeg, null, 1, 0, null, solveCtx);
+            var quads = db.GetQuads(center, Math.Max(degW, degH), quadsPerSqDeg, null, 1, 0, null, solveCtx);
             db.DisposeSolveContext(solveCtx);
 
             foreach (var quad in quads)

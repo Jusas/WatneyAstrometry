@@ -31,5 +31,10 @@ namespace WatneyAstrometry.Core.Tests.Utils
         {
             _testOutputHelper.WriteLine("ERROR: " + message);
         }
+
+        public void Flush()
+        {
+            
+        }
     }
 }

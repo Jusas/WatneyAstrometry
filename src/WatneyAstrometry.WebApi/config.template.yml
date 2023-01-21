@@ -84,6 +84,19 @@ allowedConcurrentSolves: 5
 
 
 # ================================================================================
+# How many threads the solver may use (and all concurrent solves together). 
+# By default there is not limit (value -1), i.e. the solver uses as many threads
+# as there are logical cores on the CPU. This may not be desireable in all cases,
+# and by setting this value you can control how much CPU the solver is allowed
+# to hog.
+# As implied, this will also affect parallel solves; each solve draws from the 
+# same pool of threads. This limiting is meant to allow some CPU resources to be
+# allocated for other host processes as well.
+# ================================================================================
+limitThreads: -1
+
+
+# ================================================================================
 # Enables Swagger and Swagger UI (OpenAPI 3 specification) if enabled.
 # Mostly useful for debugging.
 # ================================================================================

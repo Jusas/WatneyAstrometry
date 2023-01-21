@@ -27,5 +27,7 @@ namespace WatneyAstrometry.SolverVizTools.Views
             if(e.Property.Name == "Text")
                 _viewModel.WatneyConfiguration.RaisePropertyChanged(nameof(_viewModel.WatneyConfiguration.IsValidQuadDatabasePath));
         }
+
+
     }
 }

@@ -60,5 +60,9 @@ namespace WatneyAstrometry.SolverVizTools.Services
         {
             Write(message, "ERROR");
         }
+
+        public void Flush()
+        {
+        }
     }
 }
