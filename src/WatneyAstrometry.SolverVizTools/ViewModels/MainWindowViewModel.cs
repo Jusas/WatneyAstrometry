@@ -72,8 +72,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             
             WindowTitle = $"Watney Astrometry Desktop ({v})";
             
-            var settingsManager = _serviceProvider.GetService<ISolveSettingsManager>();
-            settingsManager.LoadStoredGeneralSettings();
+            var settingsManager = _serviceProvider?.GetService<ISolveSettingsManager>();
+            settingsManager?.LoadStoredGeneralSettings();
         }
 
         protected override void OnViewCreated()
