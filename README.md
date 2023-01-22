@@ -32,6 +32,10 @@ See Watney in action: **https://watney-astrometry.net**
 - WatneyAstrometry.Core Nuget: https://www.nuget.org/packages/WatneyAstrometry.Core
 - WatneyAstrometry.ImageReaders Nuget: https://www.nuget.org/packages/WatneyAstrometry.ImageReaders
 
+# Developer guide
+
+See the wiki **[Developer's Guide](https://github.com/Jusas/WatneyAstrometry/wiki/Developer%27s-Guide)** to get started with using the library.
+
 # The Sources
 
 Most of the documentation will be written [into the Wiki](https://github.com/Jusas/WatneyAstrometry/wiki), so head over there if you need to know how this all works. Here's the rundown on the sources:
