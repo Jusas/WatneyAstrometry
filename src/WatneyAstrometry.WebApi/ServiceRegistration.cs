@@ -59,7 +59,7 @@ internal static class ServiceRegistration
             config.StarDetectionBgOffset = watneyApiConfiguration.StarDetectionBgOffset > 0 ? watneyApiConfiguration.StarDetectionBgOffset : 3.0;
         });
 
-        var solverGlobalConfiguration = new SolverGlobalConfiguration();
+        var solverGlobalConfiguration = SolverGlobalConfiguration.Default;
         if((watneyApiConfiguration.LimitThreads ?? 0) > 0)
         {
             solverGlobalConfiguration.MaxThreads = watneyApiConfiguration.LimitThreads.Value;
