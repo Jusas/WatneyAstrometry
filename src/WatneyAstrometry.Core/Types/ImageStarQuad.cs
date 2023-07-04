@@ -48,5 +48,30 @@ namespace WatneyAstrometry.Core.Types
             var y = (ImageStars[0].Y + ImageStars[1].Y + ImageStars[2].Y + ImageStars[3].Y) / 4;
             PixelMidPoint = (x, y);
         }
+
+        /// <summary>
+        /// For duplicate detection.
+        /// </summary>
+        internal class ImageStarQuadStarBasedEqualityComparer : IEqualityComparer<ImageStarQuad>
+        {
+            public bool Equals(ImageStarQuad x, ImageStarQuad y)
+            {
+                if (ReferenceEquals(x, y)) return true;
+                if (ReferenceEquals(x, null)) return false;
+                if (ReferenceEquals(y, null)) return false;
+                if (x.GetType() != y.GetType()) return false;
+                // Disallow a quad definition that has same pixel coords than another one (this is so that equations
+                // won't flip when we get two slightly different ra,dec coordinates representing the same pixel)
+                if (x.PixelMidPoint.x == y.PixelMidPoint.x && x.PixelMidPoint.y == y.PixelMidPoint.y)
+                    return true;
+                return x.Stars.All(s => y.Stars.Contains(s));
+            }
+
+            public int GetHashCode(ImageStarQuad obj)
+            {
+                return obj.Stars[0].GetHashCode() ^ obj.Stars[1].GetHashCode() ^ obj.Stars[2].GetHashCode() ^
+                       obj.Stars[3].GetHashCode() ^ obj.PixelMidPoint.x.GetHashCode() ^ obj.PixelMidPoint.y.GetHashCode();
+            }
+        }
     }
 }

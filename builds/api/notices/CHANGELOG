@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [1.2.3] - 2023-07-04
+
+### Changed
+
+- WatneyAstrometry.Core updated to v1.2.3 which introduces improved match 
+  filtering. This mainly affects images with large field radiuses and
+  massive amounts of stars visible, improving the solve accuracy. 
+  Fields with tens of thousands of stars should now solve with better
+  accuracy.
+
+
+
+## [1.2.1] - 2023-04-14
+
+### Fixed
+
+- In API: When the API config file config.yml does not have limitThreads set
+  at all, the API app will no longer crash on startup. This crash happened if 
+  you were upgrading from v1.1.3 to v1.2.0 and you were still using your old 
+  configuration, the reason being that the default limitThreads value was 
+  incorrectly being set to 0 instead of -1.
+
+
+
 ## [1.2.0] - 2023-01-21
 
 ### Added

@@ -5,8 +5,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using WatneyAstrometry.Core.Exceptions;
@@ -761,7 +763,7 @@ namespace WatneyAstrometry.Core
             if (matchingQuads.Count >= minMatches)
             {
                 _logger.WriteInfo($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
-                var preliminarySolution = CalculateSolution(imageDimensions, matchingQuads, searchRun.Center);
+                var preliminarySolution = CalculateSolution(imageDimensions, matchingQuads, searchRun.Center, out _);
 
                 if (!IsValidSolution(preliminarySolution))
                 {
@@ -785,7 +787,7 @@ namespace WatneyAstrometry.Core
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
                 var improvedSolution = PerformAccuracyImprovementForSolution(imageDimensions, preliminarySolution,
-                    pixelAngularSearchFieldSizeRatio, quadDb, imageStarQuads, (int) quadsPerSqDeg, minMatches);
+                    pixelAngularSearchFieldSizeRatio, quadDb, imageStarQuads, (int) quadsPerSqDeg, minMatches, searchRun.DensityOffsets);
 
                 if (!IsValidSolution(improvedSolution.solution))
                 {
@@ -827,23 +829,191 @@ namespace WatneyAstrometry.Core
 
         private (Solution solution, List<StarQuadMatch> matches) PerformAccuracyImprovementForSolution(IImageDimensions imageDimensions, Solution solution,
             double pixelAngularSearchFieldSizeRatio,
-            IQuadDatabase quadDatabase, ImageStarQuad[] imageStarQuads, int quadsPerSqDeg, int minMatches)
+            IQuadDatabase quadDatabase, ImageStarQuad[] imageStarQuads, int quadsPerSqDeg, int minMatches, int[] densityOffsets)
         {
             var resolvedCenter = solution.PlateCenter;
-            var densityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
+            // var fullDensityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
+            // Actually, use given offsets. The result is likely going to be more accurate on large fields due to smaller chance of mismatches.
             var databaseQuads = quadDatabase.GetQuads(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads, _solveContextId);
             var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
             if (matchingQuads.Count >= minMatches)
-                return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter), matchingQuads);
+                return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter, out var acceptedMatches), acceptedMatches);
             return (null, null);
         }
 
-        private Solution CalculateSolution(IImageDimensions imageDimensions, List<StarQuadMatch> matches, EquatorialCoords scopeCoords)
+        /// <summary>
+        /// This method filters out matches that are "suspicious" or "bad" (for the most part), and only keeps
+        /// the ones that are representing best quality. This results in a smaller number of used matches but this should
+        /// still result in a better overall result.
+        /// 
+        /// This is mostly to mitigate the problem of large fields with massive amounts of stars, and resolution
+        /// simply being not up to par with the needs of accurate calculations. The more stars, the more matches,
+        /// the bigger the field and the smaller the resolution, the more effect a single pixel has. There's also
+        /// a high chance for mismatches (a match in the area is found thanks to inaccuracies, and the (x,y) -> (ra,dec)
+        /// coordinates don't correlate with the majority of results).
+        /// Without this method, large fields e.g. 5deg with 14k+ detected stars may not really solve correctly, as
+        /// erroneous matches within the field start to manifest and start throwing off the solution. The more stars
+        /// in the field and the more stars included in the solve, the more issues we start seeing.
+        ///
+        /// What we do here is we inspect each individual match's effect on the overall solution. If a match closely
+        /// correlates with the rest of the matches, it should affect the overall solution very little. If a match does
+        /// not correlate well, it affects the solution significantly more and throws it off. The more we have those, the more
+        /// it throws off the overall solution.
+        ///
+        /// We check each Plate Constant, as well as the Scale Ratio (image quad scale (px) compared to db quad scale (deg)).
+        /// Right now we allow 2 * sigma variance for the plate constants. We have the preliminary solution using all the
+        /// matches, and then we remove matches one by one and see the effect they are having on the solution. If it
+        /// seems to go over the variance limits, we drop it.
+        /// Depending on the effective resolution of the image (scale ratio) we limit the accepted scale ratio deviation
+        /// from the median scale ratio. For small scale ratios we have a stricter limit, and for larger scale ratios
+        /// we have a more relaxed limit.
+        /// </summary>
+        /// <param name="matches"></param>
+        /// <param name="initialPlateConstants"></param>
+        /// <param name="scopeCoords"></param>
+        /// <returns></returns>
+        private List<StarQuadMatch> ReduceToBestMatches(List<StarQuadMatch> matches, PlateConstants initialPlateConstants, EquatorialCoords scopeCoords)
+        {
+            var filtered = new List<StarQuadMatch>();
+            _logger.WriteInfo($"Reducing matches for improved accuracy, processing {matches.Count} matches");
+
+
+            double squaredSumsA = 0;
+            double squaredSumsB = 0;
+            double squaredSumsC = 0;
+            double squaredSumsD = 0;
+            double squaredSumsE = 0;
+            double squaredSumsF = 0;
+            double squaredSumsSR = 0;
+
+            var matchCount = matches.Count;
+
+            var scaleRatios = matches.Select(x => x.ScaleRatio).ToArray();
+            Array.Sort(scaleRatios);
+            int midIndex = scaleRatios.Length / 2;
+            var medianScaleRatio = (scaleRatios.Length % 2 != 0)
+                ? scaleRatios[midIndex]
+                : (scaleRatios[midIndex] + scaleRatios[midIndex - 1]) / 2;
+
+            var matchDeltas = new PlateConstants[matchCount];
+            var matchMedianScaleRatioDeviances = new double[matchCount];
+
+            // Calculate the effect of each match on the solution.
+            // Remove those that cause effects above the thresholds as they may be mismatches within the area.
+            // This can mainly happen with large fields with absolutely massive amounts of stars visible.
+            // Same applies to scale ratios; we expect to have nearly constant scale ratios on our matches. Highly
+            // varying scale ratios imply something is wrong.
+
+            for(var i = 0; i < matchCount; i++)
+            {
+                var match = matches[i];
+                var matchListCopy = new List<StarQuadMatch>(matches);
+                matchListCopy.Remove(match);
+                var pc = SolvePlateConstants(matchListCopy, scopeCoords);
+
+                var deltas = new PlateConstants
+                {
+                    A = pc.A - initialPlateConstants.A,
+                    B = pc.B - initialPlateConstants.B,
+                    C = pc.C - initialPlateConstants.C,
+                    D = pc.D - initialPlateConstants.D,
+                    E = pc.E - initialPlateConstants.E,
+                    F = pc.F - initialPlateConstants.F
+                };
+                matchDeltas[i] = deltas;
+                matchMedianScaleRatioDeviances[i] = Math.Abs(medianScaleRatio - match.ScaleRatio);
+
+                squaredSumsA += deltas.A * deltas.A;
+                squaredSumsB += deltas.B * deltas.B;
+                squaredSumsC += deltas.C * deltas.C;
+                squaredSumsD += deltas.D * deltas.D;
+                squaredSumsE += deltas.E * deltas.E;
+                squaredSumsF += deltas.F * deltas.F;
+                squaredSumsSR += (medianScaleRatio - match.ScaleRatio) * (medianScaleRatio - match.ScaleRatio);
+
+
+            }
+
+            var deviationThresholdA = 2 * Math.Sqrt(squaredSumsA / matchCount);
+            var deviationThresholdB = 2 * Math.Sqrt(squaredSumsB / matchCount);
+            var deviationThresholdC = 2 * Math.Sqrt(squaredSumsC / matchCount);
+            var deviationThresholdD = 2 * Math.Sqrt(squaredSumsD / matchCount);
+            var deviationThresholdE = 2 * Math.Sqrt(squaredSumsE / matchCount);
+            var deviationThresholdF = 2 * Math.Sqrt(squaredSumsF / matchCount);
+
+            var deviationThresholdSRSigma = Math.Sqrt(squaredSumsSR / matchCount);
+            
+            // The higher the ScaleRatio, the more leeway we can give (better effective resolution)
+            //
+            // Experimental values.
+            // Minimum tolerated scale ratio deviation (sigma)
+            var minSrSigma = 0.66;
+            // Maximum tolerated scale ratio deviation (sigma)
+            var maxSrSigma = 2.0;
+            // Scale ratio of large fields/low resolution, border value
+            var minSrAtValue = 300.0;
+            // Scale ratio of smaller fields/high resolution, border value
+            var maxSrAtValue = 1500.0;
+            
+            // Linear interpolation
+            double Lerp(double v0, double v1, double t) => (1 - t) * v0 + t * v1;
+
+            var deviationThresholdScaleRatioSigmaFactor = 
+                medianScaleRatio <= minSrAtValue 
+                    ? minSrSigma
+                    : medianScaleRatio >= maxSrAtValue 
+                        ? maxSrSigma
+                        : Lerp(minSrSigma, maxSrSigma, (medianScaleRatio - minSrAtValue) / (maxSrAtValue - minSrAtValue));
+
+            var deviationThresholdScaleRatio = deviationThresholdSRSigma * deviationThresholdScaleRatioSigmaFactor;
+            
+
+            _logger.WriteInfo($"Scale ratio median: {medianScaleRatio}");
+            _logger.WriteInfo($"Scale ratio deviance threshold: {deviationThresholdScaleRatio}");
+            _logger.WriteInfo($"Scale ratio deviance threshold sigma factor: {deviationThresholdScaleRatioSigmaFactor}");
+
+            for (var i = 0; i < matchDeltas.Length; i++)
+            {
+                var match = matches[i];
+                var scaleRatioDeviance = matchMedianScaleRatioDeviances[i];
+                var deltas = matchDeltas[i];
+
+                if (Math.Abs(deltas.A) > deviationThresholdA || Math.Abs(deltas.B) > deviationThresholdB ||
+                    Math.Abs(deltas.C) > deviationThresholdC || Math.Abs(deltas.D) > deviationThresholdD ||
+                    Math.Abs(deltas.E) > deviationThresholdE || Math.Abs(deltas.F) > deviationThresholdF ||
+                    scaleRatioDeviance > deviationThresholdScaleRatio)
+                {
+                    continue;
+                }
+                    
+                filtered.Add(match);
+            }
+
+            if (filtered.Count >= 8)
+            {
+                _logger.WriteInfo($"Filtered out {matches.Count - filtered.Count} matches that could have caused undesired effect on accuracy");
+                return filtered;
+            }
+            else
+            {
+                _logger.WriteInfo($"Not enough matches to perform filtering, with so few matches assuming they're good");
+                return matches;
+            }
+            
+
+        }
+
+        private Solution CalculateSolution(IImageDimensions imageDimensions, List<StarQuadMatch> matches, EquatorialCoords scopeCoords, out List<StarQuadMatch> acceptedMatches)
         {
             var imgW = imageDimensions.ImageWidth;
             var imgH = imageDimensions.ImageHeight;
             var pc = SolvePlateConstants(matches, scopeCoords);
-
+            
+            // Filter out the matches further - there may still be mismatches that are distorting the solution.
+            acceptedMatches = ReduceToBestMatches(matches, pc, scopeCoords);
+            pc = SolvePlateConstants(acceptedMatches, scopeCoords);
+            matches = acceptedMatches;
+            
             var pixelsPerDeg = CalculatePixelsPerDegree(matches);
             var fieldPixelDiameter = Math.Sqrt(imgW * imgW + imgH * imgH);
             var fieldPixelRadius = 0.5 * fieldPixelDiameter;
@@ -1038,6 +1208,7 @@ namespace WatneyAstrometry.Core
                         
                         matches.Add(new StarQuadMatch(dbQuads[j], imageQuad));
                         dbQuadsFound.Add(dbQuads[j]);
+                        break; // This is a must; we have observed remote possibility of duplicates. And one pixel coordinate should match exactly one quad.
                     }
 
                 });
@@ -1210,7 +1381,9 @@ namespace WatneyAstrometry.Core
                     countInFirstPass = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).ToArray().Length;
             }
 
-            var quadsArray = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).Cast<ImageStarQuad>().ToArray();
+            // var quadsArray = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).Cast<ImageStarQuad>().ToArray();
+            var quadsArray = quads.Distinct(new ImageStarQuad.ImageStarQuadStarBasedEqualityComparer()).ToArray();
+
             //countInFirstPass = quadsArray.Length;
             return (quadsArray, countInFirstPass);
         }
