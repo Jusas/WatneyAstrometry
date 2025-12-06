@@ -1,0 +1,25 @@
+{
+  "blind": {
+    "watney_solvers": [
+      {
+        "prefix": "watney_1.2.3",
+        "name": "Watney v1.2.3 / QuadDB v3",
+        "dir": "watney_binaries/v1.2.3/watney-cli",
+        "config_file": "watney_binaries/v1.2.3/watney-cli/config-qdb-v3.yml"
+      }
+    ],
+    "files": [
+      "benchmark_images/bm_1_*"
+    ],
+    "output_dir": "_results/blind",
+    "sampling_variations": [
+      4
+    ],
+    "radius_variations": [
+      [0.5, 16]
+    ],
+    "offset_variations": [
+      [1, 1] 
+    ]
+  }
+}
