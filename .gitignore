@@ -37,3 +37,4 @@ src/Benchmark/watney_binaries/*/*
 !src/Benchmark/watney_binaries/*/download.sh
 
 src/Benchmark/_results
+benchmarking/

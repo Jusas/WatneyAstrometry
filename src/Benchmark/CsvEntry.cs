@@ -33,6 +33,8 @@ public class CsvEntry
     public int SolutionSearchIterations { get; set; }
     public string Errors { get; set; } = string.Empty;
 
+    public string GetId() => $"{ImageName}_{SolverName}_{ArgsSampling}_{ArgsMinRadius}_{ArgsMaxRadius}_{ArgsLowerDensityOffset}_{ArgsHigherDensityOffset}";
+    
     private static string Separator = "|";
     public static string CsvHeader =>
         string.Join(Separator,

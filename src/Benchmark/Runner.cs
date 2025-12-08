@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Benchmark;
 
@@ -35,119 +34,176 @@ public class Runner
 
         if (!Directory.Exists(blindConfig.OutputDir))
             Directory.CreateDirectory(blindConfig.OutputDir);
+
+        var startTimeStamp = $"{DateTime.Now:yyyy-MM-ddTHH-mm-ss}";
         
+        var totalSolvesPerIteration = files.Length * variations.Count;
         
-        var totalSolves = solvers.Length * files.Length * variations.Count;
-        var currentSolve = 1;
-        var sw = Stopwatch.StartNew();
+        var swTotal = Stopwatch.StartNew();
         
         for (var solverIndex = 0; solverIndex < solvers.Length; solverIndex++)
         {
             var solver = solvers[solverIndex];
+            var report = new SolverBenchmarkReport()
+            {
+                SolverName = solver.Name,
+                SolverPrefix = solver.Prefix,
+                TimeStamp = startTimeStamp,
+                SamplingVariations = _benchmarkConfig.Blind.SamplingVariations,
+                OffsetVariations = _benchmarkConfig.Blind.OffsetVariations,
+                Iterations = solver.Iterations,
+                RadiusVariations = _benchmarkConfig.Blind.RadiusVariations,
+                ErrorCount = 0,
+                ImageFilenameList = files.Select(Path.GetFileName).ToList()!
+            };
+                
+            var swSolver = Stopwatch.StartNew();
             Console.WriteLine($"Benchmarking solver: {solver.Name} ({solverIndex+1}/{solvers.Length})");
             Console.WriteLine(BigSeparator + Environment.NewLine);
+
+            var allSolvesForThisSolver = new List<CsvEntry>(); 
             
-            Console.WriteLine($"Images to solve: {files.Length}" + Environment.NewLine);
-            for (var imageIndex = 0; imageIndex < files.Length; imageIndex++)
+            for (var iteration = 0; iteration < solver.Iterations; iteration++)
             {
-                var imageFile = files[imageIndex];
-                var outputCsvFile = Path.Combine(blindConfig.OutputDir, $"{solver.Prefix}_{Path.GetFileName(imageFile)}.csv");
-                var csvRows = new List<string>()
-                {
-                    CsvEntry.CsvHeader
-                };
+                var currentSolveInIteration = 1;
+                Console.WriteLine(SmallSeparator);
+                Console.WriteLine($"Iteration {iteration + 1}/{solver.Iterations}");
+                Console.WriteLine(SmallSeparator + Environment.NewLine);
                 
-                for (var variationIndex = 0; variationIndex < variations.Count; variationIndex++)
+                Console.WriteLine($"Images to solve: {files.Length}" + Environment.NewLine);
+                for (var imageIndex = 0; imageIndex < files.Length; imageIndex++)
                 {
-                    // [00:00:00] [5/891] [s 1/1, i 1/9, v 5/81]>  samp: 1  offs: [1, 1]  radi: [0.5, 8.0]  => 00:00:01.554
-                    var variation = variations[variationIndex];
-                    Console.Write("[{0}] [{1}/{2}] [s {3}/{4}, i {5}/{6}, v {7}/{8}]>  ", 
-                        sw.Elapsed.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture),
-                        currentSolve, totalSolves, 
-                        solverIndex+1, solvers.Length, 
-                        imageIndex+1, files.Length,
-                        variationIndex+1, variations.Count);
-                    Console.Write($"samp: {variation.Sampling}  " +
-                                  $"offs: [{variation.LowerDensityOffset}, {variation.HigherDensityOffset}]  " +
-                                  $"radi: [{variation.MinRadius:F1}, {variation.MaxRadius:F1}]  => ");
-
-                    currentSolve++;
-                    var variationArgs = CreateVariationArguments(variation);
-                    var configFile = new FileInfo(Path.Combine(BenchmarkConfig.DataRootDirectory, solver.ConfigFile)).FullName;
-                    var solverArgs = new []
+                    var imageFile = files[imageIndex];
+                    var imageIterationOutputCsvFile = Path.Combine(blindConfig.OutputDir,
+                        $"{solver.Prefix}_{startTimeStamp}_{Path.GetFileName(imageFile)}__iter-{iteration:00}.csv");
+                    var csvRows = new List<string>()
                     {
-                        "blind",
-                        "--use-config", configFile,
-                        "--image", imageFile,
-                        "--extended",
-                        "--benchmark",
-                        "--out-format", "json"
-                    }.Concat(variationArgs);
-                    
-                    var exeName = OperatingSystem.IsWindows() ? "watney-solve.exe" : "watney-solve";
-                    exeName = Path.Combine(BenchmarkConfig.DataRootDirectory, solver.Dir, exeName);
-                    
-                    var processStartInfo = new ProcessStartInfo(exeName, solverArgs)
-                    {
-                        CreateNoWindow = true,
-                        WorkingDirectory = BenchmarkConfig.DataRootDirectory,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true
-                    };
-                    
-                    var process = new Process()
-                    {
-                        StartInfo = processStartInfo,
-                        EnableRaisingEvents = true,
+                        CsvEntry.CsvHeader
                     };
 
-                    var processOutput = new List<string?>();
-                    var csvEntry = new CsvEntry()
+                    for (var variationIndex = 0; variationIndex < variations.Count; variationIndex++)
                     {
-                        ImageName = Path.GetFileName(imageFile),
-                        SolverName = solver.Name,
-                        ArgsSampling = variation.Sampling,
-                        ArgsLowerDensityOffset = variation.LowerDensityOffset,
-                        ArgsHigherDensityOffset = variation.HigherDensityOffset,
-                        ArgsMaxRadius = variation.MaxRadius,
-                        ArgsMinRadius = variation.MinRadius
-                    };
-                    
-                    try
-                    {
-                        process.Start();
-                        process.BeginOutputReadLine();
-                        process.OutputDataReceived += (_, args) => processOutput.Add(args.Data);
-                        process.WaitForExit();
-                        if (process.ExitCode == 0)
+                        // [00:00:00] sol[1/1] itr[1/5] tot[5/891] img[1/9] var[5/81]>  samp: 1  offs: [1, 1]  radi: [0.5, 8.0]  => 00:00:01.554
+                        var variation = variations[variationIndex];
+
+                        Console.Write("[{0}] sol[{1}/{2}] itr[{3}/{4}] tot[{5}/{6}] img[{7}/{8}] var[{9}/{10}]]>  ",
+                            swTotal.Elapsed.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture),
+                            solverIndex + 1, solvers.Length,
+                            iteration + 1, solver.Iterations,
+                            currentSolveInIteration, totalSolvesPerIteration,
+                            imageIndex + 1, files.Length,
+                            variationIndex + 1, variations.Count);
+                        
+                        Console.Write($"samp: {variation.Sampling}  " +
+                                      $"offs: [{variation.LowerDensityOffset}, {variation.HigherDensityOffset}]  " +
+                                      $"radi: [{variation.MinRadius:F1}, {variation.MaxRadius:F1}]  => ");
+
+                        currentSolveInIteration++;
+                        var variationArgs = CreateVariationArguments(variation);
+                        var configFile =
+                            new FileInfo(Path.Combine(BenchmarkConfig.DataRootDirectory, solver.ConfigFile)).FullName;
+                        var solverArgs = new[]
                         {
-                            ParseResult(processOutput, csvEntry);
-                            Console.Write(csvEntry.SolutionTotalTimeSpent.ToString(@"hh\:mm\:ss\.fff", CultureInfo.InvariantCulture) + Environment.NewLine);
-                        }
-                        else
+                            "blind",
+                            "--use-config", configFile,
+                            "--image", imageFile,
+                            "--extended",
+                            "--benchmark",
+                            "--out-format", "json"
+                        }.Concat(variationArgs);
+
+                        var exeName = OperatingSystem.IsWindows() ? "watney-solve.exe" : "watney-solve";
+                        exeName = Path.Combine(BenchmarkConfig.DataRootDirectory, solver.Dir, exeName);
+
+                        var processStartInfo = new ProcessStartInfo(exeName, solverArgs)
                         {
-                            csvEntry.Errors = process.StandardError.ReadToEnd();
-                            Console.Write("Solver Error" + Environment.NewLine);
-                            Console.WriteLine(SmallSeparator);
-                            processOutput.ForEach(line => Console.WriteLine(line));
-                            if (csvEntry.Errors.Length == 0)
-                                csvEntry.Errors = processOutput.FirstOrDefault() ?? string.Empty;
-                            Console.WriteLine(SmallSeparator);
-                            
+                            CreateNoWindow = true,
+                            WorkingDirectory = BenchmarkConfig.DataRootDirectory,
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true
+                        };
+
+                        var process = new Process()
+                        {
+                            StartInfo = processStartInfo,
+                            EnableRaisingEvents = true,
+                        };
+
+                        var processOutput = new List<string?>();
+                        var csvEntry = new CsvEntry()
+                        {
+                            ImageName = Path.GetFileName(imageFile),
+                            SolverName = solver.Name,
+                            ArgsSampling = variation.Sampling,
+                            ArgsLowerDensityOffset = variation.LowerDensityOffset,
+                            ArgsHigherDensityOffset = variation.HigherDensityOffset,
+                            ArgsMaxRadius = variation.MaxRadius,
+                            ArgsMinRadius = variation.MinRadius
+                        };
+
+                        try
+                        {
+                            process.Start();
+                            process.BeginOutputReadLine();
+                            process.OutputDataReceived += (_, args) => processOutput.Add(args.Data);
+                            process.WaitForExit();
+                            if (process.ExitCode == 0)
+                            {
+                                ParseResult(processOutput, csvEntry);
+                                Console.Write(
+                                    csvEntry.SolutionTotalTimeSpent.ToString(@"hh\:mm\:ss\.fff",
+                                        CultureInfo.InvariantCulture) + Environment.NewLine);
+                            }
+                            else
+                            {
+                                report.ErrorCount++;
+                                csvEntry.Errors = process.StandardError.ReadToEnd();
+                                Console.Write("Solver Error" + Environment.NewLine);
+                                Console.WriteLine(SmallSeparator);
+                                processOutput.ForEach(line => Console.WriteLine(line));
+                                if (csvEntry.Errors.Length == 0)
+                                    csvEntry.Errors = processOutput.FirstOrDefault() ?? string.Empty;
+                                Console.WriteLine(SmallSeparator);
+
+                            }
                         }
-                    }
-                    catch (Exception e)
-                    {
-                        csvEntry.Errors = e.Message;
-                        Console.Write("Exception" + Environment.NewLine);
+                        catch (Exception e)
+                        {
+                            report.ErrorCount++;
+                            csvEntry.Errors = e.Message;
+                            Console.Write("Exception" + Environment.NewLine);
+                        }
+
+                        allSolvesForThisSolver.Add(csvEntry);
+                        csvRows.Add(csvEntry.AsCsv());
                     }
 
-                    csvRows.Add(csvEntry.AsCsv());
+                    File.WriteAllLines(imageIterationOutputCsvFile, csvRows);
                 }
-                
-                File.WriteAllLines(outputCsvFile, csvRows);
             }
+
+            swSolver.Stop();
+
+            var allAveragedRows = allSolvesForThisSolver.GroupBy(x => x.GetId())
+                .Select(group => AverageCompletedResults(group.ToArray()))
+                .ToArray();
+            var averagedRowsPerImage = allAveragedRows.GroupBy(x => x.ImageName);
+            
+            foreach (var rowsForImage in averagedRowsPerImage)
+            {
+                var averagedOutputCsvFile = Path.Combine(blindConfig.OutputDir,
+                    $"{solver.Prefix}_{startTimeStamp}_{rowsForImage.First().ImageName}__averaged.csv");
+                File.WriteAllLines(averagedOutputCsvFile, new [] 
+                    { CsvEntry.CsvHeader }.Concat(rowsForImage.Select(row => row.AsCsv())));    
+            }
+            
+            var reportFile = Path.Combine(blindConfig.OutputDir,
+                $"{solver.Prefix}_{startTimeStamp}__report.txt");
+            report.Write(swSolver.Elapsed, reportFile);
+            
+            Console.WriteLine($"Total time spent: {swSolver.Elapsed}");
+            Console.WriteLine("Wrote report to " + reportFile);
             
             Console.WriteLine(Environment.NewLine + SmallSeparator + Environment.NewLine);
             Console.WriteLine("Benchmark run complete");
@@ -155,6 +211,38 @@ public class Runner
         }
     }
 
+    private CsvEntry AverageCompletedResults(CsvEntry[] csvRows)
+    {
+        return new CsvEntry()
+        {
+            ImageName = csvRows.First().ImageName,
+            SolverName = csvRows.First().SolverName,
+            ArgsSampling = csvRows.First().ArgsSampling,
+            ArgsLowerDensityOffset = csvRows.First().ArgsLowerDensityOffset,
+            ArgsHigherDensityOffset = csvRows.First().ArgsHigherDensityOffset,
+            ArgsMaxRadius = csvRows.First().ArgsMaxRadius,
+            ArgsMinRadius = csvRows.First().ArgsMinRadius,
+            DurationImageQuadFormation = csvRows.Average(x => x.DurationImageQuadFormation),
+            DurationImageRead = csvRows.Average(x => x.DurationImageRead),
+            DurationSolve = csvRows.Average(x => x.DurationSolve),
+            DurationStarDetection = csvRows.Average(x => x.DurationStarDetection),
+            SolutionDec = csvRows.First().SolutionDec,
+            SolutionRa = csvRows.First().SolutionRa,
+            Errors = string.Join("; ", csvRows.Select(x => x.Errors)),
+            SolutionDiscoverySearchRunCenter = csvRows.First().SolutionDiscoverySearchRunCenter,
+            SolutionDiscoverySearchRunRadius = csvRows.First().SolutionDiscoverySearchRunRadius,
+            SolutionFieldRadius = csvRows.First().SolutionFieldRadius,
+            SolutionQuadMatches = csvRows.First().SolutionQuadMatches,
+            SolutionSearchIterations = (int)csvRows.Average(x => x.SolutionSearchIterations),
+            SolutionStarsDetected = csvRows.First().SolutionStarsDetected,
+            SolutionStarsUsed = csvRows.First().SolutionStarsUsed,
+            SolutionTotalTimeSpent = TimeSpan.FromSeconds(csvRows.Average(x => x.SolutionTotalTimeSpent.TotalSeconds)),
+            Solved = csvRows.Any(x => x.Solved),
+            SourceImageHeight = csvRows.First().SourceImageHeight,
+            SourceImageWidth = csvRows.First().SourceImageWidth
+        };
+    }
+    
     private void ParseResult(List<string?> resultOutput, CsvEntry csvEntry)
     {
         

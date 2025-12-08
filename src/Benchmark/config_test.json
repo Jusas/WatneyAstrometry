@@ -5,7 +5,8 @@
         "prefix": "watney_1.2.3",
         "name": "Watney v1.2.3 / QuadDB v3",
         "dir": "watney_binaries/v1.2.3/watney-cli",
-        "config_file": "watney_binaries/v1.2.3/watney-cli/config-qdb-v3.yml"
+        "config_file": "watney_binaries/v1.2.3/watney-cli/config-qdb-v3.yml",
+        "iterations": 3
       }
     ],
     "files": [
@@ -13,13 +14,13 @@
     ],
     "output_dir": "_results/blind",
     "sampling_variations": [
-      4
+      4, 8
     ],
     "radius_variations": [
-      [0.5, 16]
+      [0.5, 16], [0.5, 4]
     ],
     "offset_variations": [
-      [1, 1] 
+      [1, 1]
     ]
   }
 }

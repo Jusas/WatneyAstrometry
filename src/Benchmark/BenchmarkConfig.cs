@@ -14,6 +14,7 @@ public class WatneySolverEntry
     public required string Name { get; set; }
     public required string Dir { get; set; }
     public required string ConfigFile { get; set; }
+    public int Iterations { get; set; }
 }
 
 public class Blind
@@ -51,6 +52,13 @@ public class BenchmarkConfig
     {
         if (benchmarkConfig.Blind.Files.Length == 0)
             throw new Exception("No input files");
+        if (benchmarkConfig.Blind.WatneySolvers.Length == 0)
+            throw new Exception("No solvers defined");
+        if (benchmarkConfig.Blind.WatneySolvers.Any(s => s.Iterations == 0))
+            Console.WriteLine("Warning: solver iterations marked as 0");
+        if (string.IsNullOrEmpty(benchmarkConfig.Blind.OutputDir))
+            throw new Exception("No output directory specified");
+        
         
         ExpandFilesAndPaths(benchmarkConfig);
 
