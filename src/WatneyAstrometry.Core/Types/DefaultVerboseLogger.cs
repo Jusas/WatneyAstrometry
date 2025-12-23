@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
+using System.Threading;
+
 #pragma warning disable CS1591
 
 namespace WatneyAstrometry.Core.Types
@@ -23,7 +25,7 @@ namespace WatneyAstrometry.Core.Types
             public bool Enabled { get; set; }
         }
 
-        private readonly object _mutex = new object();
+        private readonly Lock _mutex = new Lock();
         private Options _options;
         public DefaultVerboseLogger(Options options)
         {

@@ -6,7 +6,7 @@
         "name": "Watney v1.2.3 / QuadDB v3",
         "dir": "watney_binaries/v1.2.3/watney-cli",
         "config_file": "watney_binaries/v1.2.3/watney-cli/config-qdb-v3.yml",
-        "iterations": 1
+        "iterations": 5
       }
     ],
     "files": [

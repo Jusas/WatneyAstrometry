@@ -350,8 +350,8 @@ namespace WatneyAstrometry.Core
             OnSolveProgress?.Invoke(SolverStep.QuadFormationStarted);
 
             // Form quads from image stars
-            var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
-            _logger.WriteInfo($"Formed {imageStarQuads.Length} quads from the chosen stars");
+            var (sortedImageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
+            _logger.WriteInfo($"Formed {sortedImageStarQuads.Length} quads from the chosen stars");
 
             OnSolveProgress?.Invoke(SolverStep.QuadFormationFinished);
 
@@ -374,14 +374,14 @@ namespace WatneyAstrometry.Core
                 DetectedQuadDensity = countInFirstPass,
                 MatchInstances = null,
                 UsedStarCount = chosenDetectedStars.Count,
-                FormedImageStarQuads = imageStarQuads,
+                FormedImageStarQuads = sortedImageStarQuads,
                 ImageWidth = imageDimensions.ImageWidth,
                 ImageHeight = imageDimensions.ImageHeight,
             };
 
             diagnosticsData.FoundUsingRunType = SolveRunType.SampledRun;
 
-            int numSubSets = sampling.Value;
+            int numSubSets = Math.Max(1, sampling.Value);
             int currentSubSetIndex = 0;
             SolveResult successfulSolveResult = null;
             IEnumerable<SearchRun> searchQueue = strategy.GetSearchQueue();
@@ -444,7 +444,7 @@ namespace WatneyAstrometry.Core
                                 var searchTasks = searchQueue.Select(searchRun => WatneyTaskFactory.Instance.StartNew(() =>
                                     TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
                                         quadDb,
-                                        numSubSets, currentSubSetIndex, imageStarQuads,
+                                        numSubSets, currentSubSetIndex, sortedImageStarQuads,
                                         completionCts)));
                                 
                                 whenAllResult = Task.WhenAll(searchTasks);
@@ -478,7 +478,7 @@ namespace WatneyAstrometry.Core
                                     WatneyTaskFactory.Instance.StartNew(() =>
                                         TrySolveSingle(imageDimensions, combinedCts, searchRun,
                                             countInFirstPass,
-                                            quadDb, 1, 0, imageStarQuads,
+                                            quadDb, 1, 0, sortedImageStarQuads,
                                             completionCts)));
 
                                 whenAllResult = Task.WhenAll(potentialMatchSearchTasks);
@@ -577,7 +577,7 @@ namespace WatneyAstrometry.Core
 
                                 taskResult = TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
                                     quadDb, numSubSets, currentSubSetIndex,
-                                    imageStarQuads,
+                                    sortedImageStarQuads,
                                     completionCts);
 
                                 serialSearches.Add(taskResult);
@@ -616,7 +616,7 @@ namespace WatneyAstrometry.Core
                             foreach (var searchRun in potentialMatchQueue)
                             {
                                 taskResult = TrySolveSingle(imageDimensions, combinedCts, searchRun, countInFirstPass,
-                                    quadDb, 1, 0, imageStarQuads,
+                                    quadDb, 1, 0, sortedImageStarQuads,
                                     completionCts);
 
                                 if (taskResult != null && taskResult.Success)
@@ -702,7 +702,7 @@ namespace WatneyAstrometry.Core
         }
 
         private SolveResult TrySolveSingle(IImageDimensions imageDimensions, CancellationTokenSource cancellationCts, SearchRun searchRun,
-            int countInFirstPass, IQuadDatabase quadDb, int numSubSets, int subSetIndex, ImageStarQuad[] imageStarQuads, CancellationTokenSource completionCts)
+            int countInFirstPass, IQuadDatabase quadDb, int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageStarQuads, CancellationTokenSource completionCts)
         {
             if (cancellationCts.IsCancellationRequested)
                 return null;
@@ -739,7 +739,7 @@ namespace WatneyAstrometry.Core
             
             var databaseQuads =
                     quadDb.GetQuads(searchRun.Center, searchRun.RadiusDegrees, (int)quadsPerSqDeg,
-                        searchRun.DensityOffsets, numSubSets, subSetIndex, imageStarQuads, _solveContextId);
+                        searchRun.DensityOffsets, numSubSets, subSetIndex, sortedImageStarQuads, _solveContextId);
 
             taskResult.NumPotentialMatches = databaseQuads.Count;
 
@@ -755,10 +755,10 @@ namespace WatneyAstrometry.Core
             {
                 databaseQuads = quadDb.GetQuads(searchRun.Center, searchRun.RadiusDegrees,
                     (int)quadsPerSqDeg, searchRun.DensityOffsets, 1, 0,
-                    imageStarQuads, _solveContextId);
+                    sortedImageStarQuads, _solveContextId);
             }
 
-            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
+            matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, sortedImageStarQuads, databaseQuads, 0.011, minMatches);
 
             if (matchingQuads.Count >= minMatches)
             {
@@ -786,8 +786,11 @@ namespace WatneyAstrometry.Core
                 // Calculate a second time; we may be quite a bit off if we're detecting the quads at an edge,
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
+                // TODO: Hmm, perhaps it would make sense to check if the search run radius is small enough to warrant
+                // adding more density offsets - for larger fields this is not wanted as it's likely to introduce mismatches
+                // which actually degrades the solution accuracy.
                 var improvedSolution = PerformAccuracyImprovementForSolution(imageDimensions, preliminarySolution,
-                    pixelAngularSearchFieldSizeRatio, quadDb, imageStarQuads, (int) quadsPerSqDeg, minMatches, searchRun.DensityOffsets);
+                    pixelAngularSearchFieldSizeRatio, quadDb, sortedImageStarQuads, (int) quadsPerSqDeg, minMatches, searchRun.DensityOffsets);
 
                 if (!IsValidSolution(improvedSolution.solution))
                 {
@@ -829,13 +832,13 @@ namespace WatneyAstrometry.Core
 
         private (Solution solution, List<StarQuadMatch> matches) PerformAccuracyImprovementForSolution(IImageDimensions imageDimensions, Solution solution,
             double pixelAngularSearchFieldSizeRatio,
-            IQuadDatabase quadDatabase, ImageStarQuad[] imageStarQuads, int quadsPerSqDeg, int minMatches, int[] densityOffsets)
+            IQuadDatabase quadDatabase, ImageStarQuad[] sortedImageStarQuads, int quadsPerSqDeg, int minMatches, int[] densityOffsets)
         {
             var resolvedCenter = solution.PlateCenter;
             // var fullDensityOffsets = new[] {-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5}; // Include many, to improve the odds and to maximize match chances.
             // Actually, use given offsets. The result is likely going to be more accurate on large fields due to smaller chance of mismatches.
-            var databaseQuads = quadDatabase.GetQuads(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, imageStarQuads, _solveContextId);
-            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, imageStarQuads, databaseQuads, 0.011, minMatches);
+            var databaseQuads = quadDatabase.GetQuads(resolvedCenter, solution.Radius, quadsPerSqDeg, densityOffsets, 1, 0, sortedImageStarQuads, _solveContextId);
+            var matchingQuads = FindMatches(pixelAngularSearchFieldSizeRatio, sortedImageStarQuads, databaseQuads, 0.011, minMatches);
             if (matchingQuads.Count >= minMatches)
                 return (CalculateSolution(imageDimensions, matchingQuads, resolvedCenter, out var acceptedMatches), acceptedMatches);
             return (null, null);
@@ -1195,7 +1198,7 @@ namespace WatneyAstrometry.Core
                     if (imageQuad == null) return;
                     for (var j = 0; j < dbQuads.Count; j++)
                     {
-                        var d1 = Math.Abs(imageQuad.Ratios[0] / dbQuads[j].Ratios[0] - 1.0);
+                        var d1 = Math.Abs(imageQuad.Ratios[0] / dbQuads[j].Ratios[0] - 1.0); // TODO WAIT, do we need these checks?
                         if (d1 > threshold) continue;
                         var d2 = Math.Abs(imageQuad.Ratios[1] / dbQuads[j].Ratios[1] - 1.0);
                         if (d2 > threshold) continue;
@@ -1286,9 +1289,10 @@ namespace WatneyAstrometry.Core
         }
         
 
-        internal static (ImageStarQuad[] quads, int countInFirstPass) FormImageStarQuads(IList<ImageStar> starsFound)
+        internal static (ImageStarQuad[] sortedQuads, int countInFirstPass) FormImageStarQuads(IList<ImageStar> starsFound)
         {
-            var quads = new List<ImageStarQuad>();
+            // Sort the quads by the first ratio (descending); this will help with optimization later.
+            var sortedQuads = new List<ImageStarQuad>();
             int countInFirstPass = 0;
 
             // Do a few passes. Experimental.
@@ -1374,18 +1378,19 @@ namespace WatneyAstrometry.Core
                     };
 
                     var quad = new ImageStarQuad(ratios, (float)largestDistance, quadStars);
-                    quads.Add(quad);
+                    sortedQuads.Add(quad);
                 }
 
                 if(p == 0)
-                    countInFirstPass = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).ToArray().Length;
+                    countInFirstPass = sortedQuads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).ToArray().Length;
             }
 
             // var quadsArray = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).Cast<ImageStarQuad>().ToArray();
-            var quadsArray = quads.Distinct(new ImageStarQuad.ImageStarQuadStarBasedEqualityComparer()).ToArray();
+            var sortedQuadsArray = sortedQuads.Distinct(new ImageStarQuad.ImageStarQuadStarBasedEqualityComparer())
+                .OrderByDescending(x => x.Ratios[0]).ToArray();
 
             //countInFirstPass = quadsArray.Length;
-            return (quadsArray, countInFirstPass);
+            return (sortedQuadsArray, countInFirstPass);
         }
     }
 }

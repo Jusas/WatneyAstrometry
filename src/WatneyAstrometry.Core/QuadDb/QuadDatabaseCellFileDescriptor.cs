@@ -53,10 +53,10 @@ namespace WatneyAstrometry.Core.QuadDb
         {
 
             var buf = new byte[255];
-            stream.Read(buf, 0, 1);
+            stream.ReadExactly(buf, 0, 1);
             var filenameLen = buf[0];
 
-            stream.Read(buf, 0, filenameLen);
+            stream.ReadExactly(buf, 0, filenameLen);
             Filename = new UTF8Encoding(false).GetString(buf, 0, filenameLen);
 
             
@@ -64,7 +64,7 @@ namespace WatneyAstrometry.Core.QuadDb
         
 
             // Band and cell indices + pass count
-            stream.Read(buf, 0, 12);
+            stream.ReadExactly(buf, 0, 12);
 
             if (BytesNeedReversing)
             {
@@ -93,7 +93,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 var pass = new Pass();
                 Passes[p] = pass;
 
-                stream.Read(buf, 0, 12);
+                stream.ReadExactly(buf, 0, 12);
 
                 if (BytesNeedReversing)
                 {
@@ -109,7 +109,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
                 for (var sc = 0; sc < numSubCells; sc++)
                 {
-                    stream.Read(buf, 0, 12);
+                    stream.ReadExactly(buf, 0, 12);
 
                     if (BytesNeedReversing)
                     {

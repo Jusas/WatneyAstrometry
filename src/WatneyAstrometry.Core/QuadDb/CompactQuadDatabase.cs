@@ -68,7 +68,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// The database contains passes, and the pass chosen for use is determined by the <paramref name="quadsPerSqDegree"/> parameter. Using <paramref name="quadDensityOffsets"/>
         /// you can control the passes included in the results.
         /// <br/>
-        /// <paramref name="imageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
+        /// <paramref name="sortedImageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
         /// </summary>
         /// <param name="center">The center.</param>
         /// <param name="radiusDegrees">The radius around the center.</param>
@@ -76,34 +76,72 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadDensityOffsets">Offsets used to include passes with lower or higher quad density. Example: [-1, 0, 1]. Can be null, which will equal to [0].</param>
         /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
         /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
-        /// <param name="imageQuads">The quads formed from the source image's stars.</param>
+        /// <param name="sortedImageQuads">The quads formed from the source image's stars, sorted by the first ratio (descending).</param>
         /// <param name="solveContextId">Which solve context we're working on. Contexts are used for caching to speed up the process.</param>
         /// <returns></returns>
         public List<StarQuad> GetQuads(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
-            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId)
+            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageQuads, Guid solveContextId)
         {
             if (!_contexts.TryGetValue(solveContextId, out var cache))
                 throw new QuadDatabaseException($"Context {solveContextId} doesn't exist, it should be created first");
 
             var cells = SkySegmentSphere.Cells;
-            var cellsToInclude = new string[cells.Count];
+
+            int[] cellsToInclude = null;
             int cellsToIncludeCount = 0;
-            for (int i = 0; i < cellsToInclude.Length; i++)
+            
+            // Caching this, since otherwise there would be so many calls to IsCellInSearchRadius.
+            // The cache helps when using sampling, as we potentially need to go over the same areas multiple times
+            // just with a different set of DB quads to check.
+            // Using the (RA, Dec) and radius as keys, and using rounding/casting to int to make "clever" keys without
+            // having to use floating point comparison.
+            
+            var radiusRounded = (int)Math.Max(1, radiusDegrees * 100);
+            var centerRaRounded = (int)(center.Ra * 100_000);
+            var centerDecRounded = (int)(center.Dec * 100_000);
+            // Two ints as one long makes for the key.
+            var cellSearchCacheKey = ((long)centerRaRounded << 32) | (centerDecRounded & 0xffffffffL);
+
+            // TODO: When sampling == 1, skip this caching since it gives us no advantage as we only run each area once.
+            if (cache.CellSearchCache.TryGetValue(cellSearchCacheKey, out var cellSearchRaDecCacheEntry) &&
+                cellSearchRaDecCacheEntry.TryGetValue(radiusRounded, out var radiusCacheEntry))
             {
-                var cell = cells[i];
-                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
+                cellsToInclude = radiusCacheEntry;
+                cellsToIncludeCount = radiusCacheEntry.Length;
+            }
+            else
+            {
+                cellsToInclude = new int[cells.Count];
+                
+                for (int i = 0; i < cellsToInclude.Length; i++)
                 {
-                    cellsToInclude[cellsToIncludeCount] = cell.CellId;
-                    cellsToIncludeCount++;
+                    var cell = cells[i];
+                    if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
+                    {
+                        cellsToInclude[cellsToIncludeCount] = cell.CellIdNumber;
+                        cellsToIncludeCount++;
+                    }
+                }
+                Array.Resize(ref cellsToInclude, cellsToIncludeCount);
+                if (cellSearchRaDecCacheEntry == null)
+                {
+                    var dictionary = new ConcurrentDictionary<int, int[]>();
+                    dictionary.TryAdd(radiusRounded, cellsToInclude);
+                    cache.CellSearchCache.TryAdd(cellSearchCacheKey, dictionary);
+                }
+                else
+                {
+                    cellSearchRaDecCacheEntry.TryAdd(radiusRounded, cellsToInclude);
                 }
             }
+            
             
             var sourceDataFileSets = new List<QuadDatabaseCellFileSet>(cellsToIncludeCount);
             for (var i = 0; i < _cellFileSets.Length; i++)
             {
                 for (var j = 0; j < cellsToIncludeCount; j++)
                 {
-                    if (_cellFileSets[i].CellId == cellsToInclude[j])
+                    if (_cellFileSets[i].CellIdNumber == cellsToInclude[j])
                     {
                         sourceDataFileSets.Add(_cellFileSets[i]);
                         break;
@@ -129,7 +167,7 @@ namespace WatneyAstrometry.Core.QuadDb
                     var idx = i;
 
                     quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(
-                        center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads, cache);
+                        center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, sortedImageQuads, cache);
 
                 }
             }
@@ -142,6 +180,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 .ToList();
             
         }
+
 
         /// <summary>
         /// Create a new solve context. Contexts are used for caching to speed up the quad lookups.

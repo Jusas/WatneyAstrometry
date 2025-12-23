@@ -73,5 +73,7 @@ namespace WatneyAstrometry.Core.Types
                        obj.Stars[3].GetHashCode() ^ obj.PixelMidPoint.x.GetHashCode() ^ obj.PixelMidPoint.y.GetHashCode();
             }
         }
+        
+
     }
 }

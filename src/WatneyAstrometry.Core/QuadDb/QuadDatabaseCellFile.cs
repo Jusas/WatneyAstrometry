@@ -47,11 +47,11 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="passIndex"></param>
         /// <param name="numSubSets">The number of quad subsets we divide the available quads to.</param>
         /// <param name="subSetIndex">The index of the quad subset we want to include.</param>
-        /// <param name="imageQuads"></param>
+        /// <param name="sortedImageQuads">Image star quads, sorted by the first ratio (descending).</param>
         /// <param name="cache"></param>
         /// <returns></returns>
         public unsafe StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex,
-            int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
+            int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
             // Quads that get a match, and are within search distance
             var matchingQuadsWithinRange = new List<StarQuad>();
@@ -120,15 +120,27 @@ namespace WatneyAstrometry.Core.QuadDb
                     {
                         try
                         {
+                            var streamOptions = new FileStreamOptions()
+                            {
+                                Options = FileOptions.RandomAccess, 
+                                Access = FileAccess.Read, 
+                                BufferSize = 0, 
+                                Mode = FileMode.Open, 
+                                Share = FileShare.Read
+                            };
                             if (!_fileStreamPool.TryDequeue(out fileStream))
-                                fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read,
-                                    FileShare.Read);
+                            {
+                                fileStream = new FileStream(Descriptor.Filename, streamOptions);
+                                // fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read,
+                                //     FileShare.Read, 4096, false); // Do not use async; testing in net10 if this improves performance.
+                            }
+
                             if (!_fileVersionValidated)
                             {
                                 _fileVersionValidated = true;
                                 fileStream.Seek(0, SeekOrigin.Begin);
                                 var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
-                                fileStream.Read(fileFormatBytes, 0, fileFormatBytes.Length);
+                                fileStream.ReadExactly(fileFormatBytes, 0, fileFormatBytes.Length);
 
                                 // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
                                 if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
@@ -138,7 +150,7 @@ namespace WatneyAstrometry.Core.QuadDb
                                 }
                                 
                                 var versionNumBytes = new byte[sizeof(int)];
-                                fileStream.Read(versionNumBytes, 0, sizeof(int));
+                                fileStream.ReadExactly(versionNumBytes, 0, sizeof(int));
                                 if (Descriptor.BytesNeedReversing)
                                     Array.Reverse(versionNumBytes);
 
@@ -167,37 +179,38 @@ namespace WatneyAstrometry.Core.QuadDb
                         thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset = new StarQuad[numSubSets][];
                     }
                     
-
-                    byte[] subCellDataBytes = new byte[subCellsInRangeArr[sc].DataLengthBytes];
-                    fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
-                    fileStream.Read(subCellDataBytes, 0, subCellDataBytes.Length);
+                    var quadCountInSubCell = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
+                    var quadCountPerSubSet = quadCountInSubCell / numSubSets;
+                    var quadSplitModulo = quadCountInSubCell % numSubSets;
                     
-                    fixed (byte* pSubCellDataBytes = subCellDataBytes)
+                    long streamReadOffset = subCellsInRangeArr[sc].DataStartPos +
+                                        subSetIndex * quadCountPerSubSet * QuadDataLen;
+                    
+                    var numberOfQuadsToRead = subSetIndex == numSubSets - 1 && quadSplitModulo > 0
+                        ? quadCountPerSubSet + quadSplitModulo // Add modulo quads to the last subset
+                        : quadCountPerSubSet;
+                    byte[] subSetDataBytes = new byte[numberOfQuadsToRead * QuadDataLen];
+                    
+                    fileStream.Seek(streamReadOffset, SeekOrigin.Begin);
+                    fileStream.ReadExactly(subSetDataBytes, 0, subSetDataBytes.Length);
+                    
+                    fixed (byte* pSubSetDataBytes = subSetDataBytes)
                     {
                         int advance = 0;
-                        var quadCount = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
-                        // We will split the quadCount to numSubSets, and pick the quads in our assigned (sampling) subset.
-                        var quadCountPerSubSet = quadCount / numSubSets;
-                        var startIndex = quadCountPerSubSet * subSetIndex;
-                        var nextStartIndex = subSetIndex == numSubSets - 1
-                            ? quadCount
-                            : startIndex + quadCountPerSubSet;
-                        
-
-                        advance = startIndex * QuadDataLen;
-                        for (var q = startIndex; q < nextStartIndex; q++)
+                        for (var q = 0; q < numberOfQuadsToRead; q++)
                         {
-                            var quad = BytesToQuadNew(pSubCellDataBytes, advance, imageQuads, _bytesNeedReversing, quadDataArray);
-                            
-                            if (quad != null)
-                                matchingQuads.Add(quad);
-                            if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
-                                matchingQuadsWithinRange.Add(quad);
-
+                            var quad = BytesToQuadNew(pSubSetDataBytes, advance, sortedImageQuads, _bytesNeedReversing, quadDataArray);
                             advance += QuadDataLen;
+                            if (quad == null)
+                                continue;
+                            
+                            matchingQuads.Add(quad);
+                            if (quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+                                matchingQuadsWithinRange.Add(quad);
                         }
                     }
-
+                    
+                    
                     if (samplingBeingUsed)
                     {
                         thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex] =
@@ -229,15 +242,16 @@ namespace WatneyAstrometry.Core.QuadDb
         /// </summary>
         /// <param name="pBuf"></param>
         /// <param name="offset"></param>
-        /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
-        /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
+        /// <param name="sortedTentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
+        /// Otherwise do no matching and just read the quad from the buffer and return it.
+        /// This list is sorted by the first ratio (descending).</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
         /// <param name="quadDataArray"></param>
         /// <returns></returns>
-        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
+        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] sortedTentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
         {
 
-            bool noMatching = tentativeMatches == null;
+            bool noMatching = sortedTentativeMatches == null;
             byte* pRatios = (byte*)(pBuf + offset);
             byte* pFloats = (byte*)(pBuf + offset + 6); // floats come after the ratios
 
@@ -298,13 +312,23 @@ namespace WatneyAstrometry.Core.QuadDb
                 return quad;
             }
 
-            for (var q = 0; q < tentativeMatches.Length; q++)
+            for (var q = 0; q < sortedTentativeMatches.Length; q++)
             {
                 
-                var imgQuad = tentativeMatches[q];
+                var imgQuad = sortedTentativeMatches[q];
                 
-                if (imgQuad != null
-                    && Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
+                // Should this ever even happen??
+                // if (imgQuad == null)
+                //     continue;
+
+                // Because the image quads are ordered by the first ratio, we can straight away stop
+                // the matching for the rest of the image quads if we are below the threshold of acceptable matches. 
+                if (imgQuad.Ratios[0] / quadDataArray[0] < 0.989)
+                    return null;
+                
+                
+                if ( /*imgQuad != null &&*/ 
+                       Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
                     && Math.Abs(imgQuad.Ratios[1] / quadDataArray[1] - 1.0f) <= 0.011f
                     && Math.Abs(imgQuad.Ratios[2] / quadDataArray[2] - 1.0f) <= 0.011f
                     && Math.Abs(imgQuad.Ratios[3] / quadDataArray[3] - 1.0f) <= 0.011f

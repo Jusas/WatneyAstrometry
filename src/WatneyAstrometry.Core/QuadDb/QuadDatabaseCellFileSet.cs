@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.Core.QuadDb
@@ -31,6 +32,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
         private bool _disposing;
         public string CellId { get; }
+        public int CellIdNumber { get; }
         public Cell CellReference { get; }
 
 
@@ -57,6 +59,7 @@ namespace WatneyAstrometry.Core.QuadDb
         {
             CellReference = SkySegmentSphere.GetCellById(cellId);
             CellId = cellId;
+            CellIdNumber = CellReference.CellIdNumber;
             _sourceFiles = sourceFiles;
             Initialize();
         }
@@ -94,11 +97,11 @@ namespace WatneyAstrometry.Core.QuadDb
         /// Returns null if there are no more sparse/dense passes available.</param>
         /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
         /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
-        /// <param name="imageQuads">The quads detected from the image.</param>
+        /// <param name="sortedImageQuads">The quads detected from the image, sorted by their first ratio (descending).</param>
         /// <param name="cache"></param>
         /// <returns>StarQuad list, or null if passOffset was too big/small</returns>
         public StarQuad[] GetQuadsWithinRange(EquatorialCoords center, double angularDistance, int quadsPerSqDegree,
-            int passOffset, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
+            int passOffset, int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
 
             if (passOffset > _cellFilePassDensities.Length || passOffset < -_cellFilePassDensities.Length)
@@ -130,7 +133,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var chosenPassDensity = _cellFilePassDensities[chosenIndex];
             return _sourceFiles[chosenPassDensity.FileIndex]
-                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, numSubSets, subSetIndex, imageQuads, cache);
+                .GetQuads(center, angularDistance, chosenPassDensity.PassIndex, numSubSets, subSetIndex, sortedImageQuads, cache);
             
 
         }
