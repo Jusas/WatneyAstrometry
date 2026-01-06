@@ -15,7 +15,7 @@
   <StackPanel Orientation="Vertical" Name="SettingsContainer">
     <StackPanel Orientation="Vertical">
       <TextBlock Classes="FormItemLabel">Load preset parameters from profile:</TextBlock>
-      <ComboBox MinWidth="220" Items="{Binding SolveProfiles}"
+      <ComboBox MinWidth="220" ItemsSource="{Binding SolveProfiles}"
                 SelectedItem="{Binding SelectedPresetProfile}"></ComboBox>
     </StackPanel>
 
@@ -35,7 +35,7 @@
       </StackPanel>
       <StackPanel Orientation="Vertical">
         <TextBlock Classes="FormItemLabel">Search order:</TextBlock>
-        <ComboBox MinWidth="220" Items="{Binding SearchOrders}"
+        <ComboBox MinWidth="220" ItemsSource="{Binding SearchOrders}"
                   SelectedItem="{Binding SelectedPresetProfile.BlindOptions.SearchOrder}"
                   ToolTip.Tip="{x:Static profile:ProfileToolTips.TipBlindSearchOrder}"></ComboBox>
       </StackPanel>
@@ -47,7 +47,7 @@
                             ConverterParameter={x:Static profile:SolveProfileType.Nearby}}">
       <StackPanel Orientation="Vertical">
         <TextBlock Classes="FormItemLabel">Data source:</TextBlock>
-          <ComboBox MinWidth="220" Items="{Binding NearbyInputSources}"
+          <ComboBox MinWidth="220" ItemsSource="{Binding NearbyInputSources}"
                     SelectedItem="{Binding SelectedPresetProfile.NearbyOptions.InputSource}"
                     ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyInputSource}">
             <ComboBox.ItemTemplate>
@@ -78,7 +78,7 @@
                          Converter={x:Static converters:EnumConverters.ValueEquals},
                          ConverterParameter={x:Static profile:InputSource.Manual}}">
           <TextBlock Classes="FormItemLabel">Field radius mode:</TextBlock>
-          <ComboBox MinWidth="160" Items="{Binding FieldRadiusSources}"
+          <ComboBox MinWidth="160" ItemsSource="{Binding FieldRadiusSources}"
                     SelectedItem="{Binding SelectedPresetProfile.NearbyOptions.FieldRadiusSource}"
                     ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyFieldRadiusSource}">
             <ComboBox.ItemTemplate>

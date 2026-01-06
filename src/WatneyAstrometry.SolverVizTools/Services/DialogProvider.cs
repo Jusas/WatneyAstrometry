@@ -1,15 +1,11 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using MessageBox.Avalonia.DTO;
-using MessageBox.Avalonia.Enums;
-using Microsoft.CodeAnalysis;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 
 namespace WatneyAstrometry.SolverVizTools.Services
@@ -62,8 +58,8 @@ namespace WatneyAstrometry.SolverVizTools.Services
                 DialogIcon.Error => Icon.Error
             };
 
-            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok, boxIcon);
-            await box.ShowDialog((owner.NativeWindow as Window)!);
+            var box = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, boxIcon);
+            await box.ShowAsPopupAsync((owner.NativeWindow as Window)!);
         }
 
         public async Task<bool> ShowMessageBoxYesNo(IWindow owner, string title, string message, int? minHeight = null, int? minWidth = null)
@@ -78,9 +74,9 @@ namespace WatneyAstrometry.SolverVizTools.Services
             if (minWidth != null)
                 @params.MinWidth = minWidth.Value;
 
-            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(@params);
+            var box = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(@params);
             
-            var result = await box.ShowDialog((owner.NativeWindow as Window)!);
+            var result = await box.ShowWindowDialogAsync((owner.NativeWindow as Window)!);
             return (result & ButtonResult.Yes) != 0;
         }
 

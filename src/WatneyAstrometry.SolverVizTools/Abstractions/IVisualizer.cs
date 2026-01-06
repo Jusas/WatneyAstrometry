@@ -3,8 +3,6 @@
 
 using System;
 using System.Threading.Tasks;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using WatneyAstrometry.Core.Types;
 
 namespace WatneyAstrometry.SolverVizTools.Abstractions;
@@ -24,6 +22,6 @@ public enum VisualizationModes
 
 public interface IVisualizer
 {
-    Task<Avalonia.Media.IImage> BuildVisualization(IImage sourceImage, SolveResult solveResult, 
+    Task<Avalonia.Media.IImage> BuildVisualization(SixLabors.ImageSharp.Image sourceImage, SolveResult solveResult, 
         VisualizationModes flags);
 }

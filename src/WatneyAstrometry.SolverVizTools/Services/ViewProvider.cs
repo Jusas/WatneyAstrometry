@@ -15,7 +15,7 @@ namespace WatneyAstrometry.SolverVizTools.Services
     {
         private Dictionary<Type, Type> _typeMap = new Dictionary<Type, Type>();
 
-        public void Register<TView, TViewModel>() where TView : IControl where TViewModel : ViewModelBase
+        public void Register<TView, TViewModel>() where TView : Control where TViewModel : ViewModelBase
         {
             var vmType = typeof(TViewModel);
             var vType = typeof(TView);

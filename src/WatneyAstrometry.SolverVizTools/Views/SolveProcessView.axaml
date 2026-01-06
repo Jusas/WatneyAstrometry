@@ -222,7 +222,7 @@
               </StackPanel>
             </Button>
           </StackPanel>
-          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
+          <DataGrid CanUserResizeColumns="True" ItemsSource="{Binding SolutionGridModels}">
             <DataGrid.Columns>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA" 
                                   Binding="{Binding Ra, Mode=OneWay, StringFormat={}{0:F5}}" />
@@ -241,7 +241,7 @@
             </DataGrid.Columns>
           </DataGrid>
           <TextBlock Text="Solve process statistics" FontSize="16" Margin="0, 16, 0, 8" />
-          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
+          <DataGrid CanUserResizeColumns="True" ItemsSource="{Binding SolutionGridModels}">
             <DataGrid.Columns>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Star detection duration (s)"
                                   Binding="{Binding StarDetectionDuration, Mode=OneWay}"/>
@@ -265,7 +265,7 @@
               <icons:Icon Value="mdi-content-save" FontSize="14"></icons:Icon>
             </Button>
           </StackPanel>
-          <ListBox Height="100" Name="Log" Items="{Binding SolverLog}"
+          <ListBox Height="100" Name="Log" ItemsSource="{Binding SolverLog}"
                    Background="Black"
                    BorderBrush="#22FFFFFF"
                    BorderThickness="1"

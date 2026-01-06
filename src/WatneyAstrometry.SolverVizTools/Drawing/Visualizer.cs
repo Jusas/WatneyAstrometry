@@ -17,6 +17,8 @@ using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using AvaloniaIImage = Avalonia.Media.IImage;
+using Color = SixLabors.ImageSharp.Color;
+using FontStyle = SixLabors.Fonts.FontStyle;
 using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
 
 namespace WatneyAstrometry.SolverVizTools.Drawing
@@ -52,8 +54,8 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
             };
             baseImage.Mutate(context =>
             {
-                context.DrawLines(_defaultDrawingOptions, Color.Beige, 2.0f, lines[0]);
-                context.DrawLines(_defaultDrawingOptions, Color.Beige, 2.0f, lines[1]);
+                context.DrawLine(_defaultDrawingOptions, Color.Beige, 2.0f, lines[0]);
+                context.DrawLine(_defaultDrawingOptions, Color.Beige, 2.0f, lines[1]);
             });
         }
 
@@ -137,7 +139,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
 
                     baseImage.Mutate(context =>
                     {
-                        context.DrawLines(_defaultDrawingOptions, color, 1.0f, points.ToArray());
+                        context.DrawLine(_defaultDrawingOptions, color, 1.0f, points.ToArray());
                     });
                 }
             }
@@ -342,7 +344,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                     var l = decLinesToDraw[d];
                     var decValue = decValues[d];
 
-                    context.DrawLines(_defaultDrawingOptions, decColor, lineThickness, l);
+                    context.DrawLine(_defaultDrawingOptions, decColor, lineThickness, l);
 
                     // Draw labels at the edges
                     var pt1 = l.First();
@@ -372,7 +374,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                     var l = raLinesToDraw[r];
                     var raValue = raValues[r];
 
-                    context.DrawLines(_defaultDrawingOptions, raColor, lineThickness, l);
+                    context.DrawLine(_defaultDrawingOptions, raColor, lineThickness, l);
 
                     // Draw labels at the edges
                     var pt1 = l.First();
@@ -398,7 +400,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                 }
                 foreach (var l in raLinesToDraw)
                 {
-                    context.DrawLines(_defaultDrawingOptions, Color.FromRgba(135, 206, 235, 128), lineThickness, l);
+                    context.DrawLine(_defaultDrawingOptions, Color.FromRgba(135, 206, 235, 128), lineThickness, l);
                 }
 
             });
@@ -546,10 +548,10 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
         private void StretchLevels(Image<Rgba32> baseImage)
         {
             baseImage.Mutate(Configuration.Default,
-                new HistogramTransformation<Rgba32>(Configuration.Default, baseImage, baseImage.Bounds()));
+                new HistogramTransformation<Rgba32>(Configuration.Default, baseImage, baseImage.Bounds));
         }
 
-        public async Task<AvaloniaIImage> BuildVisualization(IImage sourceImage, SolveResult solveResult, VisualizationModes flags)
+        public async Task<AvaloniaIImage> BuildVisualization(Image sourceImage, SolveResult solveResult, VisualizationModes flags)
         {
 
             Avalonia.Media.Imaging.Bitmap avaloniaBitmap = null;
@@ -694,7 +696,7 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
             }
             
             if (starPoints != null)
-                context.DrawLines(_defaultDrawingOptions, color, 1.0f, starPoints.ToArray());
+                context.DrawLine(_defaultDrawingOptions, color, 1.0f, starPoints.ToArray());
             
             var glyphs = TextBuilder.GenerateGlyphs(text, new TextOptions(font)
             {

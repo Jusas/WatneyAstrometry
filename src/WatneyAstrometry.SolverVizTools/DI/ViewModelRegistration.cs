@@ -60,7 +60,7 @@ namespace WatneyAstrometry.SolverVizTools.DI
         private static void RegisterLazySingletonViewModel<TViewModel, TView>(
             Func<TViewModel> valueFactory) 
             where TViewModel : ViewModelBase 
-            where TView : IControl
+            where TView : Control
         {
             _services.RegisterLazySingleton<TViewModel>(valueFactory);
             _viewProvider.Register<TView, TViewModel>();
@@ -76,7 +76,7 @@ namespace WatneyAstrometry.SolverVizTools.DI
         private static void RegisterViewModel<TViewModel, TView>(
             Func<TViewModel> valueFactory)
             where TViewModel : ViewModelBase
-            where TView : IControl
+            where TView : Control
         {
             _services.Register<TViewModel>(valueFactory);
             _viewProvider.Register<TView, TViewModel>();

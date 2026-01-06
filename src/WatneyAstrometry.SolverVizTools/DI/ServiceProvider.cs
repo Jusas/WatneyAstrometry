@@ -16,9 +16,4 @@ public class ServiceProvider : IServiceProvider
     {
         return Locator.Current.GetService<T>();
     }
-
-    public T GetAvaloniaService<T>()
-    {
-        return AvaloniaLocator.Current.GetService<T>();
-    }
 }

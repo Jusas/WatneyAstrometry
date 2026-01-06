@@ -14,7 +14,7 @@ namespace WatneyAstrometry.SolverVizTools.Abstractions
     public interface IViewProvider
     {
         void Register<TView, TViewModel>()
-            where TView : IControl
+            where TView : Control
             where TViewModel : ViewModelBase;
 
         IWindow Instantiate<TViewModel>(TViewModel usingViewModel = null) 

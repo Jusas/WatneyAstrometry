@@ -17,7 +17,6 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using MessageBox.Avalonia.Enums;
 using ReactiveUI;
 using WatneyAstrometry.Core;
 using WatneyAstrometry.Core.Fits;
@@ -57,7 +56,6 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         private IImage PlaceholderImage { get; set; }
 
         private ImageData _solverImageData;
-        private readonly IAssetLoader _assetManager;
 
         public ImageData SolverImageData
         {
@@ -260,7 +258,6 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
                 "Line 2"
             };
             _serviceProvider = new ServiceProvider();
-            _assetManager = _serviceProvider.GetAvaloniaService<IAssetLoader>();
             Initialize();
         }
 
@@ -270,7 +267,6 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             _viewProvider = serviceProvider.GetService<IViewProvider>();
             _dialogProvider = serviceProvider.GetService<IDialogProvider>();
             _imageManager = serviceProvider.GetService<IImageManager>();
-            _assetManager = serviceProvider.GetAvaloniaService<IAssetLoader>();
             _settingsManager = serviceProvider.GetService<ISolveSettingsManager>();
             _verboseLogger = serviceProvider.GetService<IVerboseMemoryLogger>();
             _visualizer = serviceProvider.GetService<IVisualizer>();
@@ -280,7 +276,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
         
         private void Initialize()
         {
-            PlaceholderImage = new Bitmap(_assetManager.Open(new Uri("avares://watney-desktop/Assets/placeholder.jpg")));
+            PlaceholderImage = new Bitmap(AssetLoader.Open(new Uri("avares://watney-desktop/Assets/placeholder.jpg")));
             //PlaceholderImage = new Bitmap("z:\\firefox_61OAoUIBsW2.jpg");
             SolverImage = PlaceholderImage;
         }
