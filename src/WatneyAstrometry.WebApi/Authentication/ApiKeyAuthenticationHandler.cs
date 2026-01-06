@@ -17,9 +17,9 @@ internal class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthent
     private WatneyApiConfiguration _apiConfiguration;
 
     public ApiKeyAuthenticationHandler(IOptionsMonitor<ApiKeyAuthenticationOptions> options, ILoggerFactory logger, 
-        UrlEncoder encoder, ISystemClock systemClock,
+        UrlEncoder encoder,
         WatneyApiConfiguration configuration) 
-        : base(options, logger, encoder, systemClock)
+        : base(options, logger, encoder)
     {
         _apiConfiguration = configuration;
     }

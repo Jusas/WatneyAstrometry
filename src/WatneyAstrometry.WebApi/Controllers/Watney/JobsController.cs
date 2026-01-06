@@ -1,6 +1,7 @@
 // Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
