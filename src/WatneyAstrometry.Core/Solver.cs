@@ -634,7 +634,7 @@ namespace WatneyAstrometry.Core
 
                             if (successfulSolveResult != null)
                             {
-                                _logger.WriteInfo($"A successful result was found!");
+                                _logger.WriteInfo("A successful result was found!");
                                 break;
                             }
 
@@ -717,7 +717,6 @@ namespace WatneyAstrometry.Core
             
             Interlocked.Increment(ref _iterations);
             var iteration = _iterations;
-            var logPrefix = $"Iteration {iteration} {searchRun}:";
             
             // Quads per degree
             var searchFieldSize = searchRun.RadiusDegrees * 2;
@@ -732,7 +731,6 @@ namespace WatneyAstrometry.Core
             var pixelAngularSearchFieldSizeRatio = imageDiameterInPixels / searchFieldSize;
 
 
-            //int minMatches = 5;
             int minMatches = 5;
 
             List<StarQuadMatch> matchingQuads = null;
@@ -743,7 +741,9 @@ namespace WatneyAstrometry.Core
 
             taskResult.NumPotentialMatches = databaseQuads.Count;
 
-            _logger.WriteInfo($"{logPrefix} {databaseQuads.Count} potential database matches");
+            // Using this overload to not needlessly do string interpolation and ToString() calls if using NullLogger.
+            // This actually does show in profiling - this method can be called millions of times so it starts to matter.
+            _logger.WriteInfo("Iteration", iteration, searchRun, ":", databaseQuads.Count, "potential database matches");
             if (databaseQuads.Count < minMatches)
             {
                 return taskResult;
@@ -762,12 +762,13 @@ namespace WatneyAstrometry.Core
 
             if (matchingQuads.Count >= minMatches)
             {
-                _logger.WriteInfo($"{logPrefix} {matchingQuads.Count} image-catalog matches, attempting to calculate solution");
+                _logger.WriteInfo("Iteration", iteration, searchRun, ":", matchingQuads.Count, "image-catalog matches, attempting to calculate solution");
                 var preliminarySolution = CalculateSolution(imageDimensions, matchingQuads, searchRun.Center, out _);
 
                 if (!IsValidSolution(preliminarySolution))
                 {
-                    _logger.WriteInfo($"{logPrefix} not a valid solution");
+                    //_logger.WriteInfo($"{logPrefix} not a valid solution");
+                    _logger.WriteInfo("Iteration", iteration, searchRun, ": not a valid solution");
                     return taskResult;
                 }
 
@@ -782,7 +783,8 @@ namespace WatneyAstrometry.Core
                 pixelAngularSearchFieldSizeRatio = imageDiameterInPixels / preliminarySolution.Radius * 2;
 
 
-                _logger.WriteInfo($"{logPrefix} valid solution, calculating an improved solution");
+                //_logger.WriteInfo($"{logPrefix} valid solution, calculating an improved solution");
+                _logger.WriteInfo("Iteration", iteration, searchRun, ": valid solution, calculating an improved solution");
                 // Calculate a second time; we may be quite a bit off if we're detecting the quads at an edge,
                 // so calculating it a second time with the center and radius of the first solution
                 // should improve our accuracy.
@@ -794,11 +796,11 @@ namespace WatneyAstrometry.Core
 
                 if (!IsValidSolution(improvedSolution.solution))
                 {
-                    _logger.WriteInfo($"{logPrefix} solution improve failed");
+                    _logger.WriteInfo("Iteration", iteration, searchRun, ": solution improve failed");
                     return taskResult;
                 }
 
-                _logger.WriteInfo($"{logPrefix} valid solution was found");
+                _logger.WriteInfo("Iteration", iteration, searchRun, ": valid solution was found");
                 taskResult.Success = true;
                 taskResult.Canceled = false;
                 taskResult.SearchRun = searchRun;

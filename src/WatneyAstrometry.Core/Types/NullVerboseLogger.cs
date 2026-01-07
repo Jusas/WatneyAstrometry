@@ -19,6 +19,11 @@ namespace WatneyAstrometry.Core.Types
         }
 
         /// <inheritdoc/>
+        public void WriteInfo(params object[] elements)
+        {
+        }
+
+        /// <inheritdoc/>
         public void WriteWarn(string message)
         {
         }

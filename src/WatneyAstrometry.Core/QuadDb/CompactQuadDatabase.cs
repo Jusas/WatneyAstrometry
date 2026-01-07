@@ -126,12 +126,12 @@ namespace WatneyAstrometry.Core.QuadDb
                 if (cellSearchRaDecCacheEntry == null)
                 {
                     var dictionary = new ConcurrentDictionary<int, int[]>();
-                    dictionary.TryAdd(radiusRounded, cellsToInclude);
-                    cache.CellSearchCache.TryAdd(cellSearchCacheKey, dictionary);
+                    dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey, dictionary);
+                    dictionary.GetOrAdd(radiusRounded, cellsToInclude);
                 }
                 else
                 {
-                    cellSearchRaDecCacheEntry.TryAdd(radiusRounded, cellsToInclude);
+                    cellSearchRaDecCacheEntry.GetOrAdd(radiusRounded, cellsToInclude);
                 }
             }
             

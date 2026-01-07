@@ -32,13 +32,13 @@ namespace WatneyAstrometry.Core.Types
             _options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
-        private void WriteAny(string type, string message)
+        private void WriteAnyElements(string type, params object[] elements)
         {
             if (!_options.Enabled || (!_options.WriteToFile && !_options.WriteToStdout))
                 return;
 
             var time = DateTime.Now.ToString("HH:mm:ss.fff");
-            message = $"[{time}] [{type}] {message}";
+            var message = $"[{time}] [{type}] " + string.Join(" ", elements);
 
             if (_options.WriteToStdout)
                 Console.WriteLine(message);
@@ -53,6 +53,11 @@ namespace WatneyAstrometry.Core.Types
                     }
                 }
             }
+        }
+        
+        private void WriteAny(string type, string message)
+        {
+            WriteAnyElements(type, message);
         }
 
         /// <summary>
@@ -86,6 +91,11 @@ namespace WatneyAstrometry.Core.Types
         public void WriteInfo(string message)
         {
             WriteAny("INFO", message);
+        }
+
+        public void WriteInfo(params object[] elements)
+        {
+            WriteAnyElements("INFO", elements);
         }
 
         public void WriteWarn(string message)

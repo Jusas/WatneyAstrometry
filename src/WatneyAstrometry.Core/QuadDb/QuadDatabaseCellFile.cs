@@ -251,17 +251,38 @@ namespace WatneyAstrometry.Core.QuadDb
         private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] sortedTentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
         {
 
+            // TODO would it be simpler if we moved the byte reversing stuff to another method? How would it affect performance too?
             bool noMatching = sortedTentativeMatches == null;
-            byte* pRatios = (byte*)(pBuf + offset); // 48 bytes of ratios (3x 10 bit numbers, 2x 9 bit numbers)
+            byte* pRatios = (byte*)(pBuf + offset);
             byte* pFloats = (byte*)(pBuf + offset + 6); // floats come after the ratios
+
+            // Ratios are packed; 3x 10 bit numbers, 2x 9 bit numbers.
+            quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
+            quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
+            quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
+            quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
+            quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
 
 
             if (noMatching)
             {
-                // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter there.
-                // Floats however were written in whichever endianness the database was written in.
+                // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter here.
 
-                if (!bytesNeedReversing)
+                // Floats were written in whichever endianness the database was written in.
+                if (bytesNeedReversing)
+                {
+                    // largestDist
+                    quadDataArray[5] = BitConverter.ToSingle(
+                    new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
+                    // ra
+                    quadDataArray[6] = BitConverter.ToSingle(
+                        new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
+                    // dec
+                    quadDataArray[7] = BitConverter.ToSingle(
+                        new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
+                    
+                }
+                else
                 {
                     // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
                     // converted to/from float/double via local variable that is guaranteed to be aligned.
@@ -278,28 +299,6 @@ namespace WatneyAstrometry.Core.QuadDb
                     quadDataArray[6] = *(float*)&if2; // ra
                     quadDataArray[7] = *(float*)&if3; // dec
                 }
-                else 
-                {
-                    // Need to reverse byte order.
-                    
-                    // largestDist
-                    quadDataArray[5] = BitConverter.ToSingle(
-                        new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                    // ra
-                    quadDataArray[6] = BitConverter.ToSingle(
-                        new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                    // dec
-                    quadDataArray[7] = BitConverter.ToSingle(
-                        new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
-
-                }
-
-                // Ratios are packed; 3x 10 bit numbers, 2x 9 bit numbers.
-                quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
-                quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
-                quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
-                quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
-                quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
 
                 // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
                 var ratios = new float[]
@@ -323,17 +322,11 @@ namespace WatneyAstrometry.Core.QuadDb
                 // if (imgQuad == null)
                 //     continue;
 
-                quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
-                
                 // Because the image quads are ordered by the first ratio, we can straight away stop
                 // the matching for the rest of the image quads if we are below the threshold of acceptable matches. 
                 if (imgQuad.Ratios[0] / quadDataArray[0] < 0.989)
                     return null;
                 
-                quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
-                quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
-                quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
-                quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
                 
                 if ( /*imgQuad != null &&*/ 
                        Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
@@ -343,7 +336,16 @@ namespace WatneyAstrometry.Core.QuadDb
                     && Math.Abs(imgQuad.Ratios[4] / quadDataArray[4] - 1.0f) <= 0.011f
                    )
                 {
-                    if (!bytesNeedReversing)
+                    if (bytesNeedReversing)
+                    {
+                        quadDataArray[5] = BitConverter.ToSingle(
+                            new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
+                        quadDataArray[6] = BitConverter.ToSingle(
+                            new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
+                        quadDataArray[7] = BitConverter.ToSingle(
+                            new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
+                    }
+                    else
                     {
                         // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
                         // converted to/from float/double via local variable that is guaranteed to be aligned.
@@ -359,18 +361,6 @@ namespace WatneyAstrometry.Core.QuadDb
                         quadDataArray[5] = *(float*)&if1; // largestDist
                         quadDataArray[6] = *(float*)&if2; // ra
                         quadDataArray[7] = *(float*)&if3; // dec
-                    }
-                    else
-                    {
-                        // Need to reverse byte order.
-                        
-                        quadDataArray[5] = BitConverter.ToSingle(
-                            new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                        quadDataArray[6] = BitConverter.ToSingle(
-                            new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                        quadDataArray[7] = BitConverter.ToSingle(
-                            new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
-                        
                     }
 
                     // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
