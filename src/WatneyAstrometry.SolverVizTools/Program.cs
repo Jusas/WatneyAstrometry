@@ -43,6 +43,7 @@ namespace WatneyAstrometry.SolverVizTools
 
             return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
+                .WithInterFont()
                 .LogToTrace()
                 .UseReactiveUI();
         }

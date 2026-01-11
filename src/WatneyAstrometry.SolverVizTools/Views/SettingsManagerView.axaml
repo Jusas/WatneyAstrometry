@@ -264,9 +264,9 @@
                     IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath}">
           <TextBlock Text="Quad database data sets:" />
           <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,16,0,0">
-            <avalonia:Icon Value="mdi-information" FontSize="16" />
-            <TextBlock Text="Database files are downloaded from " Margin="8,0,0,0" FontSize="12"/>
-            <HyperlinkButton FontSize="12" NavigateUri="https://github.com/Jusas/WatneyAstrometry/releases">https://github.com/Jusas/WatneyAstrometry/releases</HyperlinkButton>
+            <avalonia:Icon Value="mdi-information" FontSize="16" VerticalAlignment="Center" />
+            <TextBlock Text="Database files are downloaded from " Margin="8,0,0,0" FontSize="12" VerticalAlignment="Center"/>
+            <HyperlinkButton VerticalAlignment="Center" FontSize="12" NavigateUri="https://github.com/Jusas/WatneyAstrometry/releases">https://github.com/Jusas/WatneyAstrometry/releases</HyperlinkButton>
           </StackPanel>
           <ListBox Margin="0, 16, 0, 0" MinWidth="500" ItemsSource="{Binding DatabaseDataSets}"
                    Background="{Binding $parent[Window].Background}">

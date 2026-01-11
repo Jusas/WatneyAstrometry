@@ -39,7 +39,7 @@
     </Style>
   </UserControl.Styles>
   
-    <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
+    <StackPanel Margin="15" ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
       <Border Padding="16">
         <Panel Name="ImageSelectionArea" Background="#000000" DragDrop.AllowDrop="True">
           <StackPanel>
@@ -51,7 +51,7 @@
                               MaxHeight="{Binding $parent[Window].Bounds.Height,
                               Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=70}"
                               ScrollChanged="ImageScrollView_OnScrollChanged">
-                  <Image Source="{Binding SolverImage}" Name="SolverImage"
+                  <Image Source="{Binding SolverImage}" Name="SolverImage" RenderOptions.BitmapInterpolationMode="HighQuality"
                          PointerCaptureLost="Image_OnPointerCaptureLost"
                          PointerMoved="Image_OnPointerMoved"
                          PointerPressed="Image_OnPointerPressed"

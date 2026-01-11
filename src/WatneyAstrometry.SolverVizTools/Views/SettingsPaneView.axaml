@@ -12,7 +12,7 @@
         <viewModels:SettingsPaneViewModel/>
     </Design.DataContext>
 
-  <StackPanel Orientation="Vertical" Name="SettingsContainer">
+  <StackPanel Margin="15" Orientation="Vertical" Name="SettingsContainer">
     <StackPanel Orientation="Vertical">
       <TextBlock Classes="FormItemLabel">Load preset parameters from profile:</TextBlock>
       <ComboBox MinWidth="220" ItemsSource="{Binding SolveProfiles}"

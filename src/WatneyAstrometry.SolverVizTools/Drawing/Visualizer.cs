@@ -656,6 +656,36 @@ namespace WatneyAstrometry.SolverVizTools.Drawing
                 {
                 }
             }
+            if (!_defaultFonts.ContainsKey(size))
+            {
+                try
+                {
+                    _defaultFonts.Add(size, SystemFonts.CreateFont("Liberation Sans", size, FontStyle.Bold));
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (!_defaultFonts.ContainsKey(size))
+            {
+                try
+                {
+                    _defaultFonts.Add(size, SystemFonts.CreateFont("Noto Sans", size, FontStyle.Bold));
+                }
+                catch (Exception)
+                {
+                }
+            }
+            if (!_defaultFonts.ContainsKey(size))
+            {
+                try
+                {
+                    _defaultFonts.Add(size, SystemFonts.CreateFont("Sans Serif", size, FontStyle.Bold));
+                }
+                catch (Exception)
+                {
+                }
+            }
 
             if (!_defaultFonts.ContainsKey(size))
                 throw new Exception("Cannot get a usable font");

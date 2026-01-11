@@ -23,7 +23,7 @@
         <TextBlock FontWeight="Normal" Margin="0,16,0,0"
                    Text="The application uses the Astronexus HYG-database:" 
                    TextWrapping="Wrap"/>
-        <HyperlinkButton NavigateUri="https://github.com/astronexus/HYG-Database">https://github.com/astronexus/HYG-Database</HyperlinkButton>
+        <HyperlinkButton NavigateUri="https://codeberg.org/astronexus/hyg">https://codeberg.org/astronexus/hyg</HyperlinkButton>
         <TextBlock Margin="0,16,0,0"
                    Text="Would you like to download it? (approx. 18.6 MB)"></TextBlock>
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">

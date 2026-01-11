@@ -294,8 +294,8 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             var fileNames = await _dialogProvider.ShowOpenFileDialog(OwnerWindow, "Select image file",
                 new (string description, string[] extension)[]
                 {
-                    ("FITS files", new[] { "fits", "fit" }),
-                    ("Common image formats", new[] { "jpg", "jpeg", "png" })
+                    ("FITS files", new[] { "*.fits", "*.fit" }),
+                    ("Common image formats", new[] { "*.jpg", "*.jpeg", "*.png" })
                 }, initialDirectory, false);
 
             var filename = fileNames?.FirstOrDefault();

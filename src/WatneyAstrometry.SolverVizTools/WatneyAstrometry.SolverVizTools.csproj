@@ -7,7 +7,7 @@
     <TrimMode>copyused</TrimMode>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <VersionPrefix>1.0.3</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <AssemblyName>watney-desktop</AssemblyName>
     <LangVersion>default</LangVersion>
   </PropertyGroup>
@@ -34,6 +34,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.10" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.3.10" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.10" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.8" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.10" />
     <PackageReference Include="MessageBox.Avalonia" Version="3.3.1.1" />

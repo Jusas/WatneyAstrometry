@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -11,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.SolverVizTools.Abstractions;
+using WatneyAstrometry.SolverVizTools.Exceptions;
 using WatneyAstrometry.SolverVizTools.Models;
 using WatneyAstrometry.SolverVizTools.Utils;
 using FileStream = System.IO.FileStream;
@@ -53,7 +55,9 @@ namespace WatneyAstrometry.SolverVizTools.Services
 
         private string DatabaseFilePath = Path.Combine(ProgramEnvironment.ApplicationDataFolder, "dso.csv");
 
-        private const string DsoDatabaseUrl = "https://raw.githubusercontent.com/astronexus/HYG-Database/master/dso.csv";
+        //private const string DsoDatabaseUrl = "https://codeberg.org/astronexus/hyg/src/branch/main/data/misc/dso.csv.gz";
+        private const string DsoDatabaseUrl =
+            "https://raw.githubusercontent.com/astronexus/HYG-Database/refs/heads/main/misc/dso.csv"; // TODO Replace with something else? This is archived... then again this feature is mostly for show.
 
         public async Task Load(string filename = null)
         {
@@ -182,11 +186,32 @@ namespace WatneyAstrometry.SolverVizTools.Services
             //}
 
             //return DatabaseFilePath;
-
             var downloadedFile = await DownloadUtils.DownloadWithProgressReporting(DsoDatabaseUrl, ProgramEnvironment.ApplicationDataFolder,
                 "dso.csv", true, (percent, bytes) => progressCallback(percent), cancellationToken);
 
             return downloadedFile.FullName;
+
+            // var uncompressedFileName = Path.Combine(ProgramEnvironment.ApplicationDataFolder, "dso.csv");
+            // var downloadedFile = await DownloadUtils.DownloadWithProgressReporting(DsoDatabaseUrl, ProgramEnvironment.ApplicationDataFolder,
+            //     "dso.csv.gz", true, (percent, bytes) => progressCallback(percent), cancellationToken);
+
+            // try
+            // {
+            //     if (downloadedFile != null)
+            //     {
+            //         using FileStream compressedFileStream = File.Open(downloadedFile.FullName, FileMode.Open);
+            //         using FileStream outputFileStream = File.Create(uncompressedFileName);
+            //         using var decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress);
+            //         await decompressor.CopyToAsync(outputFileStream);
+            //     }
+            //
+            //     return uncompressedFileName;
+            // }
+            // catch (Exception ex)
+            // {
+            //     throw new DownloadException($"Could not download and extract DSO database: {ex.Message}", ex);
+            // }
+
         }
     }
 }
