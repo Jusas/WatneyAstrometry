@@ -49,6 +49,7 @@ namespace WatneyAstrometry.WebApi.Models.Rest
         /// tried field radius value will be halved until minimum value is reached. If not given, value defaults to 0.
         /// </summary>
         [FromForm(Name = "radiusSteps")]
+        [DefaultValue("0")]
         public string IntermediateFieldRadiusSteps { get; set; } = "0";
 
         /// <summary>
