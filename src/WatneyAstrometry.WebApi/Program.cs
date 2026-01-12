@@ -126,8 +126,6 @@ builder.WebHost.ConfigureKestrel(config =>
     //config.ConfigureEndpointDefaults(lo => lo.);
 });
 
-// builder.Services.AddAutoMapper(typeof(ServiceRegistration).Assembly);
-builder.Services.AddAutoMapper(cfg => { }, typeof(ServiceRegistration).Assembly);
 builder.Services.AddSolverApiServices(builder.Configuration, apiConfig);
 
 var app = builder.Build();

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using FluentAssertions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using VizUtils;
@@ -40,7 +38,7 @@ namespace WatneyAstrometry.Core.Tests
         [ClassData(typeof(CellBoundsTestData))]
         public void Should_find_cells_in_search_radius(double radius, EquatorialCoords center, RaDecBounds bounds, bool inside)
         {
-            BandsAndCells.IsCellInSearchRadius(radius, center, bounds).Should().Be(inside);
+            Assert.Equal(inside, BandsAndCells.IsCellInSearchRadius(radius, center, bounds));
         }
 
         [Fact]

@@ -16,7 +16,22 @@
 
     <ItemGroup>
       <Folder Include="benchmark_images\" />
-      <Folder Include="watney_binaries\v1.2.3\" />
+      <Folder Include="watney_binaries\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="quad_dbs\v3\qdb_files\**" />
+      <Compile Remove="watney_binaries\**\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="quad_dbs\v3\qdb_files\**" />
+      <EmbeddedResource Remove="watney_binaries\**\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="quad_dbs\v3\qdb_files\**" />
+      <None Remove="watney_binaries\**\**" />
     </ItemGroup>
 
 </Project>

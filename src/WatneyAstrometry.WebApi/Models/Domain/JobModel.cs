@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using WatneyAstrometry.Core;
+using WatneyAstrometry.Core.MathUtils;
+using WatneyAstrometry.WebApi.Models.Rest;
+
 #pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Models.Domain;
@@ -26,5 +29,27 @@ public class JobModel
     public DateTimeOffset? SolveStarted { get; set; }
     public string OriginalFilename { get; set; }
     public int? StarsUsed { get; set; }
+
+    /// <summary>
+    /// Convert job model to REST model.
+    /// </summary>
+    public RestJobModel ToRestJobModel()
+    {
+        var restModel = new RestJobModel()
+        {
+            Id = Id,
+            ImageHeight = ImageHeight,
+            ImageWidth = ImageWidth,
+            Solution = Solution?.ToRestJobSolutionProperties(),
+            OriginalFilename = OriginalFilename,
+            StarsUsed = StarsUsed,
+            SolveStarted = SolveStarted,
+            Updated = Updated,
+            StarsDetected = Stars.Count,
+            Status = Status.ToString(),
+            Parameters = Parameters?.ToRestJobParametersModel()
+        };
+        return restModel;
+    }
     
 }

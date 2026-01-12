@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using WatneyAstrometry.WebApi.Models.Domain;
-#pragma warning disable CS1591
+﻿#pragma warning disable CS1591
 
 namespace WatneyAstrometry.WebApi.Models.Rest;
 
@@ -18,6 +16,16 @@ public class RestJobSolutionProperties
     /// Image center Dec coordinate.
     /// </summary>
     public double Dec { get; set; }
+    
+    /// <summary>
+    /// Image center RA coordinate in HMS.
+    /// </summary>
+    public string Ra_hms { get; set; }
+    
+    /// <summary>
+    /// Image center Dec coordinate in DMS.
+    /// </summary>
+    public string Dec_dms { get; set; }
 
     /// <summary>
     /// Image field radius in degrees.
@@ -58,28 +66,5 @@ public class RestJobSolutionProperties
     /// The FITS WCS records for the solution.
     /// </summary>
     public RestJobSolutionFitsWcs FitsWcs { get; set; }
-
-
-    public class Mappings : AutoMapper.Profile
-    {
-        public Mappings()
-        {
-            // Explicit mappings.
-            CreateMap<JobSolutionProperties, RestJobSolutionProperties>()
-                .ValidateMemberList(MemberList.Destination)
-                .ForMember(dest => dest.Ra, x => x.MapFrom(src => src.Ra))
-                .ForMember(dest => dest.Dec, x => x.MapFrom(src => src.Dec))
-                .ForMember(dest => dest.FieldRadius, x => x.MapFrom(src => src.FieldRadius))
-                .ForMember(dest => dest.Orientation, x => x.MapFrom(src => src.Orientation))
-                .ForMember(dest => dest.PixScale, x => x.MapFrom(src => src.PixScale))
-                .ForMember(dest => dest.Parity, x => x.MapFrom(src => src.Parity))
-                .ForMember(dest => dest.TimeSpent, x => x.MapFrom(src => src.TimeSpent))
-                .ForMember(dest => dest.SearchIterations, x => x.MapFrom(src => src.SearchIterations))
-                .ForMember(dest => dest.QuadMatches, x => x.MapFrom(src => src.QuadMatches))
-                .ForMember(dest => dest.FitsWcs, x => x.MapFrom(src => src.FitsWcs))
-                ;
-
-
-        }
-    }
+    
 }

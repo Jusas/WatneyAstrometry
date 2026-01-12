@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Text;
-using System.Threading.Tasks;
-using FluentAssertions;
 using WatneyAstrometry.Core.Fits;
-using WatneyAstrometry.Core.Types;
 using Xunit;
 
 namespace WatneyAstrometry.Core.Tests
@@ -31,7 +25,7 @@ namespace WatneyAstrometry.Core.Tests
             var record = Encoding.ASCII.GetString(buf);
 
             var data = record.Split('/')[0].Trim();
-            data.Should().EndWith("E-07");
+            Assert.EndsWith("E-07", data);
 
         }
     }

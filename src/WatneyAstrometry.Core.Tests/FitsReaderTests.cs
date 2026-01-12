@@ -1,5 +1,4 @@
 using System.IO;
-using FluentAssertions;
 using WatneyAstrometry.Core.Fits;
 using Xunit;
 
@@ -13,8 +12,8 @@ namespace WatneyAstrometry.Core.Tests
             var fitsFile = "Resources/fits/m31.fits";
             var jpgFile = "Resources/jpg/heart-nebula.jpg";
 
-            DefaultFitsReader.IsSupported(fitsFile).Should().BeTrue("A valid fits file");
-            DefaultFitsReader.IsSupported(jpgFile).Should().BeFalse("Not a fits file");
+            Assert.True(DefaultFitsReader.IsSupported(fitsFile), "Expected true (a valid fits file)");
+            Assert.False(DefaultFitsReader.IsSupported(jpgFile), "Expected false (not a fits file)");
         }
 
         [Fact]
@@ -24,10 +23,10 @@ namespace WatneyAstrometry.Core.Tests
             var fitsReader = new DefaultFitsReader();
 
             var image = fitsReader.FromFile(sourceFile);
-            image.PixelDataStreamOffset.Should().Be(5760, "Two header blocks, 2 * 2880");
-            image.Metadata.ImageWidth.Should().Be(4656);
-            image.Metadata.ImageHeight.Should().Be(3520);
-            image.Metadata.BitsPerPixel.Should().Be(16);
+            Assert.True(5760 == image.PixelDataStreamOffset, "Expected two header blocks, 2 * 2880");
+            Assert.True(image.Metadata.ImageWidth == 4656, "Image width has unexpected value");
+            Assert.True(image.Metadata.ImageHeight == 3520, "Image height has unexpected value");
+            Assert.True(image.Metadata.BitsPerPixel == 16, "Image bpp has unexpected value");
             image.Dispose();
         }
 
@@ -40,8 +39,8 @@ namespace WatneyAstrometry.Core.Tests
             var fitsReader = new DefaultFitsReader();
 
             var image = fitsReader.FromFile(sourceFile);
-            image.Metadata.ImageWidth.Should().Be(4656);
-            image.Metadata.ImageHeight.Should().Be(3520);
+            Assert.True(image.Metadata.ImageWidth == 4656, "Image width has unexpected value");
+            Assert.True(image.Metadata.ImageHeight == 3520, "Image height has unexpected value");
             image.Dispose();
         }
 
@@ -54,8 +53,8 @@ namespace WatneyAstrometry.Core.Tests
                 var fitsReader = new DefaultFitsReader();
 
                 var image = fitsReader.FromStream(fs);
-                image.Metadata.ImageWidth.Should().Be(4656);
-                image.Metadata.ImageHeight.Should().Be(3520);
+                Assert.True(image.Metadata.ImageWidth == 4656, "Image width has unexpected value");
+                Assert.True(image.Metadata.ImageHeight == 3520, "Image height has unexpected value");
                 image.Dispose();
             }
 

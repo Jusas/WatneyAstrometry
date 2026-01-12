@@ -8,6 +8,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using WatneyAstrometry.Core.Types;
 using WatneyAstrometry.WebApi.Controllers.Compatibility.Models;
 using WatneyAstrometry.WebApi.Controllers.Watney;
@@ -28,7 +29,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
     [ApiController]
     [ApiVersionNeutral]
     [AllowAnonymous]
-    public class AstrometryNetCompatController : ControllerBase
+    public class LegacyAstrometryNetCompatController : ControllerBase
     {
         private readonly ILogger<JobsController> _logger;
         private readonly IJobManager _jobManager;
@@ -42,7 +43,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         /// <param name="jobManager"></param>
         /// <param name="apiConfig"></param>
         /// <param name="httpClientFactory"></param>
-        public AstrometryNetCompatController(ILogger<JobsController> logger, IJobManager jobManager,
+        public LegacyAstrometryNetCompatController(ILogger<JobsController> logger, IJobManager jobManager,
             WatneyApiConfiguration apiConfig, IHttpClientFactory httpClientFactory)
         {
             _logger = logger;
@@ -50,7 +51,24 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             _apiConfig = apiConfig;
             _httpClientFactory = httpClientFactory;
         }
-        
+
+
+        // This is meant as a stupid workaround for https://github.com/swagger-api/swagger-ui/issues/10047
+        // In Swagger UI we can just prepend the string with a '.' to not make it try to convert the string into
+        // key-value pairs.
+        // TODO once this bug is fixed, remove this.
+        private static string ApplySwaggerUiBugWorkaround(string input)
+        {
+            if (input == null)
+                return null;
+            
+            if (input.StartsWith(".") && input.Length > 1 && input[1] == '{' && input.Last() == '}')
+            {
+                return input.Substring(1);
+            }
+
+            return input;
+        }
 
         private (bool authenticated, string user) IsAuthenticated(string apiKey)
         {
@@ -79,9 +97,14 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         /// </code>
         /// </para>
         /// <para>
-        /// In Swagger, just enter the JSON <code>{"apikey": "XXXXXX"}</code>
-        /// </para>
         /// See: http://astrometry.net/doc/net/api.html#session-key
+        /// </para>
+        /// <para>
+        /// <b>Swagger is currently bugged; when using this endpoint in this UI you must prepend the actual value with a '.'</b>
+        /// </para>
+        /// <para>
+        /// So in Swagger, just enter the JSON, prepended by a dot: <code>.{"apikey": "XXXXXX"}</code>
+        /// </para>
         /// </param>
         /// <returns></returns>
         [HttpPost]
@@ -92,6 +115,8 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             // Imitates the Astrometry.net login, but is stateless (session == apikey)
             // http://astrometry.net/doc/net/api.html#session-key
 
+            login = ApplySwaggerUiBugWorkaround(login);
+            
             if (string.IsNullOrEmpty(login))
             {
                 return Ok(new
@@ -135,9 +160,9 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         }
 
 
-        private NearbyOptions ConstructNearbyOptions(UploadModel data)
+        private JobNearbyParameters ConstructNearbyOptions(UploadModel data)
         {
-            var options = new NearbyOptions
+            var options = new JobNearbyParameters
             {
                 Ra = data.CenterRa,
                 Dec = data.CenterDec,
@@ -165,7 +190,20 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         /// Upload an image file (jpg, png, fits).
         /// See: http://astrometry.net/doc/net/api.html#submitting-a-file
         /// </summary>
-        /// <param name="upload"></param>
+        /// <param name="upload">
+        /// <para>
+        /// Upload parameters for the solver.
+        /// </para>
+        /// <para>
+        /// See http://astrometry.net/doc/net/api.html#submitting-a-file for reference.
+        /// </para>
+        /// <para>
+        /// <b>Swagger is currently bugged; when using this endpoint in this UI you must prepend the actual value with a '.'</b>
+        /// </para>
+        /// <para>
+        /// So in Swagger, just enter the JSON, prepended by a dot: <code>.{"session": "XXXXXX", ...}</code>
+        /// </para>
+        /// </param>
         /// <param name="file"></param>
         /// <returns></returns>
         [HttpPost]
@@ -173,15 +211,18 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         public async Task<IActionResult> FileUpload([FromForm(Name = "request-json")] string upload, IFormFile file)
         {
 
+            upload = ApplySwaggerUiBugWorkaround(upload);
+            
             FileUploadModel data;
             try
             {
                 _logger.LogTrace("Pre-validation input data: " + upload);
                 data = JsonConvert.DeserializeObject<FileUploadModel>(upload);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // Seems to return 500 with invalid payload, so mimic that.
+                _logger.LogError(e.ToString());
                 return new ObjectResult("Server Error (500)")
                 {
                     StatusCode = 500
@@ -226,7 +267,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     {
                         Mode = mode,
                         NearbyParameters = mode == "nearby" ? ConstructNearbyOptions(data) : null,
-                        BlindParameters = mode == "blind" ? new BlindOptions
+                        BlindParameters = mode == "blind" ? new JobBlindParameters
                         {
                             MaxRadius = 16, // These are perhaps decent defaults.
                             MinRadius = 0.25
@@ -254,8 +295,9 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 });
 
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.LogError(e.ToString());
                 return new ObjectResult("Server Error (500)")
                 {
                     StatusCode = 500
@@ -277,6 +319,8 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
         public async Task<IActionResult> UrlUpload([FromForm(Name = "request-json")] string upload)
         {
 
+            upload = ApplySwaggerUiBugWorkaround(upload);
+            
             // URL uploads are always nearby solves.
             // Assume that we get all the necessary information in our parameters.
 
@@ -285,9 +329,10 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
             {
                 data = JsonConvert.DeserializeObject<UrlUploadModel>(upload);
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 // Seems to return 500 with invalid payload, so mimic that.
+                _logger.LogError(e.ToString());
                 return new ObjectResult("Server Error (500)")
                 {
                     StatusCode = 500
@@ -350,7 +395,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                     {
                         Mode = mode,
                         NearbyParameters = mode == "nearby" ? ConstructNearbyOptions(data) : null,
-                        BlindParameters = mode == "blind" ? new BlindOptions
+                        BlindParameters = mode == "blind" ? new JobBlindParameters
                         {
                             MaxRadius = 16, // These are perhaps decent defaults.
                             MinRadius = 0.25
@@ -378,8 +423,9 @@ namespace WatneyAstrometry.WebApi.Controllers.Compatibility
                 });
 
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.LogError(e.ToString());
                 return new ObjectResult("Server Error (500)")
                 {
                     StatusCode = 500

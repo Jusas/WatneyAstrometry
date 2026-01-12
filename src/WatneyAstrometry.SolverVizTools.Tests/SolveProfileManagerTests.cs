@@ -1,4 +1,3 @@
-using FluentAssertions;
 using WatneyAstrometry.SolverVizTools.Exceptions;
 using WatneyAstrometry.SolverVizTools.Models.Profile;
 using WatneyAstrometry.SolverVizTools.Services;
@@ -17,7 +16,7 @@ namespace WatneyAstrometry.SolverVizTools.Tests
             });
 
             var profiles = manager.GetProfiles(true, false);
-            profiles.Count.Should().Be(2);
+            Assert.Equal(2, profiles.Count);
             
         }
 
@@ -42,7 +41,7 @@ namespace WatneyAstrometry.SolverVizTools.Tests
 
             var newManager = new SolveSettingsManager(opts);
             profiles = newManager.GetProfiles(true, false);
-            profiles.Count.Should().Be(3);
+            Assert.Equal(3, profiles.Count);
 
             var deletable = profiles.FirstOrDefault(x => x.IsDeletable);
             var notDeletable = profiles.FirstOrDefault(x => x.IsDeletable == false);
@@ -52,7 +51,7 @@ namespace WatneyAstrometry.SolverVizTools.Tests
 
             newManager = new SolveSettingsManager(opts);
             profiles = newManager.GetProfiles(true, false);
-            profiles.Count.Should().Be(2);
+            Assert.Equal(2, profiles.Count);
 
         }
     }
