@@ -65,9 +65,14 @@ namespace WatneyAstrometry.Core.QuadDb
             var subCellsInRangeIndexesArr = new int[pass.SubCells.Length];
             var subCellsInRangeLen = 0;
 
+            var decThreshold = angularDistance + pass.AvgSubCellRadius;
             for (var p = 0; p < pass.SubCells.Length; p++)
             {
                 var subCell = pass.SubCells[p];
+                // Fast Dec pre-filter: Dec difference is always <= great-circle distance,
+                // so if it already exceeds the threshold the full check can't pass.
+                if (Math.Abs(subCell.Center.Dec - center.Dec) >= decThreshold)
+                    continue;
                 if (subCell.Center.GetAngularDistanceTo(center) - pass.AvgSubCellRadius < angularDistance)
                 {
                     subCellsInRangeArr[subCellsInRangeLen] = subCell;
