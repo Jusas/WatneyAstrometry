@@ -25,6 +25,9 @@ namespace WatneyAstrometry.Core.QuadDb
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
             new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
 
+        /// <summary>
+        /// The directory where the .qdb files are located.
+        /// </summary>
         public string DatabaseDirectory { get; private set; }
 
         /// <summary>
