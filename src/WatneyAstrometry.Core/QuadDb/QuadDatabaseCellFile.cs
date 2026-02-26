@@ -85,9 +85,6 @@ namespace WatneyAstrometry.Core.QuadDb
             var thisFileCache = cache.Files[_fileId];
             FileStream fileStream = null;
 
-            // Pre-allocate, so that we don't need to allocate later down the road.
-            var quadDataArray = new float[8];
-
             for (var sc = 0; sc < subCellsInRangeLen; sc++)
             {
                 var subCellIdx = subCellsInRangeIndexesArr[sc];
@@ -204,7 +201,7 @@ namespace WatneyAstrometry.Core.QuadDb
                         int advance = 0;
                         for (var q = 0; q < numberOfQuadsToRead; q++)
                         {
-                            var quad = BytesToQuadNew(pSubSetDataBytes, advance, sortedImageQuads, _bytesNeedReversing, quadDataArray);
+                            var quad = BytesToQuadNew(pSubSetDataBytes, advance, sortedImageQuads, _bytesNeedReversing);
                             advance += QuadDataLen;
                             if (quad == null)
                                 continue;
@@ -241,6 +238,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
         private const float OnePer1023 = 0.0009775171065493f; // (1 / 1023)
         private const float OnePer511 = 0.001956947162f; // (1 / 511)
+        private const float RatioMatchLow  = 1.0f - 0.011f; // 0.989
+        private const float RatioMatchHigh = 1.0f + 0.011f; // 1.011
 
         /// <summary>
         /// Read the bytes and spit out a quad.
@@ -251,41 +250,32 @@ namespace WatneyAstrometry.Core.QuadDb
         /// Otherwise do no matching and just read the quad from the buffer and return it.
         /// This list is sorted by the first ratio (descending).</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
-        /// <param name="quadDataArray"></param>
         /// <returns></returns>
-        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] sortedTentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
+        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] sortedTentativeMatches, bool bytesNeedReversing)
         {
-
             // TODO would it be simpler if we moved the byte reversing stuff to another method? How would it affect performance too?
             bool noMatching = sortedTentativeMatches == null;
             byte* pRatios = (byte*)(pBuf + offset);
             byte* pFloats = (byte*)(pBuf + offset + 6); // floats come after the ratios
 
             // Ratios are packed; 3x 10 bit numbers, 2x 9 bit numbers.
-            quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
-            quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
-            quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
-            quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
-            quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
-
+            float r0 = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
+            float r1 = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
+            float r2 = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
+            float r3 = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
+            float r4 = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
 
             if (noMatching)
             {
                 // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter here.
 
                 // Floats were written in whichever endianness the database was written in.
+                float ld, ra, dec;
                 if (bytesNeedReversing)
                 {
-                    // largestDist
-                    quadDataArray[5] = BitConverter.ToSingle(
-                    new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                    // ra
-                    quadDataArray[6] = BitConverter.ToSingle(
-                        new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                    // dec
-                    quadDataArray[7] = BitConverter.ToSingle(
-                        new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
-                    
+                    ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
+                    ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
+                    dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
                 }
                 else
                 {
@@ -293,62 +283,37 @@ namespace WatneyAstrometry.Core.QuadDb
                     // converted to/from float/double via local variable that is guaranteed to be aligned.
                     // https://github.com/dotnet/runtime/issues/18041
                     // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
-
-                    var if1 = *(int*)pFloats;
-                    pFloats += sizeof(int);
-                    var if2 = *(int*)pFloats;
-                    pFloats += sizeof(int);
+                    var if1 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if2 = *(int*)pFloats; pFloats += sizeof(int);
                     var if3 = *(int*)pFloats;
-
-                    quadDataArray[5] = *(float*)&if1; // largestDist
-                    quadDataArray[6] = *(float*)&if2; // ra
-                    quadDataArray[7] = *(float*)&if3; // dec
+                    ld  = *(float*)&if1;
+                    ra  = *(float*)&if2;
+                    dec = *(float*)&if3;
                 }
 
-                // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
-                var ratios = new float[]
-                {
-                    quadDataArray[0],
-                    quadDataArray[1],
-                    quadDataArray[2],
-                    quadDataArray[3],
-                    quadDataArray[4]
-                };
-                var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
-                return quad;
+                return new StarQuad(new QuadRatios(r0, r1, r2, r3, r4), ld, new EquatorialCoords(ra, dec));
             }
+
+            var ratios = new QuadRatios(r0, r1, r2, r3, r4);
+            var lo = ratios * RatioMatchLow;
+            var hi = ratios * RatioMatchHigh;
 
             for (var q = 0; q < sortedTentativeMatches.Length; q++)
             {
-                
                 var imgQuad = sortedTentativeMatches[q];
-                
-                // Should this ever even happen??
-                // if (imgQuad == null)
-                //     continue;
-
-                // Because the image quads are ordered by the first ratio, we can straight away stop
-                // the matching for the rest of the image quads if we are below the threshold of acceptable matches. 
-                if (imgQuad.Ratios[0] / quadDataArray[0] < 0.989)
-                    return null;
-                
-                
-                if ( /*imgQuad != null &&*/ 
-                       Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[1] / quadDataArray[1] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[2] / quadDataArray[2] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[3] / quadDataArray[3] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[4] / quadDataArray[4] - 1.0f) <= 0.011f
+                if (   imgQuad.Ratios.R0 >= lo.R0 && imgQuad.Ratios.R0 <= hi.R0
+                    && imgQuad.Ratios.R1 >= lo.R1 && imgQuad.Ratios.R1 <= hi.R1
+                    && imgQuad.Ratios.R2 >= lo.R2 && imgQuad.Ratios.R2 <= hi.R2
+                    && imgQuad.Ratios.R3 >= lo.R3 && imgQuad.Ratios.R3 <= hi.R3
+                    && imgQuad.Ratios.R4 >= lo.R4 && imgQuad.Ratios.R4 <= hi.R4
                    )
                 {
+                    float ld, ra, dec;
                     if (bytesNeedReversing)
                     {
-                        quadDataArray[5] = BitConverter.ToSingle(
-                            new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                        quadDataArray[6] = BitConverter.ToSingle(
-                            new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                        quadDataArray[7] = BitConverter.ToSingle(
-                            new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
+                        ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
+                        ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
+                        dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
                     }
                     else
                     {
@@ -356,31 +321,16 @@ namespace WatneyAstrometry.Core.QuadDb
                         // converted to/from float/double via local variable that is guaranteed to be aligned.
                         // https://github.com/dotnet/runtime/issues/18041
                         // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
-
-                        var if1 = *(int*)pFloats;
-                        pFloats += sizeof(int);
-                        var if2 = *(int*)pFloats; 
-                        pFloats += sizeof(int);
+                        var if1 = *(int*)pFloats; pFloats += sizeof(int);
+                        var if2 = *(int*)pFloats; pFloats += sizeof(int);
                         var if3 = *(int*)pFloats;
-
-                        quadDataArray[5] = *(float*)&if1; // largestDist
-                        quadDataArray[6] = *(float*)&if2; // ra
-                        quadDataArray[7] = *(float*)&if3; // dec
+                        ld  = *(float*)&if1;
+                        ra  = *(float*)&if2;
+                        dec = *(float*)&if3;
                     }
 
-                    // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
-                    var ratios = new float[]
-                    {
-                        quadDataArray[0], 
-                        quadDataArray[1], 
-                        quadDataArray[2], 
-                        quadDataArray[3], 
-                        quadDataArray[4]
-                    };
-                    var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
-                    return quad;
+                    return new StarQuad(ratios, ld, new EquatorialCoords(ra, dec));
                 }
-
             }
 
             return null;

@@ -1200,15 +1200,15 @@ namespace WatneyAstrometry.Core
                     if (imageQuad == null) return;
                     for (var j = 0; j < dbQuads.Count; j++)
                     {
-                        var d1 = Math.Abs(imageQuad.Ratios[0] / dbQuads[j].Ratios[0] - 1.0); // TODO WAIT, do we need these checks?
+                        var d1 = Math.Abs(imageQuad.Ratios.R0 / dbQuads[j].Ratios.R0 - 1.0); // TODO WAIT, do we need these checks?
                         if (d1 > threshold) continue;
-                        var d2 = Math.Abs(imageQuad.Ratios[1] / dbQuads[j].Ratios[1] - 1.0);
+                        var d2 = Math.Abs(imageQuad.Ratios.R1 / dbQuads[j].Ratios.R1 - 1.0);
                         if (d2 > threshold) continue;
-                        var d3 = Math.Abs(imageQuad.Ratios[2] / dbQuads[j].Ratios[2] - 1.0);
+                        var d3 = Math.Abs(imageQuad.Ratios.R2 / dbQuads[j].Ratios.R2 - 1.0);
                         if (d3 > threshold) continue;
-                        var d4 = Math.Abs(imageQuad.Ratios[3] / dbQuads[j].Ratios[3] - 1.0);
+                        var d4 = Math.Abs(imageQuad.Ratios.R3 / dbQuads[j].Ratios.R3 - 1.0);
                         if (d4 > threshold) continue;
-                        var d5 = Math.Abs(imageQuad.Ratios[4] / dbQuads[j].Ratios[4] - 1.0);
+                        var d5 = Math.Abs(imageQuad.Ratios.R4 / dbQuads[j].Ratios.R4 - 1.0);
                         if (d5 > threshold) continue;
                         
                         matches.Add(new StarQuadMatch(dbQuads[j], imageQuad));
@@ -1367,10 +1367,6 @@ namespace WatneyAstrometry.Core
                     var largestDistance = sixDistances.Max();
 
                     sixDistances.RemoveAt(sixDistances.IndexOf(largestDistance));
-                    var ratios = sixDistances
-                        .Select(x => (float)(x / largestDistance))
-                        .ToArray();
-                    
                     var quadStars = new ImageStar[]
                     {
                         stars[starIndex0],
@@ -1379,7 +1375,14 @@ namespace WatneyAstrometry.Core
                         stars[starIndexC]
                     };
 
-                    var quad = new ImageStarQuad(ratios, (float)largestDistance, quadStars);
+                    var quad = new ImageStarQuad(
+                        new QuadRatios(
+                            (float)(sixDistances[0] / largestDistance),
+                            (float)(sixDistances[1] / largestDistance),
+                            (float)(sixDistances[2] / largestDistance),
+                            (float)(sixDistances[3] / largestDistance),
+                            (float)(sixDistances[4] / largestDistance)),
+                        (float)largestDistance, quadStars);
                     sortedQuads.Add(quad);
                 }
 
