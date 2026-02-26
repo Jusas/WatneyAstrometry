@@ -15,7 +15,7 @@ namespace WatneyAstrometry.Core.Types
         /// <summary>
         /// The quad ratios (between stars).
         /// </summary>
-        public float[] Ratios { get; protected set; }
+        public QuadRatios Ratios { get; protected set; }
         /// <summary>
         /// The largest distance (degrees or pixels).
         /// </summary>
@@ -36,7 +36,7 @@ namespace WatneyAstrometry.Core.Types
         /// <param name="largestDistance"></param>
         /// <param name="midPoint"></param>
         /// <param name="stars"></param>
-        public StarQuad(float[] ratios, float largestDistance, EquatorialCoords midPoint, IList<IStar> stars = null)
+        public StarQuad(QuadRatios ratios, float largestDistance, EquatorialCoords midPoint, IList<IStar> stars = null)
         {
             //if (ratios.Length != 5)
             //    throw new Exception("Five ratios form a quad");
