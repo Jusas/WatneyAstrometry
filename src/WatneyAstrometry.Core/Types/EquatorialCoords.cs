@@ -18,14 +18,35 @@ namespace WatneyAstrometry.Core.Types
     /// </summary>
     public class EquatorialCoords
     {
+        private double dec;
+        private double decRad;
+        private double ra;
+        private double raRad;
+
         /// <summary>
         /// RA coordinate, degrees decimal number.
         /// </summary>
-        public double Ra { get; set; }
+        public double Ra
+        {
+            get => ra;
+            set
+            {
+                ra = value;
+                raRad = Conversions.Deg2Rad(ra);
+            }
+        }
         /// <summary>
         /// Dec coordinate, degrees decimal number.
         /// </summary>
-        public double Dec { get; set; }
+        public double Dec
+        {
+            get => dec;
+            set
+            {
+                dec = value;
+                decRad = Conversions.Deg2Rad(dec);
+            }
+        }
 
         /// <summary>
         /// New empty equatorialcoords.
@@ -118,13 +139,12 @@ namespace WatneyAstrometry.Core.Types
         /// <returns>Distance between the points in degrees</returns>
         public static double GetAngularDistanceBetween(EquatorialCoords p1, EquatorialCoords p2)
         {
-            var a = Math.Sin(Conversions.Deg2Rad(p1.Dec)) * Math.Sin(Conversions.Deg2Rad(p2.Dec)) +
-                    Math.Cos(Conversions.Deg2Rad(p1.Dec)) * Math.Cos(Conversions.Deg2Rad(p2.Dec)) *
-                    Math.Cos(Conversions.Deg2Rad(p1.Ra) - Conversions.Deg2Rad(p2.Ra));
+            var a = Math.Sin(p1.decRad) * Math.Sin(p2.decRad) +
+                    Math.Cos(p1.decRad) * Math.Cos(p2.decRad) *
+                    Math.Cos(p1.raRad - p2.raRad);
             var angle = Math.Acos(a);
             return Conversions.Rad2Deg(angle);
-        }
-        
+        }        
 
         /// <summary>
         /// Transforms the RA, Dec coords to standard coordinates around the given center.
@@ -133,11 +153,9 @@ namespace WatneyAstrometry.Core.Types
         /// <returns></returns>
         public (double x, double y) ToStandardCoordinates(EquatorialCoords center)
         {
-            var centerRaRad = Conversions.Deg2Rad(center.Ra);
-            var centerDecRad = Conversions.Deg2Rad(center.Dec);
-            var raRad = Conversions.Deg2Rad(Ra);
-            var decRad = Conversions.Deg2Rad(Dec);
-
+            var centerRaRad = center.raRad;
+            var centerDecRad = center.decRad;
+             
             var divider = (Math.Cos(centerDecRad) * Math.Cos(decRad) * Math.Cos(raRad - centerRaRad) +
                            Math.Sin(centerDecRad) * Math.Sin(decRad));
 
@@ -159,8 +177,8 @@ namespace WatneyAstrometry.Core.Types
         public static EquatorialCoords StandardToEquatorial(EquatorialCoords center, double stdX, double stdY)
         {
             // TODO: add the source for the equations
-            var cpRa = Conversions.Deg2Rad(center.Ra);
-            var cpDec = Conversions.Deg2Rad(center.Dec);
+            var cpRa = center.raRad;
+            var cpDec = center.decRad;
 
             var ra = cpRa + Math.Atan2(-stdX, (Math.Cos(cpDec) - stdY * Math.Sin(cpDec)));
             var dec = Math.Asin(
@@ -183,8 +201,8 @@ namespace WatneyAstrometry.Core.Types
         {
             // Calculations from the book: ISBN 0-935702-68-7, Explanatory Supplement to the Astronomical Almanac
 
-            var alpha = Conversions.Deg2Rad(coordinates.Ra);
-            var delta = Conversions.Deg2Rad(coordinates.Dec);
+            var alpha = coordinates.raRad;
+            var delta = coordinates.decRad;
 
             // double julianCenturyDays = 36525;
             double j2000JulianDays = 2451545.0;
@@ -243,8 +261,8 @@ namespace WatneyAstrometry.Core.Types
 
             for (var i = 0; i < coords.Count; i++)
             {
-                var raRad = Conversions.Deg2Rad(coords[i].Ra);
-                var decRad = Conversions.Deg2Rad(coords[i].Dec);
+                var raRad = coords[i].raRad;
+                var decRad = coords[i].decRad;
 
                 x += Math.Cos(decRad) * Math.Cos(raRad);
                 y += Math.Cos(decRad) * Math.Sin(raRad);
@@ -285,19 +303,19 @@ namespace WatneyAstrometry.Core.Types
             var pixelsPerRadW = imageWidth / imageWidthRad;
             var pixelsPerRadH = imageHeight / imageHeightRad;
 
-            double theta = -rotationDeg; // CCW
+            double thetaRad = -Conversions.Deg2Rad(rotationDeg); // CCW
 
-            var pa = pixelsPerRadW * Math.Cos(Conversions.Deg2Rad(theta));
-            var pb = pixelsPerRadH * Math.Sin(Conversions.Deg2Rad(theta));
-            var pd = pixelsPerRadW * -Math.Sin(Conversions.Deg2Rad(theta));
-            var pe = pixelsPerRadH * Math.Cos(Conversions.Deg2Rad(theta));
+            var pa = pixelsPerRadW * Math.Cos(thetaRad);
+            var pb = pixelsPerRadH * Math.Sin(thetaRad);
+            var pd = pixelsPerRadW * -Math.Sin(thetaRad);
+            var pe = pixelsPerRadH * Math.Cos(thetaRad);
             var pc = imageWidth / 2.0;
             var pf = imageHeight / 2.0;
 
-            var starRaRad = Conversions.Deg2Rad(coordinate.Ra);
-            var starDecRad = Conversions.Deg2Rad(coordinate.Dec);
-            var centerRaRad = Conversions.Deg2Rad(planeCenter.Ra);
-            var centerDecRad = Conversions.Deg2Rad(planeCenter.Dec);
+            var starRaRad = coordinate.raRad;
+            var starDecRad = coordinate.decRad;
+            var centerRaRad = planeCenter.raRad;
+            var centerDecRad = planeCenter.decRad;
 
             var starX = Math.Cos(starDecRad) * Math.Sin(starRaRad - centerRaRad) /
                         (Math.Cos(centerDecRad) * Math.Cos(starDecRad) * Math.Cos(starRaRad - centerRaRad) + Math.Sin(centerDecRad) * Math.Sin(starDecRad));
