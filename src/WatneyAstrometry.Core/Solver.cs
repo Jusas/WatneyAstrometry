@@ -350,7 +350,9 @@ namespace WatneyAstrometry.Core
             OnSolveProgress?.Invoke(SolverStep.QuadFormationStarted);
 
             // Form quads from image stars
-            var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList()); 
+            var (imageStarQuads, countInFirstPass) = FormImageStarQuads(chosenDetectedStars.ToList());
+            // Sort by R0 once so BytesToQuadNew can binary-search into this array.
+            Array.Sort(imageStarQuads, (a, b) => a.Ratios.R0.CompareTo(b.Ratios.R0));
             _logger.WriteInfo($"Formed {imageStarQuads.Length} quads from the chosen stars");
 
             OnSolveProgress?.Invoke(SolverStep.QuadFormationFinished);

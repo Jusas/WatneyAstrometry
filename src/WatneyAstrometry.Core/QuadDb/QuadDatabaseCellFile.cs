@@ -229,11 +229,30 @@ namespace WatneyAstrometry.Core.QuadDb
         private const float RatioMatchHigh = 1.0f + 0.011f; // 1.011
 
         /// <summary>
+        /// Returns the first index in <paramref name="arr"/> where R0 &gt;= <paramref name="value"/>
+        /// (standard lower_bound over a R0-sorted array).
+        /// </summary>
+        private static int LowerBound(ImageStarQuad[] arr, float value)
+        {
+            int left = 0, right = arr.Length;
+            while (left < right)
+            {
+                int mid = (left + right) >> 1;
+                if (arr[mid].Ratios.R0 < value)
+                    left = mid + 1;
+                else
+                    right = mid;
+            }
+            return left;
+        }
+
+        /// <summary>
         /// Read the bytes and spit out a quad.
         /// </summary>
         /// <param name="pBuf"></param>
         /// <param name="offset"></param>
         /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
+        /// The array must be sorted ascending by R0 so that binary search can be used.
         /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
         /// <returns></returns>
@@ -283,46 +302,40 @@ namespace WatneyAstrometry.Core.QuadDb
             var lo = ratios * RatioMatchLow;
             var hi = ratios * RatioMatchHigh;
 
-            for (var q = 0; q < tentativeMatches.Length; q++)
+            // Binary search into the R0-sorted array to skip the ~90% of quads outside the R0 window.
+            int startIdx = LowerBound(tentativeMatches, lo.R0);
+            for (var q = startIdx; q < tentativeMatches.Length; q++)
             {
                 var imgQuad = tentativeMatches[q];
-                if (imgQuad != null
-                    && imgQuad.Ratios.R0 >= lo.R0 && imgQuad.Ratios.R0 <= hi.R0
-                    && imgQuad.Ratios.R1 >= lo.R1 && imgQuad.Ratios.R1 <= hi.R1
-                    && imgQuad.Ratios.R2 >= lo.R2 && imgQuad.Ratios.R2 <= hi.R2
-                    && imgQuad.Ratios.R3 >= lo.R3 && imgQuad.Ratios.R3 <= hi.R3
-                    && imgQuad.Ratios.R4 >= lo.R4 && imgQuad.Ratios.R4 <= hi.R4
-                   )
+                if (imgQuad.Ratios.R0 > hi.R0) break; // past the R0 window; array is sorted
+                if (imgQuad.Ratios.R1 < lo.R1 || imgQuad.Ratios.R1 > hi.R1) continue;
+                if (imgQuad.Ratios.R2 < lo.R2 || imgQuad.Ratios.R2 > hi.R2) continue;
+                if (imgQuad.Ratios.R3 < lo.R3 || imgQuad.Ratios.R3 > hi.R3) continue;
+                if (imgQuad.Ratios.R4 < lo.R4 || imgQuad.Ratios.R4 > hi.R4) continue;
+                float ld, ra, dec;
+                if (bytesNeedReversing)
                 {
-                    float ld, ra, dec;
-                    if (bytesNeedReversing)
-                    {
-                        ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
-                        ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
-                        dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
-                    }
-                    else
-                    {
-                        // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
-                        // converted to/from float/double via local variable that is guaranteed to be aligned.
-                        // https://github.com/dotnet/runtime/issues/18041
-                        // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
-                        var if1 = *(int*)pFloats; pFloats += sizeof(int);
-                        var if2 = *(int*)pFloats; pFloats += sizeof(int);
-                        var if3 = *(int*)pFloats;
-                        ld  = *(float*)&if1;
-                        ra  = *(float*)&if2;
-                        dec = *(float*)&if3;
-                    }
-
-                    return new StarQuad(ratios, ld, new EquatorialCoords(ra, dec));
+                    ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
+                    ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
+                    dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
                 }
+                else
+                {
+                    // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
+                    // converted to/from float/double via local variable that is guaranteed to be aligned.
+                    // https://github.com/dotnet/runtime/issues/18041
+                    // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
+                    var if1 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if2 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if3 = *(int*)pFloats;
+                    ld  = *(float*)&if1;
+                    ra  = *(float*)&if2;
+                    dec = *(float*)&if3;
+                }
+                return new StarQuad(ratios, ld, new EquatorialCoords(ra, dec));
             }
 
             return null;
-
-              
-            
         }
 
         public void Dispose()
