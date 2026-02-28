@@ -1390,11 +1390,9 @@ namespace WatneyAstrometry.Core
                     countInFirstPass = sortedQuads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).ToArray().Length;
             }
 
-            // var quadsArray = quads.Distinct(new StarQuad.StarQuadStarBasedEqualityComparer()).Cast<ImageStarQuad>().ToArray();
             var sortedQuadsArray = sortedQuads.Distinct(new ImageStarQuad.ImageStarQuadStarBasedEqualityComparer())
-                .OrderByDescending(x => x.Ratios[0]).ToArray();
+                .OrderBy(x => x.Ratios[0]).ToArray();
 
-            //countInFirstPass = quadsArray.Length;
             return (sortedQuadsArray, countInFirstPass);
         }
     }
