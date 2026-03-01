@@ -20,6 +20,7 @@ namespace WatneyAstrometry.Core.QuadDb
     public class CompactQuadDatabase : IQuadDatabase, IDisposable
     {
         internal QuadDatabaseCellFileSet[] _cellFileSets;
+        private Dictionary<int, QuadDatabaseCellFileSet> _cellFileSetsById;
         private bool _disposing;
 
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
@@ -56,7 +57,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
             _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
-            
+            _cellFileSetsById = _cellFileSets.ToDictionary(x => x.CellIdNumber);
+
             if (loadIntoMemory)
             {
                 throw new NotImplementedException("Loading to memory not supported yet");
@@ -128,8 +130,8 @@ namespace WatneyAstrometry.Core.QuadDb
                 Array.Resize(ref cellsToInclude, cellsToIncludeCount);
                 if (cellSearchRaDecCacheEntry == null)
                 {
-                    var dictionary = new ConcurrentDictionary<int, int[]>();
-                    dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey, dictionary);
+                    var dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey,
+                     (_) => new ConcurrentDictionary<int, int[]>()); // allocate the inner dictionary only when new
                     dictionary.GetOrAdd(radiusRounded, cellsToInclude);
                 }
                 else
@@ -140,16 +142,10 @@ namespace WatneyAstrometry.Core.QuadDb
             
             
             var sourceDataFileSets = new List<QuadDatabaseCellFileSet>(cellsToIncludeCount);
-            for (var i = 0; i < _cellFileSets.Length; i++)
+            for (var j = 0; j < cellsToIncludeCount; j++)
             {
-                for (var j = 0; j < cellsToIncludeCount; j++)
-                {
-                    if (_cellFileSets[i].CellIdNumber == cellsToInclude[j])
-                    {
-                        sourceDataFileSets.Add(_cellFileSets[i]);
-                        break;
-                    }
-                }
+                if (_cellFileSetsById.TryGetValue(cellsToInclude[j], out var fileSet))
+                    sourceDataFileSets.Add(fileSet);
             }
             
             if (quadDensityOffsets == null || quadDensityOffsets.Length == 0)
@@ -176,12 +172,10 @@ namespace WatneyAstrometry.Core.QuadDb
             }
             
             return quadListByDensity
-                .SelectMany(x => x ?? new StarQuad[0][])
-                .SelectMany(x => x ?? new StarQuad[0])
-                .ToArray()
+                .SelectMany(x => x ?? Array.Empty<StarQuad[]>())
+                .SelectMany(x => x ?? Array.Empty<StarQuad>())
                 .Distinct(new StarQuad.StarQuadRatioBasedEqualityComparer())
                 .ToList();
-            
         }
 
 
