@@ -117,14 +117,42 @@ namespace WatneyAstrometry.Core.QuadDb
             else
             {
                 cellsToInclude = new int[cells.Count];
-                
-                for (int i = 0; i < cellsToInclude.Length; i++)
+
+                double searchTopDec    = center.Dec + radiusDegrees;
+                double searchBottomDec = center.Dec - radiusDegrees;
+
+                foreach (var band in SkySegmentSphere.Bands)
                 {
-                    var cell = cells[i];
-                    if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
+                    // Bands are ordered highest Dec -> lowest Dec.
+                    if (band.DecBottom > searchTopDec) continue; // band entirely above search area
+                    if (band.DecTop < searchBottomDec) break;    // band entirely below; all remaining bands too
+
+                    // Find the cell whose RA range contains center.Ra (nearest in RA).
+                    // Angular distance to the search center is unimodal in RA within a band,
+                    // so this cell has the minimum distance; if it fails, all others in the band fail too.
+                    int nearIdx = Math.Clamp((int)(center.Ra / band.CellWidthDeg), 0, band.CellCount - 1);
+
+                    var nearCell = cells[band.CellsStartIndex + nearIdx];
+                    if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, nearCell.Bounds))
+                        continue;
+                    cellsToInclude[cellsToIncludeCount++] = nearCell.CellIdNumber;
+
+                    // Walk left (RA decreasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
                     {
-                        cellsToInclude[cellsToIncludeCount] = cell.CellIdNumber;
-                        cellsToIncludeCount++;
+                        int idx = (nearIdx - i + band.CellCount) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
+                    }
+
+                    // Walk right (RA increasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
+                    {
+                        int idx = (nearIdx + i) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
                     }
                 }
                 Array.Resize(ref cellsToInclude, cellsToIncludeCount);
