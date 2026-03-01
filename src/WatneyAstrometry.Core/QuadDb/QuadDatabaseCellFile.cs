@@ -66,19 +66,65 @@ namespace WatneyAstrometry.Core.QuadDb
             var subCellsInRangeLen = 0;
 
             var decThreshold = angularDistance + pass.AvgSubCellRadius;
-            for (var p = 0; p < pass.SubCells.Length; p++)
+            int d = pass.SubDivisions;
+            var subCells = pass.SubCells;
+
+            for (int r = 0; r < d; r++)
             {
-                var subCell = pass.SubCells[p];
-                // Fast Dec pre-filter: Dec difference is always <= great-circle distance,
-                // so if it already exceeds the threshold the full check can't pass.
-                if (Math.Abs(subCell.Center.Dec - center.Dec) >= decThreshold)
+                int rowBase = r * d;
+
+                // Dec pre-filter: all cells in this row share the same Dec center.
+                if (Math.Abs(subCells[rowBase].Center.Dec - center.Dec) >= decThreshold)
                     continue;
-                if (subCell.Center.GetAngularDistanceTo(center) - pass.AvgSubCellRadius < angularDistance)
+
+                var scLeft  = subCells[rowBase];
+                var scRight = subCells[rowBase + d - 1];
+                bool leftIn  = scLeft.Center.GetAngularDistanceTo(center)  < decThreshold;
+                bool rightIn = scRight.Center.GetAngularDistanceTo(center) < decThreshold;
+
+                if (leftIn && rightIn)
                 {
-                    subCellsInRangeArr[subCellsInRangeLen] = subCell;
-                    subCellsInRangeIndexesArr[subCellsInRangeLen] = p;
+                    // Angular distance to the search center is unimodal in RA along a
+                    // fixed-Dec row, so the endpoints are the maximum-distance points.
+                    // Both endpoints in range means every cell in the row is in range.
+                    for (int c = 0; c < d; c++)
+                    {
+                        subCellsInRangeArr[subCellsInRangeLen]        = subCells[rowBase + c];
+                        subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
+                        subCellsInRangeLen++;
+                    }
+                    continue;
+                }
+
+                // Fan out from the nearest column (minimum angular distance in this row).
+                double raStep  = (scRight.Center.Ra - scLeft.Center.Ra) / (d - 1);
+                int nearCol = Math.Clamp((int)Math.Round((center.Ra - scLeft.Center.Ra) / raStep), 0, d - 1);
+
+                // If the minimum-distance column fails, all others in this row fail too.
+                if (subCells[rowBase + nearCol].Center.GetAngularDistanceTo(center) >= decThreshold)
+                    continue;
+                subCellsInRangeArr[subCellsInRangeLen]        = subCells[rowBase + nearCol];
+                subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + nearCol;
+                subCellsInRangeLen++;
+
+                // Walk left from nearCol, stopping at first failure.
+                for (int c = nearCol - 1; c >= 0; c--)
+                {
+                    var sc = subCells[rowBase + c];
+                    if (sc.Center.GetAngularDistanceTo(center) >= decThreshold) break;
+                    subCellsInRangeArr[subCellsInRangeLen]        = sc;
+                    subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
                     subCellsInRangeLen++;
-                    //subCellsInRange.Add(subCell);
+                }
+
+                // Walk right from nearCol, stopping at first failure.
+                for (int c = nearCol + 1; c < d; c++)
+                {
+                    var sc = subCells[rowBase + c];
+                    if (sc.Center.GetAngularDistanceTo(center) >= decThreshold) break;
+                    subCellsInRangeArr[subCellsInRangeLen]        = sc;
+                    subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
+                    subCellsInRangeLen++;
                 }
             }
 
