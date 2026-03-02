@@ -1,11 +1,10 @@
-﻿// Copyright (c) Jussi Saarivirta.
+// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.IO.MemoryMappedFiles;
 using System.Text;
 using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Types;
@@ -21,22 +20,107 @@ namespace WatneyAstrometry.Core.QuadDb
         public QuadDatabaseCellFileDescriptor Descriptor { get; private set; }
         private const int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
 
-        private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
-
         private readonly bool _bytesNeedReversing = false;
 
         public int FileId => _fileId;
         private readonly int _fileId;
 
-        private bool _fileVersionValidated = false;
         private const string FileFormatIdentifierString = "WATNEYQDB";
         private const int FileFormatVersion = 3;
-        
+
+        private MemoryMappedFile _mmf;
+        private MemoryMappedViewAccessor _mmvAccessor;
+        // Pointer to byte 0 of the file data (adjusted for PointerOffset).
+        // Stored as nint so the field doesn't require an unsafe context on the class.
+        private nint _pFileStart;
+        private bool _mmfInitialized = false;
+        private readonly object _initLock = new object();
+
         public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor, int fileId)
         {
             Descriptor = descriptor;
             _fileId = fileId;
             _bytesNeedReversing = descriptor.BytesNeedReversing;
+        }
+
+        /// <summary>
+        /// Opens and memory-maps the file on first use, validating the format header.
+        /// Subsequent calls are a cheap boolean check.
+        /// </summary>
+        private unsafe void EnsureMmfOpen()
+        {
+            if (_mmfInitialized) return;
+
+            lock (_initLock)
+            {
+                if (_mmfInitialized) return;
+
+                MemoryMappedFile mmf = null;
+                MemoryMappedViewAccessor accessor = null;
+                bool pointerAcquired = false;
+                byte* pBase = null;
+                try
+                {
+                    mmf = MemoryMappedFile.CreateFromFile(
+                        Descriptor.Filename, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+                    accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+
+                    accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pBase);
+                    pointerAcquired = true;
+
+                    // PointerOffset accounts for any page-alignment padding added by the OS.
+                    // For an offset-0 view it is always 0, but we apply it for correctness.
+                    byte* pFileStart = pBase + accessor.PointerOffset;
+
+                    // Validate file format identifier
+                    var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
+                    for (int i = 0; i < fileFormatBytes.Length; i++)
+                        fileFormatBytes[i] = pFileStart[i];
+
+                    if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
+                        FileFormatIdentifierString)
+                    {
+                        throw new QuadDatabaseVersionException(
+                            $"The file {Descriptor.Filename} is not a valid Watney database file");
+                    }
+
+                    // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
+                    var versionNumBytes = new byte[sizeof(int)];
+                    int versionOffset = FileFormatIdentifierString.Length;
+                    for (int i = 0; i < sizeof(int); i++)
+                        versionNumBytes[i] = pFileStart[versionOffset + i];
+
+                    if (Descriptor.BytesNeedReversing)
+                        Array.Reverse(versionNumBytes);
+
+                    var versionNum = BitConverter.ToInt32(versionNumBytes, 0);
+                    if (versionNum != FileFormatVersion)
+                        throw new QuadDatabaseVersionException(
+                            $"Expected database version {FileFormatVersion} format database files, but they were version {versionNum}. " +
+                            $"Unable to use them. Make sure you have downloaded the right database files.");
+
+                    _mmf = mmf;
+                    _mmvAccessor = accessor;
+                    _pFileStart = (nint)pFileStart;
+                    _mmfInitialized = true;
+                }
+                catch (FileNotFoundException)
+                {
+                    if (pointerAcquired) accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    accessor?.Dispose();
+                    mmf?.Dispose();
+                    throw new QuadDatabaseException(
+                        $"Quad database file {Descriptor.Filename} was not found. Is your quad database intact?");
+                }
+                catch (Exception e)
+                {
+                    if (pointerAcquired) accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    accessor?.Dispose();
+                    mmf?.Dispose();
+                    throw new QuadDatabaseException(
+                        $"Failed to read quad database file {Descriptor.Filename}: {e.Message}", e);
+                }
+            }
         }
 
         /// <summary>
@@ -58,7 +142,7 @@ namespace WatneyAstrometry.Core.QuadDb
 
             // Quads that get a match
             var matchingQuads = new List<StarQuad>();
-            
+
 
             var pass = Descriptor.Passes[passIndex];
             var subCellsInRangeArr = new QuadDatabaseCellFileDescriptor.SubCellInfo[pass.SubCells.Length];
@@ -129,12 +213,11 @@ namespace WatneyAstrometry.Core.QuadDb
             }
 
             var thisFileCache = cache.Files[_fileId];
-            FileStream fileStream = null;
 
             for (var sc = 0; sc < subCellsInRangeLen; sc++)
             {
                 var subCellIdx = subCellsInRangeIndexesArr[sc];
-                
+
                 // Need to identify non-sampling cases, and maintain a separate cache for them;
                 // When sampling is used, we use a number of subsets (== sampling parameter value) and we
                 // cache the matching quads per subset. But when the final matching is done, we need to
@@ -153,7 +236,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 {
                     cachedQuads = thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex];
                 }
-                
+
                 if (cachedQuads != null)
                 {
                     foreach (var quad in cachedQuads)
@@ -164,101 +247,37 @@ namespace WatneyAstrometry.Core.QuadDb
                 }
                 else
                 {
-                    if (fileStream == null)
-                    {
-                        try
-                        {
-                            var streamOptions = new FileStreamOptions()
-                            {
-                                Options = FileOptions.RandomAccess, 
-                                Access = FileAccess.Read, 
-                                BufferSize = 0, 
-                                Mode = FileMode.Open, 
-                                Share = FileShare.Read
-                            };
-                            if (!_fileStreamPool.TryDequeue(out fileStream))
-                            {
-                                fileStream = new FileStream(Descriptor.Filename, streamOptions);
-                                // fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read,
-                                //     FileShare.Read, 4096, false); // Do not use async; testing in net10 if this improves performance.
-                            }
-
-                            if (!_fileVersionValidated)
-                            {
-                                _fileVersionValidated = true;
-                                fileStream.Seek(0, SeekOrigin.Begin);
-                                var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
-                                fileStream.ReadExactly(fileFormatBytes, 0, fileFormatBytes.Length);
-
-                                // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
-                                if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
-                                    FileFormatIdentifierString)
-                                {
-                                    throw new QuadDatabaseVersionException($"The file {Descriptor.Filename} is not a valid Watney database file");
-                                }
-                                
-                                var versionNumBytes = new byte[sizeof(int)];
-                                fileStream.ReadExactly(versionNumBytes, 0, sizeof(int));
-                                if (Descriptor.BytesNeedReversing)
-                                    Array.Reverse(versionNumBytes);
-
-                                var versionNum = BitConverter.ToInt32(versionNumBytes, 0);
-                                if (versionNum != FileFormatVersion)
-                                    throw new QuadDatabaseVersionException(
-                                        $"Expected database version {FileFormatVersion} format database files, but they were version {versionNum}. " +
-                                        $"Unable to use them. Make sure you have downloaded the right database files.");
-                            }
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            throw new QuadDatabaseException(
-                                $"Quad database file {Descriptor.Filename} was not found. Is your quad database intact?");
-                        }
-                        catch (Exception e)
-                        {
-                            throw new QuadDatabaseException($"Failed to read quad database file {Descriptor.Filename}: {e.Message}", e);
-                        }
-                        
-                    }
+                    EnsureMmfOpen();
 
                     if (samplingBeingUsed && thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset == null)
                     {
                         // Should cause no concern with multi-threading, since we're not processing multiple subsets in parallel.
                         thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset = new StarQuad[numSubSets][];
                     }
-                    
+
                     var quadCountInSubCell = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
                     var quadCountPerSubSet = quadCountInSubCell / numSubSets;
                     var quadSplitModulo = quadCountInSubCell % numSubSets;
-                    
+
                     long streamReadOffset = subCellsInRangeArr[sc].DataStartPos +
                                         subSetIndex * quadCountPerSubSet * QuadDataLen;
-                    
+
                     var numberOfQuadsToRead = subSetIndex == numSubSets - 1 && quadSplitModulo > 0
                         ? quadCountPerSubSet + quadSplitModulo // Add modulo quads to the last subset
                         : quadCountPerSubSet;
-                    byte[] subSetDataBytes = new byte[numberOfQuadsToRead * QuadDataLen];
-                    
-                    fileStream.Seek(streamReadOffset, SeekOrigin.Begin);
-                    fileStream.ReadExactly(subSetDataBytes, 0, subSetDataBytes.Length);
-                    
-                    fixed (byte* pSubSetDataBytes = subSetDataBytes)
+
+                    byte* pQuadData = (byte*)_pFileStart + streamReadOffset;
+                    for (var q = 0; q < numberOfQuadsToRead; q++, pQuadData += QuadDataLen)
                     {
-                        int advance = 0;
-                        for (var q = 0; q < numberOfQuadsToRead; q++)
-                        {
-                            var quad = BytesToQuadNew(pSubSetDataBytes, advance, sortedImageQuads, _bytesNeedReversing);
-                            advance += QuadDataLen;
-                            if (quad == null)
-                                continue;
-                            
-                            matchingQuads.Add(quad);
-                            if (quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
-                                matchingQuadsWithinRange.Add(quad);
-                        }
+                        var quad = BytesToQuadNew(pQuadData, 0, sortedImageQuads, _bytesNeedReversing);
+                        if (quad == null)
+                            continue;
+
+                        matchingQuads.Add(quad);
+                        if (quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+                            matchingQuadsWithinRange.Add(quad);
                     }
-                    
-                    
+
                     if (samplingBeingUsed)
                     {
                         thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex] =
@@ -266,20 +285,13 @@ namespace WatneyAstrometry.Core.QuadDb
                     }
                     else
                     {
-                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet = 
+                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet =
                             matchingQuads.ToArray();
                     }
-
-                    
                 }
             }
 
-            if(fileStream != null)
-                _fileStreamPool.Enqueue(fileStream);
-
             return matchingQuadsWithinRange.ToArray();
-
-            
         }
 
         private const float OnePer1023 = 0.0009775171065493f; // (1 / 1023)
@@ -398,10 +410,12 @@ namespace WatneyAstrometry.Core.QuadDb
             return null;
         }
 
-        public void Dispose()
+        public unsafe void Dispose()
         {
-            while(_fileStreamPool.TryDequeue(out var fileStream))
-                fileStream?.Dispose();
+            if (_mmfInitialized)
+                _mmvAccessor?.SafeMemoryMappedViewHandle.ReleasePointer();
+            _mmvAccessor?.Dispose();
+            _mmf?.Dispose();
         }
     }
 }
