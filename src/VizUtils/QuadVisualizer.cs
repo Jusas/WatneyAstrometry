@@ -13,8 +13,6 @@ namespace VizUtils
 {
     public static class QuadVisualizer
     {
-        private static ShapeGraphicsOptions _lineShapeGraphicsOptions =
-            new ShapeGraphicsOptions(new GraphicsOptions(), new ShapeOptions());
 
         public static Color GenerateQuadColor(EquatorialCoords location)
         {
@@ -62,10 +60,13 @@ namespace VizUtils
             var font = SystemFonts.CreateFont("Arial", 10, FontStyle.Bold);
 
             if (starPoints != null)
-                context.DrawLines(_lineShapeGraphicsOptions, color, 1.0f, starPoints.ToArray());
+                context.DrawLine(color, 1.0f, starPoints.ToArray());
             
-            var glyphs = TextBuilder.GenerateGlyphs(text, new PointF(quadCenter.X, quadCenter.Y) + new PointF(4.0f, 4.0f),
-                new RendererOptions(font, 72));
+            var glyphs = TextBuilder.GenerateGlyphs(text, new RichTextOptions(font)
+            {
+                Origin = new PointF(quadCenter.X + 4.0f, quadCenter.Y + 4.0f),
+                Dpi = 72
+            });
             context.Fill(color, glyphs);
         }
 
