@@ -19,7 +19,7 @@ namespace WatneyAstrometry.Core.QuadDb
     internal class QuadDatabaseCellFile : IDisposable
     {
         public QuadDatabaseCellFileDescriptor Descriptor { get; private set; }
-        private static readonly int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
+        private const int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
 
         private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
 
