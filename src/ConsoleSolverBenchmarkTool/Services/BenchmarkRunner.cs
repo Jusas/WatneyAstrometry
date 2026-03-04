@@ -382,12 +382,16 @@ public class BenchmarkRunner
     {
         var files = ExpandDatasetFiles(run.Dataset.Config.Directory, run.Dataset.Config.Pattern);
         
-        Console.WriteLine($"About to run benchmark '{run.Config.Name}");
+        ConsolePrint.PrintBigSeparator();
+        Console.WriteLine($" About to run benchmark '{run.Config.Name}");
+        ConsolePrint.PrintBigSeparator();
+        Console.WriteLine();
         Console.WriteLine($"- Uses dataset: '{run.Config.Dataset}'");
         Console.WriteLine($"- Uses solver: '{run.Profile.Solver.Config.Name}'");
         Console.WriteLine($"- Uses database: '{run.Profile.Database.Config.Name}'");
-
-        Console.WriteLine(Environment.NewLine + "Images to benchmark:");
+        Console.WriteLine();
+        Console.WriteLine($"Dataset has {files.Length} images to benchmark:");
+        
         foreach (var imageFile in files)
             Console.WriteLine($"- {imageFile}");
 
@@ -399,11 +403,12 @@ public class BenchmarkRunner
         Console.WriteLine($"- Radius variations: {run.Config.RadiusVariations.Count}");
         Console.WriteLine($"- Offset variations: {run.Config.OffsetVariations.Count}");
         Console.WriteLine($"= Total variations per image: {totalVariations}");
-        
-        Console.WriteLine(Environment.NewLine + 
-            $"Total solver runs: {totalVariations * files.Length}");
-        Console.WriteLine(Environment.NewLine + 
-            $"Results will be saved to a new directory in: {run.Config.OutputDirectory}");
+        Console.WriteLine();
+        Console.WriteLine($"Iterations: {run.Config.Iterations}");
+        Console.WriteLine($"Solver runs per iteration: {totalVariations * files.Length}");
+        Console.WriteLine($"Total solver runs: {totalVariations * files.Length * run.Config.Iterations}");
+        Console.WriteLine();
+        Console.WriteLine($"Results will be saved to a new directory in: {run.Config.OutputDirectory}");
 
     }
     
