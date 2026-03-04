@@ -20,11 +20,15 @@ namespace WatneyAstrometry.Core.QuadDb
     public class CompactQuadDatabase : IQuadDatabase, IDisposable
     {
         internal QuadDatabaseCellFileSet[] _cellFileSets;
+        private Dictionary<int, QuadDatabaseCellFileSet> _cellFileSetsById;
         private bool _disposing;
 
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
             new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
 
+        /// <summary>
+        /// The directory where the .qdb files are located.
+        /// </summary>
         public string DatabaseDirectory { get; private set; }
 
         /// <summary>
@@ -53,7 +57,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
             _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
-            
+            _cellFileSetsById = _cellFileSets.ToDictionary(x => x.CellIdNumber);
+
             if (loadIntoMemory)
             {
                 throw new NotImplementedException("Loading to memory not supported yet");
@@ -112,21 +117,49 @@ namespace WatneyAstrometry.Core.QuadDb
             else
             {
                 cellsToInclude = new int[cells.Count];
-                
-                for (int i = 0; i < cellsToInclude.Length; i++)
+
+                double searchTopDec    = center.Dec + radiusDegrees;
+                double searchBottomDec = center.Dec - radiusDegrees;
+
+                foreach (var band in SkySegmentSphere.Bands)
                 {
-                    var cell = cells[i];
-                    if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
+                    // Bands are ordered highest Dec -> lowest Dec.
+                    if (band.DecBottom > searchTopDec) continue; // band entirely above search area
+                    if (band.DecTop < searchBottomDec) break;    // band entirely below; all remaining bands too
+
+                    // Find the cell whose RA range contains center.Ra (nearest in RA).
+                    // Angular distance to the search center is unimodal in RA within a band,
+                    // so this cell has the minimum distance; if it fails, all others in the band fail too.
+                    int nearIdx = Math.Clamp((int)(center.Ra / band.CellWidthDeg), 0, band.CellCount - 1);
+
+                    var nearCell = cells[band.CellsStartIndex + nearIdx];
+                    if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, nearCell.Bounds))
+                        continue;
+                    cellsToInclude[cellsToIncludeCount++] = nearCell.CellIdNumber;
+
+                    // Walk left (RA decreasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
                     {
-                        cellsToInclude[cellsToIncludeCount] = cell.CellIdNumber;
-                        cellsToIncludeCount++;
+                        int idx = (nearIdx - i + band.CellCount) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
+                    }
+
+                    // Walk right (RA increasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
+                    {
+                        int idx = (nearIdx + i) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
                     }
                 }
                 Array.Resize(ref cellsToInclude, cellsToIncludeCount);
                 if (cellSearchRaDecCacheEntry == null)
                 {
-                    var dictionary = new ConcurrentDictionary<int, int[]>();
-                    dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey, dictionary);
+                    var dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey,
+                     (_) => new ConcurrentDictionary<int, int[]>()); // allocate the inner dictionary only when new
                     dictionary.GetOrAdd(radiusRounded, cellsToInclude);
                 }
                 else
@@ -137,16 +170,10 @@ namespace WatneyAstrometry.Core.QuadDb
             
             
             var sourceDataFileSets = new List<QuadDatabaseCellFileSet>(cellsToIncludeCount);
-            for (var i = 0; i < _cellFileSets.Length; i++)
+            for (var j = 0; j < cellsToIncludeCount; j++)
             {
-                for (var j = 0; j < cellsToIncludeCount; j++)
-                {
-                    if (_cellFileSets[i].CellIdNumber == cellsToInclude[j])
-                    {
-                        sourceDataFileSets.Add(_cellFileSets[i]);
-                        break;
-                    }
-                }
+                if (_cellFileSetsById.TryGetValue(cellsToInclude[j], out var fileSet))
+                    sourceDataFileSets.Add(fileSet);
             }
             
             if (quadDensityOffsets == null || quadDensityOffsets.Length == 0)
@@ -173,12 +200,10 @@ namespace WatneyAstrometry.Core.QuadDb
             }
             
             return quadListByDensity
-                .SelectMany(x => x ?? new StarQuad[0][])
-                .SelectMany(x => x ?? new StarQuad[0])
-                .ToArray()
+                .SelectMany(x => x ?? Array.Empty<StarQuad[]>())
+                .SelectMany(x => x ?? Array.Empty<StarQuad>())
                 .Distinct(new StarQuad.StarQuadRatioBasedEqualityComparer())
                 .ToList();
-            
         }
 
 

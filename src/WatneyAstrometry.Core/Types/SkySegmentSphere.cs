@@ -59,30 +59,39 @@ namespace WatneyAstrometry.Core.Types
 
         private static List<Cell> _cells;
         private static Cell[,] _cellsArray;
+        private static List<CellBand> _bands;
 
-        public static IReadOnlyList<Cell> Cells
-        {
-            get
-            {
-                return _cells;
-            }
-        }
+        public static IReadOnlyList<Cell> Cells => _cells;
+
+        /// <summary>
+        /// The 18 latitude bands, ordered from highest Dec to lowest.
+        /// Each band exposes its Dec extent and the slice of <see cref="Cells"/> it occupies,
+        /// enabling efficient Dec-then-RA cell searches.
+        /// </summary>
+        public static IReadOnlyList<CellBand> Bands => _bands;
 
         static SkySegmentSphere()
         {
             _cells = new List<Cell>();
-            
+            _bands = new List<CellBand>();
+
             for (var b = 0; b < LatitudeBands.Count; b++)
             {
                 var band = LatitudeBands[b];
                 var cellWidth = CellWidths[b];
+                int bandStartIndex = _cells.Count;
+                int cellCount = 360 / cellWidth;
+
                 for (int raLeft = 0, c = 0; raLeft < 360; raLeft += cellWidth, c++)
                 {
                     var bounds = new RaDecBounds(raLeft, raLeft + cellWidth, band.L2, band.L1);
                     var cell = new Cell(bounds, b, c);
                     _cells.Add(cell);
                 }
+
+                _bands.Add(new CellBand(band.L1, band.L2, cellWidth, cellCount, bandStartIndex));
             }
+
             _cellsArray = new Cell[_cells.Max(x => x.BandIndex)+1, _cells.Max(x => x.CellIndex)+1];
             foreach (var cell in _cells)
                 _cellsArray[cell.BandIndex, cell.CellIndex] = cell;
