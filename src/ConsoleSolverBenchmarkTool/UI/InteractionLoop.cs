@@ -164,6 +164,7 @@ public class InteractionLoop
         else if (TryParseSelection(input, "p", status.Profiles.Count, out idx))
         {
             var profile = status.Profiles[idx];
+            Console.WriteLine();
             Console.WriteLine("Downloading solvers");
             Console.WriteLine();
             await _downloader.DownloadSolverAsync(profile.Solver.Config);
@@ -177,12 +178,15 @@ public class InteractionLoop
         else if (TryParseSelection(input, "r", status.Runs.Count, out idx))
         {
             var run = status.Runs[idx];
+            Console.WriteLine();
             Console.WriteLine("Downloading solvers");
             Console.WriteLine();
             await _downloader.DownloadSolverAsync(run.Profile.Solver.Config);
+            Console.WriteLine();
             Console.WriteLine("Downloading databases");
             Console.WriteLine();
             await _downloader.DownloadDatabaseAsync(run.Profile.Database.Config);
+            Console.WriteLine();
             Console.WriteLine("Downloading datasets");
             Console.WriteLine();
             await _downloader.DownloadDatasetAsync(run.Dataset.Config);

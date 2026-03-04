@@ -392,7 +392,7 @@ public class BenchmarkRunner
             Console.WriteLine($"- {imageFile}");
 
         var totalVariations = run.Config.SamplingVariations.Count *
-            run.Config.OffsetVariations.Count * run.Config.OffsetVariations.Count;
+            run.Config.OffsetVariations.Count * run.Config.RadiusVariations.Count;
         
         Console.WriteLine(Environment.NewLine + "Setting variations:");
         Console.WriteLine($"- Sampling variations: {run.Config.SamplingVariations.Count}");
