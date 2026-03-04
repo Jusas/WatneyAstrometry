@@ -3,7 +3,7 @@
 
 using System.Globalization;
 
-namespace Benchmark;
+namespace ConsoleSolverBenchmarkTool.Models;
 
 public class CsvEntry
 {
