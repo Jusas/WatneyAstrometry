@@ -40,10 +40,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 10.0.x
 
     - name: Replace commit hash in readmes
       run: |
+        cp AUTHORS builds/cli/notices
+        cp AUTHORS builds/desktop/notices
         sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
         sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/desktop/notices/README-BLEEDING
 

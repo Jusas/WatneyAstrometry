@@ -3,7 +3,7 @@
   <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Platforms>AnyCPU;x64</Platforms>
-    <VersionPrefix>1.2.3</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <Authors>Jussi Saarivirta</Authors>
     <Product>WatneyAstrometry.Core</Product>
     <Description>WatneyAstrometry.Core is the core library of the WatneyAstrometry Astrometric Solver.</Description>

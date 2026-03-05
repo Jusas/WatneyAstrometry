@@ -2,7 +2,9 @@ Watney Astrometry Solver App - bleeding edge build COMMIT_HASH
 https://github.com/Jusas/WatneyAstrometry
 https://watney-astrometry.net
 
-Copyright 2021, 2022 Jussi Saarivirta
+Copyright 2021, 2022, 2023, 2024, 2025, 2026 Jussi Saarivirta and Contributors
+See AUTHORS file for full list.
+
 Licensed under the Apache License, Version 2.0
 
 This is a bleeding edge build, meaning it's an automatic build from the master
