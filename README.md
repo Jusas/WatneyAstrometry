@@ -11,7 +11,7 @@ The Watney Astrometry Engine (hereafter Watney or WatneyAstrometry) is an astrom
 
 The solver was designed from the beginning as a library with no dependencies. **Up to version 1.2.3 it was implemented as a .NET Standard 2.0 library. From 2.0.0 onwards it has been released as standard .NET 10 library.** The core library is published as a Nuget package, and the software suite consists of a CLI Solver, a simple solver Web API and a cross-platform desktop UI solver app for testing and demoing. 
 
-**Note:** Since version 2.0.0, significant performance gains have been achieved for blind solves, allowing approximately 61% reduction of solve times on average. [See the wiki for comparisons.](https://github.com/Jusas/WatneyAstrometry/wiki)
+**Note:** Since version 2.0.0, significant performance gains have been achieved for blind solves, allowing approximately 61% reduction of solve times on average. [See the wiki for comparisons.](https://github.com/Jusas/WatneyAstrometry/wiki/Performance-upgrades-v1.2.3-%E2%80%90-v2.0.0)
 
 In earlier versions, the netstandard 2.0 profile provides compatibility with .NET Framework. Since version 2.0 it was decided to leave the legacy netstandard 2.0 limitations behind and focus on providing the library and the accompanying solver applications with modern .NET implementation and optimizations. The core library has zero dependencies - this way if anyone wants to embed Watney to their .NET based apps, very little effort is required.
 
