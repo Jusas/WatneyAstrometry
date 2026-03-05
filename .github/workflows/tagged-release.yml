@@ -30,10 +30,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 10.0.x
 
     - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
       run: | 
+        cp AUTHORS builds/cli/notices
+        cp AUTHORS builds/api/notices
         for f in builds/cli/notices/*
         do 
           sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f
@@ -59,7 +61,8 @@ jobs:
       run: |
         for a in $OSARCHS_ALL
         do
-          dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishTrimmed=true -p:PublishSingleFile=true -c Release -r $a --self-contained true -o "bin-api-$a/" src/WatneyAstrometry.WebApi/WatneyAstrometry.WebApi.csproj
+          # Note, removed trimming for now since it causes issues.
+          dotnet publish -p:Version=${{ steps.buildvars.outputs.version_string }} -p:IncludeNativeLibrariesForSelfExtract=true -p:PublishSingleFile=true -c Release -r $a --self-contained true -o "bin-api-$a/" src/WatneyAstrometry.WebApi/WatneyAstrometry.WebApi.csproj
           cp builds/api/notices/* bin-api-$a
           rm -f bin-api-$a/*BLEEDING*
           cp bin-api-$a/config.template.yml bin-api-$a/config.yml

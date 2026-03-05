@@ -20,7 +20,7 @@ internal class ControllerProvider : ControllerFeatureProvider
     {
         var isController = base.IsController(typeInfo);
 
-        if (isController && typeInfo.Name.Equals(nameof(AstrometryNetCompatController)))
+        if (isController && typeInfo.Name.Equals(nameof(LegacyAstrometryNetCompatController)))
         {
             return _config.EnableCompatibilityApi;
         }

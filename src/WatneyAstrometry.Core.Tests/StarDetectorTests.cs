@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using FluentAssertions;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
@@ -55,7 +54,7 @@ namespace WatneyAstrometry.Core.Tests
                 //}
                 
 
-                stars.Count.Should().Be(5);
+                Assert.Equal(5, stars.Count);
             }
         }
 
@@ -84,7 +83,7 @@ namespace WatneyAstrometry.Core.Tests
                 //}
 
 
-                stars.Count.Should().Be(8);
+                Assert.Equal(8, stars.Count);
             }
         }
         

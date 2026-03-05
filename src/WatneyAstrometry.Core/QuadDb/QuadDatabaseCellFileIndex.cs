@@ -29,19 +29,19 @@ namespace WatneyAstrometry.Core.QuadDb
                 // Read header.
                 
                 var buf = new byte[IndexFileFormatIdentifier.Length];
-                stream.Read(buf, 0, IndexFileFormatIdentifier.Length);
+                stream.ReadExactly(buf, 0, IndexFileFormatIdentifier.Length);
 
                 if (Encoding.ASCII.GetString(buf) != IndexFileFormatIdentifier)
                     throw new QuadDatabaseVersionException($"File {filename} is not a {IndexFileFormatIdentifier}");
 
-                stream.Read(buf, 0, 1);
+                stream.ReadExactly(buf, 0, 1);
                 if (buf[0] != IndexFileFormatVersion)
                 {
                     throw new QuadDatabaseVersionException($"This version of quad database index ({buf[0]}) is not supported " +
                         $"by this version of Watney. Supported versions: {IndexFileFormatVersion}");
                 }
 
-                stream.Read(buf, 0, 1);
+                stream.ReadExactly(buf, 0, 1);
                 var isLittleEndian = buf[0] == 1;
 
                 DataIsLittleEndian = isLittleEndian;

@@ -1,7 +1,7 @@
 // Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
-using AutoMapper;
+using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -35,19 +35,16 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
         private readonly ILogger<JobsController> _logger;
 
         private readonly IJobManager _jobManager;
-        private readonly IMapper _mapper;
 
         /// <summary>
         /// Ctor
         /// </summary>
         /// <param name="logger"></param>
         /// <param name="jobManager"></param>
-        /// <param name="mapper"></param>
-        public JobsController(ILogger<JobsController> logger, IJobManager jobManager, IMapper mapper)
+        public JobsController(ILogger<JobsController> logger, IJobManager jobManager)
         {
             _logger = logger;
             _jobManager = jobManager;
-            _mapper = mapper;
         }
 
 
@@ -77,9 +74,9 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
             var createdJob = await _jobManager.PrepareJob(new NewJobInputModel
             {
                 Image = image,
-                Parameters = _mapper.Map<JobParametersModel>(newJobModel.Parameters)
+                Parameters = newJobModel.Parameters.ToJobParametersModel()
             });
-            return Ok(_mapper.Map<RestJobModel>(createdJob));
+            return Ok(createdJob.ToRestJobModel());
 
             // https://stackoverflow.com/questions/51614373/multipart-form-data-images-upload-with-json-asp-net-core-api
             
@@ -101,7 +98,7 @@ namespace WatneyAstrometry.WebApi.Controllers.Watney
                 {
                     Message = $"Job {id} was not found"
                 });
-            return Ok(_mapper.Map<RestJobModel>(job));
+            return Ok(job.ToRestJobModel());
         }
 
         /// <summary>

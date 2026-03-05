@@ -47,7 +47,7 @@ namespace WatneyAstrometry.Core.Fits
                 return false;
 
             var buf = new byte[FitsConstants.HeaderBlockSize];
-            stream.Read(buf, 0, FitsConstants.HeaderBlockSize);
+            stream.ReadExactly(buf, 0, FitsConstants.HeaderBlockSize);
             stream.Seek(pos, SeekOrigin.Begin);
 
             try

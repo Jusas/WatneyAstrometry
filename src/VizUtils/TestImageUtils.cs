@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using WatneyAstrometry.Core.Fits;
@@ -57,15 +58,15 @@ namespace VizUtils
 
         public static (Stream stream, int w, int h) GetPngByteStreamL8(string filename)
         {
-            var decoder = new PngDecoder();
+            var decoder = PngDecoder.Instance;
             var stream = File.OpenRead(filename);
             
-            var imgInfo = decoder.Identify(Configuration.Default, stream);
+            var imgInfo = decoder.Identify(new DecoderOptions(), stream);
             stream.Seek(0, SeekOrigin.Begin);
             
             if (imgInfo.PixelType.BitsPerPixel == 8)
             {
-                var img = decoder.Decode<L8>(Configuration.Default, stream);
+                var img = decoder.Decode<L8>(new DecoderOptions(), stream);
                 var pixelSpan = img.GetPixelMemoryGroup().ToArray()[0].Span;
                 return (new MemoryStream(MemoryMarshal.AsBytes(pixelSpan).ToArray()), img.Width, img.Height);
             }
@@ -76,15 +77,15 @@ namespace VizUtils
 
         public static Stream GetPngByteStreamL16(string filename)
         {
-            var decoder = new PngDecoder();
+            var decoder = PngDecoder.Instance;
             var stream = File.OpenRead(filename);
 
-            var imgInfo = decoder.Identify(Configuration.Default, stream);
+            var imgInfo = decoder.Identify(new DecoderOptions(), stream);
             stream.Seek(0, SeekOrigin.Begin);
 
             if (imgInfo.PixelType.BitsPerPixel == 16)
             {
-                var img = decoder.Decode<L16>(Configuration.Default, stream);
+                var img = decoder.Decode<L16>(new DecoderOptions(), stream);
                 var pixelSpan = img.GetPixelMemoryGroup().ToArray()[0].Span;
                 return new MemoryStream(MemoryMarshal.AsBytes(pixelSpan).ToArray());
             }

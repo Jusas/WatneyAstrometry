@@ -9,7 +9,11 @@
 
 The Watney Astrometry Engine (hereafter Watney or WatneyAstrometry) is an astrometric solver as a .NET/C# library. It was built mainly for amateur astrophotography. Its implementation is based on the same basic algorithm that Han Kleijn's ASTAP implemented (and is [described in more detail here](http://www.hnsky.org/astap_astrometric_solving.htm). While the solving algorithm uses the same principles, that is probably where the similarities end. 
 
-The solver was designed from the beginning as a library with no dependencies. It is implemented as a .NET Standard 2.0 library and published as a Nuget package. The netstandard 2.0 profile provides compatibility with both .NET Framework and .NET Core 2.0 and later as well as .NET 6. This way if anyone wants to embed Watney to their .NET based apps, very little effort is required.
+The solver was designed from the beginning as a library with no dependencies. **Up to version 1.2.3 it was implemented as a .NET Standard 2.0 library. From 2.0.0 onwards it has been released as standard .NET 10 library.** The core library is published as a Nuget package, and the software suite consists of a CLI Solver, a simple solver Web API and a cross-platform desktop UI solver app for testing and demoing. 
+
+**Note:** Since version 2.0.0, significant performance gains have been achieved for blind solves, allowing approximately 61% reduction of solve times on average. [See the wiki for comparisons.](https://github.com/Jusas/WatneyAstrometry/wiki)
+
+In earlier versions, the netstandard 2.0 profile provides compatibility with .NET Framework. Since version 2.0 it was decided to leave the legacy netstandard 2.0 limitations behind and focus on providing the library and the accompanying solver applications with modern .NET implementation and optimizations. The core library has zero dependencies - this way if anyone wants to embed Watney to their .NET based apps, very little effort is required.
 
 Alongside the solver library two apps are provided for plate solving:
 - **CLI Solver App** (watney-solve) is provided for basic plate solving via command line. The CLI app has released binaries for Windows x64, Linux x64, arm and arm64 and Mac OSX x64.
@@ -20,7 +24,7 @@ In addition, the multi-platform **Watney Desktop Solver** GUI app is provided fo
 ![image](https://user-images.githubusercontent.com/5293904/185812351-11741c3f-7e99-4739-8451-213467004ce9.png)
 
 
-See Watney in action: **https://watney-astrometry.net**
+See Watney in action: **https://watney-astrometry.net** _(Note, currently the website has fallen a bit behind and has some result presentation bugs with Aladin embedding, and runs an outdated version which does not represent actual performance, to be updated when time allows. Apologies!)_
 
 # Downloads
 

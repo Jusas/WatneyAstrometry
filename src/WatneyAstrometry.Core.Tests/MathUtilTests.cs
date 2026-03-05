@@ -1,5 +1,4 @@
 ﻿using System;
-using FluentAssertions;
 using WatneyAstrometry.Core.MathUtils;
 using Xunit;
 
@@ -30,9 +29,9 @@ namespace WatneyAstrometry.Core.Tests
                 (9, -8, 7, -5)
             });
 
-            Math.Round(solution.x1, 3).Should().Be(2.474);
-            Math.Round(solution.x2, 3).Should().Be(5.397);
-            Math.Round(solution.x3, 3).Should().Be(3.723);
+            Assert.Equal(2.474, Math.Round(solution.x1, 3));
+            Assert.Equal(5.397, Math.Round(solution.x2, 3));
+            Assert.Equal(3.723, Math.Round(solution.x3, 3));
 
         }
         

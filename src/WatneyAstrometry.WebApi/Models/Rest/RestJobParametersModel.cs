@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using AutoMapper;
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using WatneyAstrometry.WebApi.Models.Domain;
 #pragma warning disable CS1591
@@ -57,48 +57,29 @@ public class RestJobParametersModel //: IValidatableObject
     /// The parameters for nearby solving operation.
     /// </summary>
     [FromForm(Name = "nearby")]
-    public RestNearbyOptions NearbyParameters { get; set; }
+    public RestNearbyParameters NearbyParameters { get; set; }
 
     /// <summary>
     /// The parameters for blind solving operation.
     /// </summary>
     [FromForm(Name = "blind")]
-    public RestBlindOptions BlindParameters { get; set; }
-    
+    public RestBlindParameters BlindParameters { get; set; }
 
-
-    public class Mappings : AutoMapper.Profile
+    /// <summary>
+    /// Convert REST model to job model.
+    /// </summary>
+    public JobParametersModel ToJobParametersModel()
     {
-        public Mappings()
+        return new JobParametersModel()
         {
-            // Explicit mappings.
-
-            CreateMap<JobParametersModel, RestJobParametersModel>()
-                .ForMember(dest => dest.BlindParameters, x => x.MapFrom(src => src.BlindParameters))
-                .ForMember(dest => dest.NearbyParameters, x => x.MapFrom(src => src.NearbyParameters))
-                .ForMember(dest => dest.Mode, x => x.MapFrom(src => src.Mode))
-                .ForMember(dest => dest.HigherDensityOffset, x => x.MapFrom(src => src.HigherDensityOffset))
-                .ForMember(dest => dest.LowerDensityOffset, x => x.MapFrom(src => src.LowerDensityOffset))
-                .ForMember(dest => dest.MaxStars, x => x.MapFrom(src => src.MaxStars))
-                .ForMember(dest => dest.Sampling, x => x.MapFrom(src => src.Sampling))
-                ;
-
-            CreateMap<RestJobParametersModel, JobParametersModel>()
-                .ForMember(dest => dest.BlindParameters, x => x.MapFrom(src => src.BlindParameters))
-                .ForMember(dest => dest.NearbyParameters, x => x.MapFrom(src => src.NearbyParameters))
-                .ForMember(dest => dest.Mode, x => x.MapFrom(src => src.Mode))
-                .ForMember(dest => dest.HigherDensityOffset, x => x.MapFrom(src => src.HigherDensityOffset))
-                .ForMember(dest => dest.LowerDensityOffset, x => x.MapFrom(src => src.LowerDensityOffset))
-                .ForMember(dest => dest.MaxStars, x => x.MapFrom(src => src.MaxStars))
-                .ForMember(dest => dest.Sampling, x => x.MapFrom(src => src.Sampling))
-                ;
-
-
-        }
+            HigherDensityOffset = HigherDensityOffset,
+            LowerDensityOffset = LowerDensityOffset,
+            Mode = Mode,
+            MaxStars = MaxStars,
+            Sampling = Sampling,
+            NearbyParameters = NearbyParameters?.ToJobNearbyParameters(),
+            BlindParameters = BlindParameters?.ToJobBlindParameters()
+        };
     }
 
-    //public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    //{
-    //    validationContext.
-    //}
 }

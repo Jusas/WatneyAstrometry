@@ -98,7 +98,7 @@ defaultBlindMaxRadius: 8
 # Values up to 16 work best.
 # Value 1 effectively disables sampling.
 # ================================================================================
-defaultBlindSampling: 16
+defaultBlindSampling: 4
 
 # ================================================================================
 # Blind solves:

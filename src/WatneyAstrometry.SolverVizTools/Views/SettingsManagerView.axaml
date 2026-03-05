@@ -6,7 +6,7 @@
              xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
              xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
              xmlns:vm="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
-             xmlns:controls="clr-namespace:MessageBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
+             xmlns:controls="clr-namespace:MsBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="550"
              x:Class="WatneyAstrometry.SolverVizTools.Views.SettingsManagerView"
              Name="SettingManagerMainView">
@@ -50,7 +50,7 @@
         <StackPanel Orientation="Vertical">
           <TextBlock Classes="FormItemLabel">Profile:</TextBlock>
           <StackPanel Orientation="Horizontal">
-            <ComboBox MinWidth="220" Items="{Binding SolveProfiles}"
+            <ComboBox MinWidth="220" ItemsSource="{Binding SolveProfiles}"
                           SelectedItem="{Binding SelectedProfile}"
                       ></ComboBox>
             <Button Width="36" Margin="8,0,0,0" ToolTip.Tip="Create a new profile"
@@ -91,7 +91,7 @@
           </StackPanel>
           <StackPanel Orientation="Vertical"  Margin="20,0,0,0">
             <TextBlock Classes="FormItemLabel">Search order:</TextBlock>
-            <ComboBox MinWidth="220" Items="{Binding SearchOrders}"
+            <ComboBox MinWidth="220" ItemsSource="{Binding SearchOrders}"
                       SelectedItem="{Binding SelectedProfile.BlindOptions.SearchOrder}" 
                       ToolTip.Tip="{x:Static profile:ProfileToolTips.TipBlindSearchOrder}">
               <ComboBox.ItemTemplate>
@@ -109,7 +109,7 @@
                             ConverterParameter={x:Static profile:SolveProfileType.Nearby}}">
           <StackPanel Orientation="Vertical">
             <TextBlock Classes="FormItemLabel">Data source:</TextBlock>
-            <ComboBox MinWidth="160" Items="{Binding NearbyInputSources}"
+            <ComboBox MinWidth="160" ItemsSource="{Binding NearbyInputSources}"
                       SelectedItem="{Binding SelectedProfile.NearbyOptions.InputSource}"
                       ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyInputSource}">
               <ComboBox.ItemTemplate>
@@ -153,7 +153,7 @@
                          Converter={x:Static converters:EnumConverters.ValueEquals},
                          ConverterParameter={x:Static profile:InputSource.Manual}}">
             <TextBlock Classes="FormItemLabel">Field radius mode:</TextBlock>
-            <ComboBox MinWidth="160" Items="{Binding FieldRadiusSources}"
+            <ComboBox MinWidth="160" ItemsSource="{Binding FieldRadiusSources}"
                       SelectedItem="{Binding SelectedProfile.NearbyOptions.FieldRadiusSource}"
                       ToolTip.Tip="{x:Static profile:ProfileToolTips.TipNearbyInputSource}"><ComboBox.ItemTemplate>
                 <DataTemplate>
@@ -264,13 +264,11 @@
                     IsVisible="{Binding WatneyConfiguration.IsValidQuadDatabasePath}">
           <TextBlock Text="Quad database data sets:" />
           <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" Margin="0,16,0,0">
-            <avalonia:Icon Value="mdi-information" FontSize="16" />
-            <TextBlock Text="Database files are downloaded from " Margin="8,0,0,0" FontSize="12"/>
-            <controls:Hyperlink Foreground="#569cd6" FontSize="12" Url="https://github.com/Jusas/WatneyAstrometry/releases">
-              https://github.com/Jusas/WatneyAstrometry/releases
-            </controls:Hyperlink>
+            <avalonia:Icon Value="mdi-information" FontSize="16" VerticalAlignment="Center" />
+            <TextBlock Text="Database files are downloaded from " Margin="8,0,0,0" FontSize="12" VerticalAlignment="Center"/>
+            <HyperlinkButton VerticalAlignment="Center" FontSize="12" NavigateUri="https://github.com/Jusas/WatneyAstrometry/releases">https://github.com/Jusas/WatneyAstrometry/releases</HyperlinkButton>
           </StackPanel>
-          <ListBox Margin="0, 16, 0, 0" MinWidth="500" Items="{Binding DatabaseDataSets}"
+          <ListBox Margin="0, 16, 0, 0" MinWidth="500" ItemsSource="{Binding DatabaseDataSets}"
                    Background="{Binding $parent[Window].Background}">
             <ListBox.Styles>
               <Style Selector="ListBoxItem">

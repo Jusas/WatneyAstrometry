@@ -51,6 +51,11 @@ namespace WatneyAstrometry.SolverVizTools.Services
             Write(message, "INFO");
         }
 
+        public void WriteInfo(params object[] elements)
+        {
+            Write(string.Join(" ", elements), "INFO");
+        }
+
         public void WriteWarn(string message)
         {
             Write(message, "WARN");

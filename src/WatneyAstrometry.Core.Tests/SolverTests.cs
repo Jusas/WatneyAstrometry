@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FluentAssertions;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,7 +11,6 @@ using VizUtils;
 using WatneyAstrometry.Core.Fits;
 using WatneyAstrometry.Core.MathUtils;
 using WatneyAstrometry.Core.QuadDb;
-using WatneyAstrometry.Core.StarDetection;
 using WatneyAstrometry.Core.Tests.Utils;
 using WatneyAstrometry.Core.Types;
 using Xunit;
@@ -91,7 +88,7 @@ namespace WatneyAstrometry.Core.Tests
             {
                 _testOutput.WriteLine("Failed");
             }
-            solveResult.Success.Should().BeTrue();
+            Assert.True(solveResult.Success);
 
 
         }
@@ -203,7 +200,7 @@ namespace WatneyAstrometry.Core.Tests
             {
                 _testOutput.WriteLine("Failed");
             }
-            solveResult.Success.Should().BeTrue();
+            Assert.True(solveResult.Success);
 
 
         }
@@ -231,7 +228,7 @@ namespace WatneyAstrometry.Core.Tests
             var options = new SolverOptions();
             var solveResult = await solver.SolveFieldAsync(img, pointStrategy, options, token);
 
-            solveResult.Success.Should().BeTrue();
+            Assert.True(solveResult.Success);
             
             using (var visualization = TestImageUtils.FitsImagePixelBufferToRgbaImage(img as FitsImage))
             {
@@ -263,7 +260,7 @@ namespace WatneyAstrometry.Core.Tests
             var options = new SolverOptions();
             var solveResult = await solver.SolveFieldAsync(img, pointStrategy, options, token);
 
-            solveResult.Success.Should().BeTrue();
+            Assert.True(solveResult.Success);
 
             
 

@@ -3,7 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:WatneyAstrometry.SolverVizTools.ViewModels"
-        xmlns:controls="clr-namespace:MessageBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
+        xmlns:controls="clr-namespace:MsBox.Avalonia.Controls;assembly=MessageBox.Avalonia"
         mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
         x:Class="WatneyAstrometry.SolverVizTools.Views.DsoDatabaseDownloadDialog"
         Width="400"
@@ -23,8 +23,7 @@
         <TextBlock FontWeight="Normal" Margin="0,16,0,0"
                    Text="The application uses the Astronexus HYG-database:" 
                    TextWrapping="Wrap"/>
-        <controls:Hyperlink Url="https://github.com/astronexus/HYG-Database"
-                            Foreground="#569cd6">https://github.com/astronexus/HYG-Database</controls:Hyperlink>
+        <HyperlinkButton NavigateUri="https://codeberg.org/astronexus/hyg">https://codeberg.org/astronexus/hyg</HyperlinkButton>
         <TextBlock Margin="0,16,0,0"
                    Text="Would you like to download it? (approx. 18.6 MB)"></TextBlock>
         <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">

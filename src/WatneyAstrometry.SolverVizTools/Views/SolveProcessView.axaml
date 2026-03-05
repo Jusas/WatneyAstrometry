@@ -39,7 +39,7 @@
     </Style>
   </UserControl.Styles>
   
-    <StackPanel ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
+    <StackPanel Margin="15" ScrollViewer.VerticalScrollBarVisibility="Visible" Name="ProcessViewMain">
       <Border Padding="16">
         <Panel Name="ImageSelectionArea" Background="#000000" DragDrop.AllowDrop="True">
           <StackPanel>
@@ -51,7 +51,7 @@
                               MaxHeight="{Binding $parent[Window].Bounds.Height,
                               Converter={x:Static converters:SizeConverters.PercentageOf}, ConverterParameter=70}"
                               ScrollChanged="ImageScrollView_OnScrollChanged">
-                  <Image Source="{Binding SolverImage}" Name="SolverImage"
+                  <Image Source="{Binding SolverImage}" Name="SolverImage" RenderOptions.BitmapInterpolationMode="HighQuality"
                          PointerCaptureLost="Image_OnPointerCaptureLost"
                          PointerMoved="Image_OnPointerMoved"
                          PointerPressed="Image_OnPointerPressed"
@@ -222,7 +222,7 @@
               </StackPanel>
             </Button>
           </StackPanel>
-          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
+          <DataGrid CanUserResizeColumns="True" ItemsSource="{Binding SolutionGridModels}">
             <DataGrid.Columns>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="RA" 
                                   Binding="{Binding Ra, Mode=OneWay, StringFormat={}{0:F5}}" />
@@ -241,7 +241,7 @@
             </DataGrid.Columns>
           </DataGrid>
           <TextBlock Text="Solve process statistics" FontSize="16" Margin="0, 16, 0, 8" />
-          <DataGrid CanUserResizeColumns="True" Items="{Binding SolutionGridModels}">
+          <DataGrid CanUserResizeColumns="True" ItemsSource="{Binding SolutionGridModels}">
             <DataGrid.Columns>
               <DataGridTextColumn IsReadOnly="True" CanUserResize="True" Header="Star detection duration (s)"
                                   Binding="{Binding StarDetectionDuration, Mode=OneWay}"/>
@@ -265,7 +265,7 @@
               <icons:Icon Value="mdi-content-save" FontSize="14"></icons:Icon>
             </Button>
           </StackPanel>
-          <ListBox Height="100" Name="Log" Items="{Binding SolverLog}"
+          <ListBox Height="100" Name="Log" ItemsSource="{Binding SolverLog}"
                    Background="Black"
                    BorderBrush="#22FFFFFF"
                    BorderThickness="1"

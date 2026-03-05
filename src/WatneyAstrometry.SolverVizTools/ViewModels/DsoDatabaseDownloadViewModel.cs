@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
-using MessageBox.Avalonia.Enums;
+using MsBox.Avalonia.Enums;
 using ReactiveUI;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 using IServiceProvider = WatneyAstrometry.SolverVizTools.Abstractions.IServiceProvider;
@@ -54,7 +54,7 @@ namespace WatneyAstrometry.SolverVizTools.ViewModels
             }
             catch (Exception e)
             {
-                MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow("Download error", e.Message,
+                MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard("Download error", e.Message,
                     ButtonEnum.Ok, Icon.Error);
                 OwnerWindow.Close(null);
             }

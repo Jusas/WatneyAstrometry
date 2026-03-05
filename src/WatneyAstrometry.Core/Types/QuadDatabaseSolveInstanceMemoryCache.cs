@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+
 namespace WatneyAstrometry.Core.Types
 {
     /// <summary>
@@ -25,6 +28,8 @@ namespace WatneyAstrometry.Core.Types
         }
         
         public FileCachedData[] Files { get; set; }
+
+        public ConcurrentDictionary<long, ConcurrentDictionary<int, int[]>> CellSearchCache { get; } = new();
 
         public QuadDatabaseSolveInstanceMemoryCache()
         {

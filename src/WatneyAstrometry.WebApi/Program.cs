@@ -5,18 +5,14 @@
 // https://docs.microsoft.com/en-us/aspnet/core/migration/50-to-60?view=aspnetcore-6.0&tabs=visual-studio
 
 using System.Globalization;
-using System.Reflection;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Mvc.Versioning;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using WatneyAstrometry.WebApi;
 using WatneyAstrometry.WebApi.Authentication;
 using WatneyAstrometry.WebApi.Controllers;
-using WatneyAstrometry.WebApi.Services;
 
 var cultureInfo = CultureInfo.InvariantCulture;
 
@@ -51,7 +47,7 @@ builder.Services.AddControllers().ConfigureApplicationPartManager(manager =>
     manager.FeatureProviders.Add(new ControllerProvider(apiConfig));
 });
 
-builder.Services.AddApiVersioning(config =>
+var apiVersioningBuilder = builder.Services.AddApiVersioning(config =>
 {
     config.DefaultApiVersion = new ApiVersion(1, 0);
     config.AssumeDefaultVersionWhenUnspecified = true;
@@ -59,17 +55,16 @@ builder.Services.AddApiVersioning(config =>
     config.ReportApiVersions = true;
 });
 
-builder.Services.AddVersionedApiExplorer(config =>
+apiVersioningBuilder.AddApiExplorer(config =>
 {
     config.GroupNameFormat = "'v'VVV";
     config.SubstituteApiVersionInUrl = true;
 });
 
-
 if (apiConfig.EnableSwagger)
 {
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(setup =>
+    builder.Services.AddSwaggerGen(genOptions =>
     {
         #pragma warning disable ASP0000 // Do not call 'IServiceCollection.BuildServiceProvider' in 'ConfigureServices'
         var versionProvider = builder.Services.BuildServiceProvider()
@@ -78,7 +73,7 @@ if (apiConfig.EnableSwagger)
 
         foreach (var description in versionProvider.ApiVersionDescriptions)
         {
-            setup.SwaggerDoc(description.GroupName, new OpenApiInfo()
+            genOptions.SwaggerDoc(description.GroupName, new OpenApiInfo()
             {
                 Title = "Watney API",
                 Version = description.ApiVersion.ToString()
@@ -87,7 +82,7 @@ if (apiConfig.EnableSwagger)
         
         var xmlApiDocFileName = Path.Combine(executableDir, "apidoc.xml");
         if(File.Exists(xmlApiDocFileName))
-            setup.IncludeXmlComments(xmlApiDocFileName, true);
+            genOptions.IncludeXmlComments(xmlApiDocFileName, true);
 
         if ("apikey".Equals(apiConfig.Authentication))
         {
@@ -99,22 +94,26 @@ if (apiConfig.EnableSwagger)
                 Description = "Usage requires API Key in the 'apikey' header"
             };
 
-            setup.AddSecurityDefinition("apikey", securityScheme);
+            genOptions.AddSecurityDefinition("apikey", securityScheme);
             var keyScheme = new OpenApiSecurityScheme()
             {
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
                 Name = "apikey",
-                Reference = new OpenApiReference()
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "apikey"
-                }
+                // Reference = new OpenApiReference()
+                // {
+                //     Type = ReferenceType.SecurityScheme,
+                //     Id = "apikey"
+                // }
             };
-            setup.AddSecurityRequirement(new OpenApiSecurityRequirement()
+            genOptions.AddSecurityRequirement( (document) => new OpenApiSecurityRequirement()
             {
-                { keyScheme, new List<string>() }
+                [new OpenApiSecuritySchemeReference("apikey", document)] = []
             });
+            // genOptions.AddSecurityRequirement(new OpenApiSecurityRequirement()
+            // {
+            //     { keyScheme, new List<string>() }
+            // });
         }
     });
 }
@@ -127,7 +126,6 @@ builder.WebHost.ConfigureKestrel(config =>
     //config.ConfigureEndpointDefaults(lo => lo.);
 });
 
-builder.Services.AddAutoMapper(typeof(ServiceRegistration).Assembly);
 builder.Services.AddSolverApiServices(builder.Configuration, apiConfig);
 
 var app = builder.Build();

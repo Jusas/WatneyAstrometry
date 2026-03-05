@@ -1,0 +1,76 @@
+# List of available solver (versions).
+# When downloads are defined, the solver can be downloaded to the directory by the benchmarking tool when needed.
+# If no downloads are defined, the solver files must be found locally in the directory.
+solvers:
+  - name: "v1.2.3"
+    directory: "/drive/data3/wb/solver_1.2.3"
+    downloads:
+      win_x64: "https://github.com/Jusas/WatneyAstrometry/releases/download/v1.2.3/watney-solve-cli-1.2.3-win-x64.zip"
+      osx_x64: "https://github.com/Jusas/WatneyAstrometry/releases/download/v1.2.3/watney-solve-cli-1.2.3-osx-x64.tar.gz"
+      linux_x64: "https://github.com/Jusas/WatneyAstrometry/releases/download/v1.2.3/watney-solve-cli-1.2.3-linux-x64.tar.gz"
+      linux_arm64: "https://github.com/Jusas/WatneyAstrometry/releases/download/v1.2.3/watney-solve-cli-1.2.3-linux-arm64.tar.gz"
+      linux_arm: "https://github.com/Jusas/WatneyAstrometry/releases/download/v1.2.3/watney-solve-cli-1.2.3-linux-arm.tar.gz"
+
+  - name: "v2.0.0"
+    directory: "/drive/data3/wb/solver_2.0.0"
+    downloads:
+
+
+# Quad database definitions.
+# When downloads are defined, the database files can be downloaded to the directory by the benchmarking tool when needed.
+# If no downloads are defined, the database files must be found locally in the directory.
+databases:
+  - name: "v3_00-13"
+    directory: "/drive/data3/wb/qdb_v3_00-13"
+    downloads:
+      - "https://github.com/Jusas/WatneyAstrometry/releases/download/watneyqdb3/watneyqdb-00-07-20-v3.zip"
+      - "https://github.com/Jusas/WatneyAstrometry/releases/download/watneyqdb3/watneyqdb-08-09-20-v3.zip"
+      - "https://github.com/Jusas/WatneyAstrometry/releases/download/watneyqdb3/watneyqdb-10-11-20-v3.zip"
+      - "https://github.com/Jusas/WatneyAstrometry/releases/download/watneyqdb3/watneyqdb-12-13-20-v3.zip"
+
+  - name: "v4_00-13"
+    directory: "/drive/data3/wb/qdb_v4_00-13"
+    downloads:
+
+
+# Profiles, combinations of solver and quad database.
+profiles:
+  - name: "v1.2.3_with_qdb3"
+    solver: "v1.2.3"
+    database: "v3_00-13"
+     
+     
+# Data sets, a set of images to benchmark.
+# When downloads are defined, the dataset files can be downloaded to the directory by the benchmarking tool when needed.
+# If no downloads are defined, the dataset images must be found locally in the directory.
+datasets:
+  - name: "bm_1"
+    directory: "/drive/data3/wb/dataset_bm_1"
+    pattern: "bm_1_*"
+    downloads:
+      - "https://github.com/Jusas/WatneyAstrometry/releases/download/benchmark-images-1/benchmark_images_set1.zip"
+
+
+# Available benchmarking runs.
+# Different combinations of settings + selected profile + dataset. 
+# Which run you want to benchmark can be selected from the tool.
+runs:
+  - name: "sampled_variations_1"
+    dataset: "bm_1"
+    profile: "v1.2.3_with_qdb3"
+    output_directory: "/drive/data3/wb/results/v1.2.3_sampled_variations_1"
+    iterations: 5
+    max_stars: 300
+    sampling_variations: [ 1, 2, 4, 6, 8, 12, 16 ]
+    radius_variations: [ [0.5, 16], [0.5, 8], [0.5, 4] ]
+    offset_variations: [ [0,0], [0,1] ]
+    
+  - name: "sampled_variations_2"
+    dataset: "bm_1"
+    profile: "v1.2.3_with_qdb3"
+    output_directory: "/drive/data3/wb/results/v1.2.3_sampled_variations_2"
+    iterations: 5
+    max_stars: 300
+    sampling_variations: [ 1, 2, 4 ]
+    radius_variations: [ [0.5, 16] ]
+    offset_variations: [ [0,0], [1,1] ]

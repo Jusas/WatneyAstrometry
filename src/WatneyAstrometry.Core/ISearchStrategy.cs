@@ -36,9 +36,12 @@ namespace WatneyAstrometry.Core
         /// <returns></returns>
         public override string ToString()
         {
-            return $"[{Center.Ra}, {Center.Dec}] ({RadiusDegrees:F})";
+            _stringRepresentation ??= $"[{Center.Ra}, {Center.Dec}] ({RadiusDegrees:F})";
+            return _stringRepresentation;
         }
-        
+
+        private string _stringRepresentation;
+
     }
 
     /// <summary>

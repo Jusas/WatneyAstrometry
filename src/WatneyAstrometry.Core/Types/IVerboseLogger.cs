@@ -22,6 +22,13 @@ namespace WatneyAstrometry.Core.Types
         /// </summary>
         /// <param name="message"></param>
         void WriteInfo(string message);
+        
+        /// <summary>
+        /// Write informational text to log. Elements are appended to a string, separated by spaces.
+        /// </summary>
+        /// <param name="elements"></param>
+        void WriteInfo(params object[] elements);
+        
         /// <summary>
         /// Write a warning to log.
         /// </summary>

@@ -40,10 +40,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 10.0.x
 
     - name: Replace commit hash in readmes
       run: |
+        cp AUTHORS builds/cli/notices
+        cp AUTHORS builds/desktop/notices
         sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/cli/notices/README-BLEEDING
         sed -i 's/COMMIT_HASH/${{ steps.buildvars.outputs.sha_short }}/g' builds/desktop/notices/README-BLEEDING
 
@@ -92,7 +94,7 @@ jobs:
           tar -czf ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-latest-$a.tar.gz
         done        
 
-    - uses: pyTooling/Actions/releaser/composite@main
+    - uses: pyTooling/Actions/releaser/composite@v6.7.0
       name: Releaser
       with:
         token: ${{ secrets.GITHUB_TOKEN }}

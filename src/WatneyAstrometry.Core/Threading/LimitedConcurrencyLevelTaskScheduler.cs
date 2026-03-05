@@ -20,6 +20,7 @@ namespace WatneyAstrometry.Core.Threading
 
         // The list of tasks to be executed
         private readonly LinkedList<Task> _tasks = new LinkedList<Task>(); // protected by lock(_tasks)
+        private readonly Lock _lock = new Lock();
 
         // The maximum concurrency level allowed by this scheduler.
         private readonly int _maxDegreeOfParallelism;
@@ -40,7 +41,7 @@ namespace WatneyAstrometry.Core.Threading
         {
             // Add the task to the list of tasks to be processed.  If there aren't enough
             // delegates currently queued or running to process tasks, schedule another.
-            lock (_tasks)
+            lock (_lock)
             {
                 _tasks.AddLast(task);
                 if (_delegatesQueuedOrRunning < _maxDegreeOfParallelism)
@@ -65,7 +66,7 @@ namespace WatneyAstrometry.Core.Threading
                     while (true)
                     {
                         Task item;
-                        lock (_tasks)
+                        lock (_lock)
                         {
                             // When there are no more items to be processed,
                             // note that we're done processing, and get out.
@@ -110,7 +111,7 @@ namespace WatneyAstrometry.Core.Threading
         // Attempt to remove a previously scheduled task from the scheduler.
         protected sealed override bool TryDequeue(Task task)
         {
-            lock (_tasks)
+            lock (_lock)
                 return _tasks.Remove(task);
         }
 
@@ -120,20 +121,24 @@ namespace WatneyAstrometry.Core.Threading
         // Gets an enumerable of the tasks currently scheduled on this scheduler.
         protected sealed override IEnumerable<Task> GetScheduledTasks()
         {
-            bool lockTaken = false;
-            try
+            lock (_lock)
             {
-                Monitor.TryEnter(_tasks, ref lockTaken);
-                if (lockTaken)
-                    return _tasks;
-                else
-                    throw new NotSupportedException();
+                return _tasks;
             }
-            finally
-            {
-                if (lockTaken)
-                    Monitor.Exit(_tasks);
-            }
+            //bool lockTaken = false;
+            // try
+            // {
+            //     Monitor.TryEnter(_lock, ref lockTaken);
+            //     if (lockTaken)
+            //         return _tasks;
+            //     else
+            //         throw new NotSupportedException();
+            // }
+            // finally
+            // {
+            //     if (lockTaken)
+            //         Monitor.Exit(_lock);
+            // }
         }
     }
 }

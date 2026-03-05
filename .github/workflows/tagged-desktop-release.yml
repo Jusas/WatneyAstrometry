@@ -32,11 +32,12 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 10.0.x
 
     - name: Replace CURRENT_VERSION_TAG and CURRENT_VERSION_RELEASE_DATE in readmes and changelogs
       shell: bash
       run: | 
+        cp AUTHORS builds/desktop/notices
         for f in builds/desktop/notices/*
         do 
           sed -i 's/CURRENT_VERSION_TAG/${{ steps.buildvars.outputs.version_string }}/g' $f

@@ -106,7 +106,7 @@ namespace WatneyAstrometry.Core.StarDetection
             List<StarPixelBin> previousLineBins = new List<StarPixelBin>();
             for (var y = 0; y < _imageMetadata.ImageHeight; y++)
             {
-                _imageDataStream.Read(buf, 0, buf.Length);
+                _imageDataStream.ReadExactly(buf, 0, buf.Length);
                 previousLineBins = BinStarPixelsFromScanline(buf, y, flatValue, previousLineBins);
             }
 
@@ -135,7 +135,7 @@ namespace WatneyAstrometry.Core.StarDetection
 
             for (var y = 0; y < _imageMetadata.ImageHeight; y++)
             {
-                _imageDataStream.Read(buf, 0, buf.Length);
+                _imageDataStream.ReadExactly(buf, 0, buf.Length);
                 AddScanlineToHistogram(buf);
             }
         }

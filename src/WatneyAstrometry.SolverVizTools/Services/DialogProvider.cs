@@ -2,14 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using MessageBox.Avalonia.DTO;
-using MessageBox.Avalonia.Enums;
-using Microsoft.CodeAnalysis;
+using Avalonia.Platform.Storage;
+using MsBox.Avalonia.Dto;
+using MsBox.Avalonia.Enums;
 using WatneyAstrometry.SolverVizTools.Abstractions;
 
 namespace WatneyAstrometry.SolverVizTools.Services
@@ -20,37 +18,65 @@ namespace WatneyAstrometry.SolverVizTools.Services
         public async Task<string[]> ShowOpenFileDialog(IWindow owner, string title, (string description, string[] extension)[] fileTypes, 
             string initialDirectory, bool allowMultiple)
         {
-            var dialog = new OpenFileDialog();
-            dialog.Title = title;
-            dialog.AllowMultiple = allowMultiple;
-            dialog.Filters = fileTypes.Select(x => new FileDialogFilter()
+            var storageProvider = TopLevel.GetTopLevel(owner.NativeWindow as Window)!.StorageProvider;
+            var startBrowseLocation = !string.IsNullOrEmpty(initialDirectory)
+                ? await storageProvider.TryGetFolderFromPathAsync(new Uri(initialDirectory))
+                : await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+            
+            var selection = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions()
             {
-                Name = x.description,
-                Extensions = x.extension.ToList()
-            }).ToList();
-            dialog.Directory = initialDirectory;
-            var selection = await dialog.ShowAsync((owner.NativeWindow as Window)!);
-            return selection;
+                AllowMultiple = allowMultiple,
+                Title = title, 
+                SuggestedStartLocation = startBrowseLocation,
+                FileTypeFilter = fileTypes.Select(x => 
+                    new FilePickerFileType(x.description) { Patterns = x.extension })
+                    .ToArray()
+            });
+
+            return selection.Select(x => x.TryGetLocalPath()).ToArray();
+
         }
 
         public async Task<string> ShowOpenFolderDialog(IWindow owner, string title, string initialDirectory)
         {
-            var dialog = new OpenFolderDialog();
-            dialog.Directory = initialDirectory;
-            dialog.Title = title;
-            var directory = await dialog.ShowAsync((owner.NativeWindow as Window)!);
-            return directory;
+            
+            var storageProvider = TopLevel.GetTopLevel(owner.NativeWindow as Window)!.StorageProvider;
+            var startBrowseLocation = !string.IsNullOrEmpty(initialDirectory)
+                ? await storageProvider.TryGetFolderFromPathAsync(new Uri(initialDirectory))
+                : await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+            var selectedDirectory = await storageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions()
+            {
+                AllowMultiple = false,
+                Title = title, 
+                SuggestedStartLocation = startBrowseLocation
+            });
+
+            if (selectedDirectory.Count > 0)
+                return selectedDirectory[0].TryGetLocalPath();
+            
+            return null;
+            
         }
 
         public async Task<string> ShowSaveFileDialog(IWindow owner, string title, string initialDirectory, string initialFilename, string defaultExtension)
         {
-            var dialog = new SaveFileDialog();
-            dialog.DefaultExtension = defaultExtension;
-            dialog.Directory = initialDirectory;
-            dialog.InitialFileName = initialFilename;
-            dialog.Title = title;
-            var filename = await dialog.ShowAsync((owner.NativeWindow as Window)!);
-            return filename;
+            
+            var storageProvider = TopLevel.GetTopLevel(owner.NativeWindow as Window)!.StorageProvider;
+            var startBrowseLocation = !string.IsNullOrEmpty(initialDirectory)
+                ? await storageProvider.TryGetFolderFromPathAsync(new Uri(initialDirectory))
+                : await storageProvider.TryGetWellKnownFolderAsync(WellKnownFolder.Documents);
+            
+            var filename = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions()
+            {
+                Title = title, 
+                SuggestedStartLocation = startBrowseLocation,
+                DefaultExtension =  defaultExtension,
+                ShowOverwritePrompt = true,
+                SuggestedFileName = initialFilename
+            });
+            
+            return filename?.TryGetLocalPath();
+
         }
 
         public async Task ShowMessageBox(IWindow owner, string title, string message, DialogIcon icon = DialogIcon.None)
@@ -62,8 +88,8 @@ namespace WatneyAstrometry.SolverVizTools.Services
                 DialogIcon.Error => Icon.Error
             };
 
-            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(title, message, ButtonEnum.Ok, boxIcon);
-            await box.ShowDialog((owner.NativeWindow as Window)!);
+            var box = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(title, message, ButtonEnum.Ok, boxIcon);
+            await box.ShowAsPopupAsync((owner.NativeWindow as Window)!);
         }
 
         public async Task<bool> ShowMessageBoxYesNo(IWindow owner, string title, string message, int? minHeight = null, int? minWidth = null)
@@ -78,9 +104,9 @@ namespace WatneyAstrometry.SolverVizTools.Services
             if (minWidth != null)
                 @params.MinWidth = minWidth.Value;
 
-            var box = MessageBox.Avalonia.MessageBoxManager.GetMessageBoxStandardWindow(@params);
+            var box = MsBox.Avalonia.MessageBoxManager.GetMessageBoxStandard(@params);
             
-            var result = await box.ShowDialog((owner.NativeWindow as Window)!);
+            var result = await box.ShowWindowDialogAsync((owner.NativeWindow as Window)!);
             return (result & ButtonResult.Yes) != 0;
         }
 

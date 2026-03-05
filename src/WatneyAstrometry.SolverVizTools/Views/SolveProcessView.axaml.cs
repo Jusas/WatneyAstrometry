@@ -46,7 +46,7 @@ namespace WatneyAstrometry.SolverVizTools.Views
         private void OnDragDrop(object sender, DragEventArgs e)
         {
             var dragDropZone = "ImageSelectionArea";
-            if (e.Source is Control c && (c.Name == dragDropZone || ParentNameIs(c.Parent, dragDropZone)))
+            if (e.Source is Control c && (c.Name == dragDropZone || VisualParentNameIs(c.GetVisualParent(), dragDropZone)))
             {
                 e.DragEffects &= DragDropEffects.Move;
 
@@ -66,7 +66,7 @@ namespace WatneyAstrometry.SolverVizTools.Views
         private void OnDragOver(object sender, DragEventArgs e)
         {
             var dragDropZone = "ImageSelectionArea";
-            if (e.Source is Control c && (c.Name == dragDropZone || ParentNameIs(c.Parent, dragDropZone)))
+            if (e.Source is Control c && (c.Name == dragDropZone || VisualParentNameIs(c.GetVisualParent(), dragDropZone)))
             {
                 e.DragEffects &= DragDropEffects.Move;
 
@@ -77,16 +77,16 @@ namespace WatneyAstrometry.SolverVizTools.Views
             }
         }
 
-        private bool ParentNameIs(IControl control, string name)
+        private bool VisualParentNameIs(Visual visual, string name)
         {
-            if (control == null)
+            if (visual == null)
                 return false;
 
-            if (control.Name == name)
+            if (visual.Name == name)
                 return true;
 
-            if (control.Parent != null)
-                return ParentNameIs(control.Parent, name);
+            if (visual.Parent != null)
+                return VisualParentNameIs(visual.GetVisualParent(), name);
 
             return false;
         }
@@ -109,7 +109,7 @@ namespace WatneyAstrometry.SolverVizTools.Views
             if (e.Pointer.IsPrimary)
             {
                 _imagePanTrackedPointer = e.Pointer;
-                _imagePanStartingPos = e.GetPosition((IVisual)sender);
+                _imagePanStartingPos = e.GetPosition((Visual)sender);
             }
         }
 
@@ -124,7 +124,7 @@ namespace WatneyAstrometry.SolverVizTools.Views
             if (e.Pointer == _imagePanTrackedPointer)
             {
                 var scrollViewer = this.GetControl<ScrollViewer>("ImageScrollView");
-                var pos = e.GetPosition((IVisual)sender);
+                var pos = e.GetPosition((Visual)sender);
                 var delta = _imagePanStartingPos - pos;
                 e.Handled = true;
                 scrollViewer.Offset += new Vector(delta.X, delta.Y);

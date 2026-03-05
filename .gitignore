@@ -3,6 +3,9 @@ bin/
 obj/
 *.fits
 *.fit
+*.csproj.user
+*.DotSettings.user
+builds/tmp
 src/.idea/
 src/*/Resources
 launchSettings.json
@@ -23,3 +26,15 @@ benchmarking/results*
 todo.txt
 src/WatneyAstrometry.SolverVizTools/Data/
 src/WatneyAstrometry.SolverVizTools/todos.txt
+
+src/Benchmark/benchmark_images/*
+!src/Benchmark/benchmark_images/download.sh
+
+src/Benchmark/quad_dbs/*/*
+!src/Benchmark/quad_dbs/*/download.sh
+
+src/Benchmark/watney_binaries/*/*
+!src/Benchmark/watney_binaries/*/download.sh
+
+src/Benchmark/_results
+benchmarking/

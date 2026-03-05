@@ -30,7 +30,7 @@
           <StackPanel Orientation="Vertical">
               <TextBlock Classes="FormItemLabel">Profile type:</TextBlock>
               <ComboBox SelectedItem="{Binding ProfileType}"
-                        Items="{Binding Types}">
+                        ItemsSource="{Binding Types}">
               </ComboBox>
               <TextBlock Classes="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" Height="60"></TextBlock>
           </StackPanel>

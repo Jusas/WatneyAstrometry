@@ -172,6 +172,7 @@ internal class JobManager : IJobManager
             var starDetector = new DefaultStarDetector();
             var stars = starDetector.DetectStars(image).ToList();
             model.Stars = stars;
+            image?.Dispose();
             _logger.LogTrace($"The detector found {stars.Count} stars");
 
             _logger.LogTrace($"Analysis complete");

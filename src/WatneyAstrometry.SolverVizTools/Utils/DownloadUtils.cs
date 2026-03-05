@@ -65,6 +65,11 @@ namespace WatneyAstrometry.SolverVizTools.Utils
                     }
                 }
 
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new DownloadException($"File {fullFilePath} could not be downloaded. Response code: {response.StatusCode}");
+                }
+
                 return new FileInfo(fullFilePath);
             }
             catch (TaskCanceledException e)

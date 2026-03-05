@@ -34,7 +34,7 @@ namespace WatneyAstrometry.SolverApp
             var end = false;
             var records = new List<(string name, string value)>();
 
-            stream.Read(hduBytes, 0, hduBytes.Length);
+            stream.ReadExactly(hduBytes, 0, hduBytes.Length);
             var simple = Encoding.ASCII.GetString(hduBytes, 0, 8);
             if (simple != "SIMPLE  ")
                 return null;
@@ -125,7 +125,7 @@ namespace WatneyAstrometry.SolverApp
 
             float ReadFloat()
             {
-                stream.Read(floatBuf, 0, 4);
+                stream.ReadExactly(floatBuf, 0, 4);
                 if (BitConverter.IsLittleEndian)
                 {
                     floatBuf2[0] = floatBuf[3];

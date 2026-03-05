@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:WatneyAstrometry.SolverVizTools.Converters"
         xmlns:profile="clr-namespace:WatneyAstrometry.SolverVizTools.Models.Profile"
         xmlns:views="clr-namespace:WatneyAstrometry.SolverVizTools.Views"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         Width="1024"
         Height="768"
         x:Class="WatneyAstrometry.SolverVizTools.Views.MainWindow"
@@ -35,24 +35,32 @@
                    OpenPaneLength="300"
                    >
           <SplitView.Pane>
-            <ScrollViewer Padding="15">
+            <ScrollViewer>
               <views:SettingsPaneView DataContext="{Binding SettingsPaneViewModel}"></views:SettingsPaneView>
             </ScrollViewer>
           </SplitView.Pane>
 
           <Grid Name="SolveMainPanel" ColumnDefinitions="28,*">
             <Panel Grid.Column="0">
-              <Button Name="DisplaySettingsPaneButton" Height="{Binding #SolveMainPanel.Bounds.Height}" Width="28" Command="{Binding SetSolveSettingsPaneVisible}">
-                <TextBlock TextAlignment="Right" VerticalAlignment="Top" RenderTransform="rotate(-90deg)" ClipToBounds="False">
-                  Settings
-                </TextBlock>
+              <Button Name="DisplaySettingsPaneButton" Height="{Binding #SolveMainPanel.Bounds.Height}" Width="28"
+                      Command="{Binding SetSolveSettingsPaneVisible}"
+                      >
+                <StackPanel>
+                  <TextBlock TextAlignment="Right" VerticalAlignment="Top" RenderTransform="rotate(-90deg)" ClipToBounds="False" Margin="0 70 0 0"
+                             IsVisible="{Binding IsPaneOpen}">
+                    Hide Settings
+                  </TextBlock> 
+                  <TextBlock TextAlignment="Right" VerticalAlignment="Top" RenderTransform="rotate(-90deg)" ClipToBounds="False" Margin="0 70 0 0"
+                             IsVisible="{Binding !IsPaneOpen}">
+                    Show Settings
+                  </TextBlock>
+                  </StackPanel>
               </Button>
             </Panel>
 
-            <ScrollViewer Grid.Column="1" Padding="15">
+            <ScrollViewer Grid.Column="1">
               <views:SolveProcessView DataContext="{Binding SolveProcessViewModel}"></views:SolveProcessView>
             </ScrollViewer>
-
 
           </Grid>
 
@@ -61,7 +69,7 @@
       
       
       <TabItem Header="Settings Manager" IsSelected="False">
-        <ScrollViewer Padding="15">
+        <ScrollViewer>
           <views:SettingsManagerView DataContext="{Binding SettingsManagerViewModel}" />
         </ScrollViewer>
       </TabItem>

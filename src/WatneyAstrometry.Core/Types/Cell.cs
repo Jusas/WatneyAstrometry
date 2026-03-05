@@ -15,9 +15,12 @@ namespace WatneyAstrometry.Core.Types
         public int CellIndex { get; internal set; }
 
         private string _cellId;
-        public string CellId => _cellId ?? (_cellId = $"b{BandIndex:00}c{CellIndex:00}");
+        public string CellId => _cellId ??= $"b{BandIndex:00}c{CellIndex:00}";
 
         public static string GetCellId(int band, int cell) => $"b{band:00}c{cell:00}";
+
+        private int? _cellIdNumber;
+        public int CellIdNumber => _cellIdNumber ??= BandIndex * 1000 + CellIndex;
         
         /// <summary>
         /// Central dec width, so not an absolute; approximate.

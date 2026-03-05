@@ -2,6 +2,8 @@
 using System.Collections.Concurrent;
 using System.IO;
 using System.Text;
+using System.Threading;
+
 #pragma warning disable CS1591
 
 namespace WatneyAstrometry.Core.Types
@@ -23,20 +25,20 @@ namespace WatneyAstrometry.Core.Types
             public bool Enabled { get; set; }
         }
 
-        private readonly object _mutex = new object();
+        private readonly Lock _mutex = new Lock();
         private Options _options;
         public DefaultVerboseLogger(Options options)
         {
             _options = options ?? throw new ArgumentNullException(nameof(options));
         }
 
-        private void WriteAny(string type, string message)
+        private void WriteAnyElements(string type, params object[] elements)
         {
             if (!_options.Enabled || (!_options.WriteToFile && !_options.WriteToStdout))
                 return;
 
             var time = DateTime.Now.ToString("HH:mm:ss.fff");
-            message = $"[{time}] [{type}] {message}";
+            var message = $"[{time}] [{type}] " + string.Join(" ", elements);
 
             if (_options.WriteToStdout)
                 Console.WriteLine(message);
@@ -51,6 +53,11 @@ namespace WatneyAstrometry.Core.Types
                     }
                 }
             }
+        }
+        
+        private void WriteAny(string type, string message)
+        {
+            WriteAnyElements(type, message);
         }
 
         /// <summary>
@@ -84,6 +91,11 @@ namespace WatneyAstrometry.Core.Types
         public void WriteInfo(string message)
         {
             WriteAny("INFO", message);
+        }
+
+        public void WriteInfo(params object[] elements)
+        {
+            WriteAnyElements("INFO", elements);
         }
 
         public void WriteWarn(string message)

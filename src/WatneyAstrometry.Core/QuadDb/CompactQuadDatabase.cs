@@ -20,11 +20,15 @@ namespace WatneyAstrometry.Core.QuadDb
     public class CompactQuadDatabase : IQuadDatabase, IDisposable
     {
         internal QuadDatabaseCellFileSet[] _cellFileSets;
+        private Dictionary<int, QuadDatabaseCellFileSet> _cellFileSetsById;
         private bool _disposing;
 
         private ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache> _contexts =
             new ConcurrentDictionary<Guid, QuadDatabaseSolveInstanceMemoryCache>();
 
+        /// <summary>
+        /// The directory where the .qdb files are located.
+        /// </summary>
         public string DatabaseDirectory { get; private set; }
 
         /// <summary>
@@ -53,7 +57,8 @@ namespace WatneyAstrometry.Core.QuadDb
 
             var indexes = QuadDatabaseCellFileIndex.ReadAllIndexes(directoryPath);
             _cellFileSets = QuadDatabaseCellFileSet.FromIndexes(indexes);
-            
+            _cellFileSetsById = _cellFileSets.ToDictionary(x => x.CellIdNumber);
+
             if (loadIntoMemory)
             {
                 throw new NotImplementedException("Loading to memory not supported yet");
@@ -68,7 +73,7 @@ namespace WatneyAstrometry.Core.QuadDb
         /// The database contains passes, and the pass chosen for use is determined by the <paramref name="quadsPerSqDegree"/> parameter. Using <paramref name="quadDensityOffsets"/>
         /// you can control the passes included in the results.
         /// <br/>
-        /// <paramref name="imageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
+        /// <paramref name="sortedImageQuads"/> is used to filter out quads that do not match, so only the quads that could potentially match are included in the results.
         /// </summary>
         /// <param name="center">The center.</param>
         /// <param name="radiusDegrees">The radius around the center.</param>
@@ -76,39 +81,99 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="quadDensityOffsets">Offsets used to include passes with lower or higher quad density. Example: [-1, 0, 1]. Can be null, which will equal to [0].</param>
         /// <param name="subSetIndex">Index of subset. Sampling divides database quads to subsets.</param>
         /// <param name="numSubSets">Number of subsets (i.e. sampling)</param>
-        /// <param name="imageQuads">The quads formed from the source image's stars.</param>
+        /// <param name="sortedImageQuads">The quads formed from the source image's stars, sorted by the first ratio (descending).</param>
         /// <param name="solveContextId">Which solve context we're working on. Contexts are used for caching to speed up the process.</param>
         /// <returns></returns>
         public List<StarQuad> GetQuads(EquatorialCoords center, double radiusDegrees, int quadsPerSqDegree, 
-            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, Guid solveContextId)
+            int[] quadDensityOffsets, int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageQuads, Guid solveContextId)
         {
             if (!_contexts.TryGetValue(solveContextId, out var cache))
                 throw new QuadDatabaseException($"Context {solveContextId} doesn't exist, it should be created first");
 
             var cells = SkySegmentSphere.Cells;
-            var cellsToInclude = new string[cells.Count];
+
+            int[] cellsToInclude = null;
             int cellsToIncludeCount = 0;
-            for (int i = 0; i < cellsToInclude.Length; i++)
+            
+            // Caching this, since otherwise there would be so many calls to IsCellInSearchRadius.
+            // The cache helps when using sampling, as we potentially need to go over the same areas multiple times
+            // just with a different set of DB quads to check.
+            // Using the (RA, Dec) and radius as keys, and using rounding/casting to int to make "clever" keys without
+            // having to use floating point comparison.
+            
+            var radiusRounded = (int)Math.Max(1, radiusDegrees * 100);
+            var centerRaRounded = (int)(center.Ra * 100_000);
+            var centerDecRounded = (int)(center.Dec * 100_000);
+            // Two ints as one long makes for the key.
+            var cellSearchCacheKey = ((long)centerRaRounded << 32) | (centerDecRounded & 0xffffffffL);
+
+            // TODO: When sampling == 1, skip this caching since it gives us no advantage as we only run each area once.
+            if (cache.CellSearchCache.TryGetValue(cellSearchCacheKey, out var cellSearchRaDecCacheEntry) &&
+                cellSearchRaDecCacheEntry.TryGetValue(radiusRounded, out var radiusCacheEntry))
             {
-                var cell = cells[i];
-                if (BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) 
+                cellsToInclude = radiusCacheEntry;
+                cellsToIncludeCount = radiusCacheEntry.Length;
+            }
+            else
+            {
+                cellsToInclude = new int[cells.Count];
+
+                double searchTopDec    = center.Dec + radiusDegrees;
+                double searchBottomDec = center.Dec - radiusDegrees;
+
+                foreach (var band in SkySegmentSphere.Bands)
                 {
-                    cellsToInclude[cellsToIncludeCount] = cell.CellId;
-                    cellsToIncludeCount++;
+                    // Bands are ordered highest Dec -> lowest Dec.
+                    if (band.DecBottom > searchTopDec) continue; // band entirely above search area
+                    if (band.DecTop < searchBottomDec) break;    // band entirely below; all remaining bands too
+
+                    // Find the cell whose RA range contains center.Ra (nearest in RA).
+                    // Angular distance to the search center is unimodal in RA within a band,
+                    // so this cell has the minimum distance; if it fails, all others in the band fail too.
+                    int nearIdx = Math.Clamp((int)(center.Ra / band.CellWidthDeg), 0, band.CellCount - 1);
+
+                    var nearCell = cells[band.CellsStartIndex + nearIdx];
+                    if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, nearCell.Bounds))
+                        continue;
+                    cellsToInclude[cellsToIncludeCount++] = nearCell.CellIdNumber;
+
+                    // Walk left (RA decreasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
+                    {
+                        int idx = (nearIdx - i + band.CellCount) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
+                    }
+
+                    // Walk right (RA increasing, wrapping), stopping at first failure.
+                    for (int i = 1; i < band.CellCount; i++)
+                    {
+                        int idx = (nearIdx + i) % band.CellCount;
+                        var cell = cells[band.CellsStartIndex + idx];
+                        if (!BandsAndCells.IsCellInSearchRadius(radiusDegrees, center, cell.Bounds)) break;
+                        cellsToInclude[cellsToIncludeCount++] = cell.CellIdNumber;
+                    }
+                }
+                Array.Resize(ref cellsToInclude, cellsToIncludeCount);
+                if (cellSearchRaDecCacheEntry == null)
+                {
+                    var dictionary = cache.CellSearchCache.GetOrAdd(cellSearchCacheKey,
+                     (_) => new ConcurrentDictionary<int, int[]>()); // allocate the inner dictionary only when new
+                    dictionary.GetOrAdd(radiusRounded, cellsToInclude);
+                }
+                else
+                {
+                    cellSearchRaDecCacheEntry.GetOrAdd(radiusRounded, cellsToInclude);
                 }
             }
             
+            
             var sourceDataFileSets = new List<QuadDatabaseCellFileSet>(cellsToIncludeCount);
-            for (var i = 0; i < _cellFileSets.Length; i++)
+            for (var j = 0; j < cellsToIncludeCount; j++)
             {
-                for (var j = 0; j < cellsToIncludeCount; j++)
-                {
-                    if (_cellFileSets[i].CellId == cellsToInclude[j])
-                    {
-                        sourceDataFileSets.Add(_cellFileSets[i]);
-                        break;
-                    }
-                }
+                if (_cellFileSetsById.TryGetValue(cellsToInclude[j], out var fileSet))
+                    sourceDataFileSets.Add(fileSet);
             }
             
             if (quadDensityOffsets == null || quadDensityOffsets.Length == 0)
@@ -129,19 +194,18 @@ namespace WatneyAstrometry.Core.QuadDb
                     var idx = i;
 
                     quadListByDensity[idx][source] = sourceDataFileSets[source].GetQuadsWithinRange(
-                        center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, imageQuads, cache);
+                        center, radiusDegrees, quadsPerSqDegree, offset, numSubSets, subSetIndex, sortedImageQuads, cache);
 
                 }
             }
             
             return quadListByDensity
-                .SelectMany(x => x ?? new StarQuad[0][])
-                .SelectMany(x => x ?? new StarQuad[0])
-                .ToArray()
+                .SelectMany(x => x ?? Array.Empty<StarQuad[]>())
+                .SelectMany(x => x ?? Array.Empty<StarQuad>())
                 .Distinct(new StarQuad.StarQuadRatioBasedEqualityComparer())
                 .ToList();
-            
         }
+
 
         /// <summary>
         /// Create a new solve context. Contexts are used for caching to speed up the quad lookups.

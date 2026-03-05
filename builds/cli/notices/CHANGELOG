@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.0.0] - 2026-03-05
+
+### Changed
+
+- WatneyAstrometry.Core as well as the CLI Solver app are now fully migrated
+  to .NET 10.0 profile.
+
+- WatneyAstrometry.Core has been updated with significant performance
+  improvements. Performance boosts were observed to have 61% reduction
+  in blind solve times in average, sometimes even better.
+
+- In WatneyAstrometry.Core library the old netstandard2.0 profile is no longer
+  supported. This decision was made to keep the project up-to-date with the
+  latest developments and features of .NET instead of continuing to support old
+  .NET Framework based applications.
+
+
+
 ## [1.2.3] - 2023-07-04
 
 ### Changed

@@ -13,7 +13,7 @@ namespace WatneyAstrometry.WebApi.Models.Rest
     /// <summary>
     /// Blind solving options.
     /// </summary>
-    public class RestBlindOptions
+    public class RestBlindParameters
     {
 
         /// <summary>
@@ -46,27 +46,18 @@ namespace WatneyAstrometry.WebApi.Models.Rest
         [FromForm(Name = "decSearchOrder")]
         public BlindSearchStrategyOptions.DecSearchOrder? DecSearchOrder { get; set; }
 
-
-        public class Mappings : AutoMapper.Profile
+        /// <summary>
+        /// Convert REST model to job model.
+        /// </summary>
+        public JobBlindParameters ToJobBlindParameters()
         {
-            public Mappings()
+            return new JobBlindParameters()
             {
-                // Explicit mappings.
-
-                CreateMap<BlindOptions, RestBlindOptions>()
-                    .ForMember(dest => dest.MinRadius, x => x.MapFrom(src => src.MinRadius))
-                    .ForMember(dest => dest.MaxRadius, x => x.MapFrom(src => src.MaxRadius))
-                    .ForMember(dest => dest.RaSearchOrder, x => x.MapFrom(src => src.RaSearchOrder))
-                    .ForMember(dest => dest.DecSearchOrder, x => x.MapFrom(src => src.DecSearchOrder))
-                    ;
-
-                CreateMap<RestBlindOptions, BlindOptions>()
-                    .ForMember(dest => dest.MinRadius, x => x.MapFrom(src => src.MinRadius))
-                    .ForMember(dest => dest.MaxRadius, x => x.MapFrom(src => src.MaxRadius))
-                    .ForMember(dest => dest.RaSearchOrder, x => x.MapFrom(src => src.RaSearchOrder))
-                    .ForMember(dest => dest.DecSearchOrder, x => x.MapFrom(src => src.DecSearchOrder))
-                    ;
-            }
+                DecSearchOrder = DecSearchOrder,
+                MaxRadius = MaxRadius,
+                MinRadius = MinRadius,
+                RaSearchOrder = RaSearchOrder
+            };
         }
 
     }

@@ -32,7 +32,7 @@ namespace WatneyAstrometry.Core.Types
         /// <param name="largestDistance"></param>
         /// <param name="stars"></param>
         /// <exception cref="Exception"></exception>
-        public ImageStarQuad(float[] ratios, float largestDistance, IList<ImageStar> stars)
+        public ImageStarQuad(QuadRatios ratios, float largestDistance, IList<ImageStar> stars)
             : base(ratios, largestDistance, null)
         {
             if (stars.Count != 4)
@@ -73,5 +73,7 @@ namespace WatneyAstrometry.Core.Types
                        obj.Stars[3].GetHashCode() ^ obj.PixelMidPoint.x.GetHashCode() ^ obj.PixelMidPoint.y.GetHashCode();
             }
         }
+        
+
     }
 }

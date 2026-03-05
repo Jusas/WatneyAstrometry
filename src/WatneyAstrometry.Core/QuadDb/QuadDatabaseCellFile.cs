@@ -1,11 +1,10 @@
-﻿// Copyright (c) Jussi Saarivirta.
+// Copyright (c) Jussi Saarivirta.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.IO.MemoryMappedFiles;
 using System.Text;
 using WatneyAstrometry.Core.Exceptions;
 using WatneyAstrometry.Core.Types;
@@ -19,24 +18,109 @@ namespace WatneyAstrometry.Core.QuadDb
     internal class QuadDatabaseCellFile : IDisposable
     {
         public QuadDatabaseCellFileDescriptor Descriptor { get; private set; }
-        private static readonly int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
-
-        private ConcurrentQueue<FileStream> _fileStreamPool = new ConcurrentQueue<FileStream>();
+        private const int QuadDataLen = /*ratios*/ 6 + /*largestDist*/ sizeof(float) + /*coords*/ sizeof(float) * 2;
 
         private readonly bool _bytesNeedReversing = false;
 
         public int FileId => _fileId;
         private readonly int _fileId;
 
-        private bool _fileVersionValidated = false;
         private const string FileFormatIdentifierString = "WATNEYQDB";
         private const int FileFormatVersion = 3;
-        
+
+        private MemoryMappedFile _mmf;
+        private MemoryMappedViewAccessor _mmvAccessor;
+        // Pointer to byte 0 of the file data (adjusted for PointerOffset).
+        // Stored as nint so the field doesn't require an unsafe context on the class.
+        private nint _pFileStart;
+        private bool _mmfInitialized = false;
+        private readonly object _initLock = new object();
+
         public QuadDatabaseCellFile(QuadDatabaseCellFileDescriptor descriptor, int fileId)
         {
             Descriptor = descriptor;
             _fileId = fileId;
             _bytesNeedReversing = descriptor.BytesNeedReversing;
+        }
+
+        /// <summary>
+        /// Opens and memory-maps the file on first use, validating the format header.
+        /// Subsequent calls are a cheap boolean check.
+        /// </summary>
+        private unsafe void EnsureMmfOpen()
+        {
+            if (_mmfInitialized) return;
+
+            lock (_initLock)
+            {
+                if (_mmfInitialized) return;
+
+                MemoryMappedFile mmf = null;
+                MemoryMappedViewAccessor accessor = null;
+                bool pointerAcquired = false;
+                byte* pBase = null;
+                try
+                {
+                    mmf = MemoryMappedFile.CreateFromFile(
+                        Descriptor.Filename, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+                    accessor = mmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read);
+
+                    accessor.SafeMemoryMappedViewHandle.AcquirePointer(ref pBase);
+                    pointerAcquired = true;
+
+                    // PointerOffset accounts for any page-alignment padding added by the OS.
+                    // For an offset-0 view it is always 0, but we apply it for correctness.
+                    byte* pFileStart = pBase + accessor.PointerOffset;
+
+                    // Validate file format identifier
+                    var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
+                    for (int i = 0; i < fileFormatBytes.Length; i++)
+                        fileFormatBytes[i] = pFileStart[i];
+
+                    if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
+                        FileFormatIdentifierString)
+                    {
+                        throw new QuadDatabaseVersionException(
+                            $"The file {Descriptor.Filename} is not a valid Watney database file");
+                    }
+
+                    // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
+                    var versionNumBytes = new byte[sizeof(int)];
+                    int versionOffset = FileFormatIdentifierString.Length;
+                    for (int i = 0; i < sizeof(int); i++)
+                        versionNumBytes[i] = pFileStart[versionOffset + i];
+
+                    if (Descriptor.BytesNeedReversing)
+                        Array.Reverse(versionNumBytes);
+
+                    var versionNum = BitConverter.ToInt32(versionNumBytes, 0);
+                    if (versionNum != FileFormatVersion)
+                        throw new QuadDatabaseVersionException(
+                            $"Expected database version {FileFormatVersion} format database files, but they were version {versionNum}. " +
+                            $"Unable to use them. Make sure you have downloaded the right database files.");
+
+                    _mmf = mmf;
+                    _mmvAccessor = accessor;
+                    _pFileStart = (nint)pFileStart;
+                    _mmfInitialized = true;
+                }
+                catch (FileNotFoundException)
+                {
+                    if (pointerAcquired) accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    accessor?.Dispose();
+                    mmf?.Dispose();
+                    throw new QuadDatabaseException(
+                        $"Quad database file {Descriptor.Filename} was not found. Is your quad database intact?");
+                }
+                catch (Exception e)
+                {
+                    if (pointerAcquired) accessor.SafeMemoryMappedViewHandle.ReleasePointer();
+                    accessor?.Dispose();
+                    mmf?.Dispose();
+                    throw new QuadDatabaseException(
+                        $"Failed to read quad database file {Descriptor.Filename}: {e.Message}", e);
+                }
+            }
         }
 
         /// <summary>
@@ -47,46 +131,93 @@ namespace WatneyAstrometry.Core.QuadDb
         /// <param name="passIndex"></param>
         /// <param name="numSubSets">The number of quad subsets we divide the available quads to.</param>
         /// <param name="subSetIndex">The index of the quad subset we want to include.</param>
-        /// <param name="imageQuads"></param>
+        /// <param name="sortedImageQuads">Image star quads, sorted by the first ratio (descending).</param>
         /// <param name="cache"></param>
         /// <returns></returns>
         public unsafe StarQuad[] GetQuads(EquatorialCoords center, double angularDistance, int passIndex,
-            int numSubSets, int subSetIndex, ImageStarQuad[] imageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
+            int numSubSets, int subSetIndex, ImageStarQuad[] sortedImageQuads, QuadDatabaseSolveInstanceMemoryCache cache)
         {
             // Quads that get a match, and are within search distance
             var matchingQuadsWithinRange = new List<StarQuad>();
 
             // Quads that get a match
             var matchingQuads = new List<StarQuad>();
-            
+
 
             var pass = Descriptor.Passes[passIndex];
             var subCellsInRangeArr = new QuadDatabaseCellFileDescriptor.SubCellInfo[pass.SubCells.Length];
             var subCellsInRangeIndexesArr = new int[pass.SubCells.Length];
             var subCellsInRangeLen = 0;
 
-            for (var p = 0; p < pass.SubCells.Length; p++)
+            var decThreshold = angularDistance + pass.AvgSubCellRadius;
+            int d = pass.SubDivisions;
+            var subCells = pass.SubCells;
+
+            for (int r = 0; r < d; r++)
             {
-                var subCell = pass.SubCells[p];
-                if (subCell.Center.GetAngularDistanceTo(center) - pass.AvgSubCellRadius < angularDistance)
+                int rowBase = r * d;
+
+                // Dec pre-filter: all cells in this row share the same Dec center.
+                if (Math.Abs(subCells[rowBase].Center.Dec - center.Dec) >= decThreshold)
+                    continue;
+
+                var scLeft  = subCells[rowBase];
+                var scRight = subCells[rowBase + d - 1];
+                bool leftIn  = scLeft.Center.GetAngularDistanceTo(center)  < decThreshold;
+                bool rightIn = scRight.Center.GetAngularDistanceTo(center) < decThreshold;
+
+                if (leftIn && rightIn)
                 {
-                    subCellsInRangeArr[subCellsInRangeLen] = subCell;
-                    subCellsInRangeIndexesArr[subCellsInRangeLen] = p;
+                    // Angular distance to the search center is unimodal in RA along a
+                    // fixed-Dec row, so the endpoints are the maximum-distance points.
+                    // Both endpoints in range means every cell in the row is in range.
+                    for (int c = 0; c < d; c++)
+                    {
+                        subCellsInRangeArr[subCellsInRangeLen]        = subCells[rowBase + c];
+                        subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
+                        subCellsInRangeLen++;
+                    }
+                    continue;
+                }
+
+                // Fan out from the nearest column (minimum angular distance in this row).
+                double raStep  = (scRight.Center.Ra - scLeft.Center.Ra) / (d - 1);
+                int nearCol = Math.Clamp((int)Math.Round((center.Ra - scLeft.Center.Ra) / raStep), 0, d - 1);
+
+                // If the minimum-distance column fails, all others in this row fail too.
+                if (subCells[rowBase + nearCol].Center.GetAngularDistanceTo(center) >= decThreshold)
+                    continue;
+                subCellsInRangeArr[subCellsInRangeLen]        = subCells[rowBase + nearCol];
+                subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + nearCol;
+                subCellsInRangeLen++;
+
+                // Walk left from nearCol, stopping at first failure.
+                for (int c = nearCol - 1; c >= 0; c--)
+                {
+                    var sc = subCells[rowBase + c];
+                    if (sc.Center.GetAngularDistanceTo(center) >= decThreshold) break;
+                    subCellsInRangeArr[subCellsInRangeLen]        = sc;
+                    subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
                     subCellsInRangeLen++;
-                    //subCellsInRange.Add(subCell);
+                }
+
+                // Walk right from nearCol, stopping at first failure.
+                for (int c = nearCol + 1; c < d; c++)
+                {
+                    var sc = subCells[rowBase + c];
+                    if (sc.Center.GetAngularDistanceTo(center) >= decThreshold) break;
+                    subCellsInRangeArr[subCellsInRangeLen]        = sc;
+                    subCellsInRangeIndexesArr[subCellsInRangeLen] = rowBase + c;
+                    subCellsInRangeLen++;
                 }
             }
 
             var thisFileCache = cache.Files[_fileId];
-            FileStream fileStream = null;
-
-            // Pre-allocate, so that we don't need to allocate later down the road.
-            var quadDataArray = new float[8];
 
             for (var sc = 0; sc < subCellsInRangeLen; sc++)
             {
                 var subCellIdx = subCellsInRangeIndexesArr[sc];
-                
+
                 // Need to identify non-sampling cases, and maintain a separate cache for them;
                 // When sampling is used, we use a number of subsets (== sampling parameter value) and we
                 // cache the matching quads per subset. But when the final matching is done, we need to
@@ -105,7 +236,7 @@ namespace WatneyAstrometry.Core.QuadDb
                 {
                     cachedQuads = thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset[subSetIndex];
                 }
-                
+
                 if (cachedQuads != null)
                 {
                     foreach (var quad in cachedQuads)
@@ -116,86 +247,35 @@ namespace WatneyAstrometry.Core.QuadDb
                 }
                 else
                 {
-                    if (fileStream == null)
-                    {
-                        try
-                        {
-                            if (!_fileStreamPool.TryDequeue(out fileStream))
-                                fileStream = new FileStream(Descriptor.Filename, FileMode.Open, FileAccess.Read,
-                                    FileShare.Read);
-                            if (!_fileVersionValidated)
-                            {
-                                _fileVersionValidated = true;
-                                fileStream.Seek(0, SeekOrigin.Begin);
-                                var fileFormatBytes = new byte[FileFormatIdentifierString.Length];
-                                fileStream.Read(fileFormatBytes, 0, fileFormatBytes.Length);
-
-                                // Note to self: why wasn't I smart enough to use byte for version number? It's not like there will be many, and the there's endianness...
-                                if (Encoding.ASCII.GetString(fileFormatBytes, 0, FileFormatIdentifierString.Length) !=
-                                    FileFormatIdentifierString)
-                                {
-                                    throw new QuadDatabaseVersionException($"The file {Descriptor.Filename} is not a valid Watney database file");
-                                }
-                                
-                                var versionNumBytes = new byte[sizeof(int)];
-                                fileStream.Read(versionNumBytes, 0, sizeof(int));
-                                if (Descriptor.BytesNeedReversing)
-                                    Array.Reverse(versionNumBytes);
-
-                                var versionNum = BitConverter.ToInt32(versionNumBytes, 0);
-                                if (versionNum != FileFormatVersion)
-                                    throw new QuadDatabaseVersionException(
-                                        $"Expected database version {FileFormatVersion} format database files, but they were version {versionNum}. " +
-                                        $"Unable to use them. Make sure you have downloaded the right database files.");
-                            }
-                        }
-                        catch (FileNotFoundException)
-                        {
-                            throw new QuadDatabaseException(
-                                $"Quad database file {Descriptor.Filename} was not found. Is your quad database intact?");
-                        }
-                        catch (Exception e)
-                        {
-                            throw new QuadDatabaseException($"Failed to read quad database file {Descriptor.Filename}: {e.Message}", e);
-                        }
-                        
-                    }
+                    EnsureMmfOpen();
 
                     if (samplingBeingUsed && thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset == null)
                     {
                         // Should cause no concern with multi-threading, since we're not processing multiple subsets in parallel.
                         thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsForSubset = new StarQuad[numSubSets][];
                     }
-                    
 
-                    byte[] subCellDataBytes = new byte[subCellsInRangeArr[sc].DataLengthBytes];
-                    fileStream.Seek(subCellsInRangeArr[sc].DataStartPos, SeekOrigin.Begin);
-                    fileStream.Read(subCellDataBytes, 0, subCellDataBytes.Length);
-                    
-                    fixed (byte* pSubCellDataBytes = subCellDataBytes)
+                    var quadCountInSubCell = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
+                    var quadCountPerSubSet = quadCountInSubCell / numSubSets;
+                    var quadSplitModulo = quadCountInSubCell % numSubSets;
+
+                    long streamReadOffset = subCellsInRangeArr[sc].DataStartPos +
+                                        subSetIndex * quadCountPerSubSet * QuadDataLen;
+
+                    var numberOfQuadsToRead = subSetIndex == numSubSets - 1 && quadSplitModulo > 0
+                        ? quadCountPerSubSet + quadSplitModulo // Add modulo quads to the last subset
+                        : quadCountPerSubSet;
+
+                    byte* pQuadData = (byte*)_pFileStart + streamReadOffset;
+                    for (var q = 0; q < numberOfQuadsToRead; q++, pQuadData += QuadDataLen)
                     {
-                        int advance = 0;
-                        var quadCount = subCellsInRangeArr[sc].DataLengthBytes / QuadDataLen;
-                        // We will split the quadCount to numSubSets, and pick the quads in our assigned (sampling) subset.
-                        var quadCountPerSubSet = quadCount / numSubSets;
-                        var startIndex = quadCountPerSubSet * subSetIndex;
-                        var nextStartIndex = subSetIndex == numSubSets - 1
-                            ? quadCount
-                            : startIndex + quadCountPerSubSet;
-                        
+                        var quad = BytesToQuadNew(pQuadData, 0, sortedImageQuads, _bytesNeedReversing);
+                        if (quad == null)
+                            continue;
 
-                        advance = startIndex * QuadDataLen;
-                        for (var q = startIndex; q < nextStartIndex; q++)
-                        {
-                            var quad = BytesToQuadNew(pSubCellDataBytes, advance, imageQuads, _bytesNeedReversing, quadDataArray);
-                            
-                            if (quad != null)
-                                matchingQuads.Add(quad);
-                            if (quad != null && quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
-                                matchingQuadsWithinRange.Add(quad);
-
-                            advance += QuadDataLen;
-                        }
+                        matchingQuads.Add(quad);
+                        if (quad.MidPoint.GetAngularDistanceTo(center) < angularDistance)
+                            matchingQuadsWithinRange.Add(quad);
                     }
 
                     if (samplingBeingUsed)
@@ -205,67 +285,73 @@ namespace WatneyAstrometry.Core.QuadDb
                     }
                     else
                     {
-                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet = 
+                        thisFileCache.Passes[passIndex].SubCells[subCellIdx].QuadsFullSet =
                             matchingQuads.ToArray();
                     }
-
-                    
                 }
             }
 
-            if(fileStream != null)
-                _fileStreamPool.Enqueue(fileStream);
-
             return matchingQuadsWithinRange.ToArray();
-
-            
         }
 
         private const float OnePer1023 = 0.0009775171065493f; // (1 / 1023)
         private const float OnePer511 = 0.001956947162f; // (1 / 511)
+        private const float RatioMatchLow  = 1.0f - 0.011f; // 0.989
+        private const float RatioMatchHigh = 1.0f + 0.011f; // 1.011
+
+        /// <summary>
+        /// Returns the first index in <paramref name="arr"/> where R0 &gt;= <paramref name="value"/>
+        /// (standard lower_bound over a R0-sorted array).
+        /// </summary>
+        private static int LowerBound(ImageStarQuad[] arr, float value)
+        {
+            int left = 0, right = arr.Length;
+            while (left < right)
+            {
+                int mid = (left + right) >> 1;
+                if (arr[mid].Ratios.R0 < value)
+                    left = mid + 1;
+                else
+                    right = mid;
+            }
+            return left;
+        }
 
         /// <summary>
         /// Read the bytes and spit out a quad.
         /// </summary>
         /// <param name="pBuf"></param>
         /// <param name="offset"></param>
-        /// <param name="tentativeMatches">If given, we only return the constructed quad if the ratios match to one of the tentativeMatches image quads.
+        /// <param name="sortedTentativeMatches">If given, we only return the constructed quad if the ratios match to one of the sortedTentativeMatches image quads.
+        /// The array must be sorted ascending by R0 so that binary search can be used.
         /// Otherwise do no matching and just read the quad from the buffer and return it.</param>
         /// <param name="bytesNeedReversing">Flag that indicates if we need to reverse byte order because of endianness difference between DB file contents and the system</param>
-        /// <param name="quadDataArray"></param>
         /// <returns></returns>
-        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] tentativeMatches, bool bytesNeedReversing, float[] quadDataArray)
+        private static unsafe StarQuad BytesToQuadNew(byte* pBuf, int offset, ImageStarQuad[] sortedTentativeMatches, bool bytesNeedReversing)
         {
-
-            bool noMatching = tentativeMatches == null;
+            // TODO would it be simpler if we moved the byte reversing stuff to another method? How would it affect performance too?
+            bool noMatching = sortedTentativeMatches == null;
             byte* pRatios = (byte*)(pBuf + offset);
             byte* pFloats = (byte*)(pBuf + offset + 6); // floats come after the ratios
 
             // Ratios are packed; 3x 10 bit numbers, 2x 9 bit numbers.
-            quadDataArray[0] = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
-            quadDataArray[1] = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
-            quadDataArray[2] = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
-            quadDataArray[3] = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
-            quadDataArray[4] = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
-
+            float r0 = (((pRatios[1] << 8) & 0x3FF) + ((pRatios[0]) & 0x3FF)) * OnePer1023;
+            float r1 = ((((pRatios[2] & 0x0F) << 6) & 0x3FF) + ((pRatios[1] >> 2) & 0x3FF)) * OnePer1023;
+            float r2 = ((((pRatios[3] & 0x3F) << 4) & 0x3FF) + ((pRatios[2] >> 4) & 0x3FF)) * OnePer1023;
+            float r3 = ((((pRatios[4] & 0x7F) << 2) & 0x1FF) + ((pRatios[3] >> 6) & 0x1FF)) * OnePer511;
+            float r4 = ((((pRatios[5]) << 1) & 0x1FF) + ((pRatios[4] >> 7) & 0x1FF)) * OnePer511;
 
             if (noMatching)
             {
                 // Ratios are always written in little endian and since we read byte by byte, endianness doesn't matter here.
 
                 // Floats were written in whichever endianness the database was written in.
+                float ld, ra, dec;
                 if (bytesNeedReversing)
                 {
-                    // largestDist
-                    quadDataArray[5] = BitConverter.ToSingle(
-                    new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                    // ra
-                    quadDataArray[6] = BitConverter.ToSingle(
-                        new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                    // dec
-                    quadDataArray[7] = BitConverter.ToSingle(
-                        new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
-                    
+                    ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
+                    ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
+                    dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
                 }
                 else
                 {
@@ -273,96 +359,63 @@ namespace WatneyAstrometry.Core.QuadDb
                     // converted to/from float/double via local variable that is guaranteed to be aligned.
                     // https://github.com/dotnet/runtime/issues/18041
                     // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
-
-                    var if1 = *(int*)pFloats;
-                    pFloats += sizeof(int);
-                    var if2 = *(int*)pFloats;
-                    pFloats += sizeof(int);
+                    var if1 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if2 = *(int*)pFloats; pFloats += sizeof(int);
                     var if3 = *(int*)pFloats;
-
-                    quadDataArray[5] = *(float*)&if1; // largestDist
-                    quadDataArray[6] = *(float*)&if2; // ra
-                    quadDataArray[7] = *(float*)&if3; // dec
+                    ld  = *(float*)&if1;
+                    ra  = *(float*)&if2;
+                    dec = *(float*)&if3;
                 }
 
-                // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
-                var ratios = new float[]
-                {
-                    quadDataArray[0],
-                    quadDataArray[1],
-                    quadDataArray[2],
-                    quadDataArray[3],
-                    quadDataArray[4]
-                };
-                var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
-                return quad;
+                return new StarQuad(new QuadRatios(r0, r1, r2, r3, r4), ld, new EquatorialCoords(ra, dec));
             }
 
-            for (var q = 0; q < tentativeMatches.Length; q++)
+            var ratios = new QuadRatios(r0, r1, r2, r3, r4);
+            var lo = ratios * RatioMatchLow;
+            var hi = ratios * RatioMatchHigh;
+
+            // Binary search into the R0-sorted array to skip the ~90% of quads outside the R0 window.
+            int startIdx = LowerBound(sortedTentativeMatches, lo.R0);
+            for (var q = startIdx; q < sortedTentativeMatches.Length; q++)
             {
-                
-                var imgQuad = tentativeMatches[q];
-                
-                if (imgQuad != null
-                    && Math.Abs(imgQuad.Ratios[0] / quadDataArray[0] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[1] / quadDataArray[1] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[2] / quadDataArray[2] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[3] / quadDataArray[3] - 1.0f) <= 0.011f
-                    && Math.Abs(imgQuad.Ratios[4] / quadDataArray[4] - 1.0f) <= 0.011f
-                   )
+                var imgQuad = sortedTentativeMatches[q];
+                if (imgQuad.Ratios.R0 > hi.R0) break; // past the R0 window; array is sorted
+                if (imgQuad.Ratios.R1 < lo.R1 || imgQuad.Ratios.R1 > hi.R1) continue;
+                if (imgQuad.Ratios.R2 < lo.R2 || imgQuad.Ratios.R2 > hi.R2) continue;
+                if (imgQuad.Ratios.R3 < lo.R3 || imgQuad.Ratios.R3 > hi.R3) continue;
+                if (imgQuad.Ratios.R4 < lo.R4 || imgQuad.Ratios.R4 > hi.R4) continue;
+                float ld, ra, dec;
+                if (bytesNeedReversing)
                 {
-                    if (bytesNeedReversing)
-                    {
-                        quadDataArray[5] = BitConverter.ToSingle(
-                            new byte[] { pFloats[3], pFloats[2], pFloats[1], pFloats[0] }, 0);
-                        quadDataArray[6] = BitConverter.ToSingle(
-                            new byte[] { pFloats[7], pFloats[6], pFloats[5], pFloats[4] }, 0);
-                        quadDataArray[7] = BitConverter.ToSingle(
-                            new byte[] { pFloats[11], pFloats[10], pFloats[9], pFloats[8] }, 0);
-                    }
-                    else
-                    {
-                        // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
-                        // converted to/from float/double via local variable that is guaranteed to be aligned.
-                        // https://github.com/dotnet/runtime/issues/18041
-                        // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
-
-                        var if1 = *(int*)pFloats;
-                        pFloats += sizeof(int);
-                        var if2 = *(int*)pFloats; 
-                        pFloats += sizeof(int);
-                        var if3 = *(int*)pFloats;
-
-                        quadDataArray[5] = *(float*)&if1; // largestDist
-                        quadDataArray[6] = *(float*)&if2; // ra
-                        quadDataArray[7] = *(float*)&if3; // dec
-                    }
-
-                    // Need to allocate a new instance so that all quads don't refer to the same pre-allocated array instance...
-                    var ratios = new float[]
-                    {
-                        quadDataArray[0], 
-                        quadDataArray[1], 
-                        quadDataArray[2], 
-                        quadDataArray[3], 
-                        quadDataArray[4]
-                    };
-                    var quad = new StarQuad(ratios, quadDataArray[5], new EquatorialCoords(quadDataArray[6], quadDataArray[7]));
-                    return quad;
+                    ld  = BitConverter.ToSingle(new byte[] { pFloats[3],  pFloats[2],  pFloats[1],  pFloats[0]  }, 0);
+                    ra  = BitConverter.ToSingle(new byte[] { pFloats[7],  pFloats[6],  pFloats[5],  pFloats[4]  }, 0);
+                    dec = BitConverter.ToSingle(new byte[] { pFloats[11], pFloats[10], pFloats[9],  pFloats[8]  }, 0);
                 }
-
+                else
+                {
+                    // Note: On ARM, misaligned floats and doubles have to be read/written from memory as int/long and
+                    // converted to/from float/double via local variable that is guaranteed to be aligned.
+                    // https://github.com/dotnet/runtime/issues/18041
+                    // So we have to do this, otherwise ARMv7 breaks with "A datatype misalignment was detected in a load or store instruction."
+                    var if1 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if2 = *(int*)pFloats; pFloats += sizeof(int);
+                    var if3 = *(int*)pFloats;
+                    ld  = *(float*)&if1;
+                    ra  = *(float*)&if2;
+                    dec = *(float*)&if3;
+                }
+                return new StarQuad(ratios, ld, new EquatorialCoords(ra, dec));
             }
 
             return null;
-
-              
-            
         }
 
-        public void Dispose()
+        public unsafe void Dispose()
         {
-            while(_fileStreamPool.TryDequeue(out var fileStream))
-                fileStream?.Dispose();
+            if (_mmfInitialized)
+                _mmvAccessor?.SafeMemoryMappedViewHandle.ReleasePointer();
+            _mmvAccessor?.Dispose();
+            _mmf?.Dispose();
         }
     }
 }

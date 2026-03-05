@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Mvc;
 using WatneyAstrometry.Core;
+using WatneyAstrometry.WebApi.Models.Domain;
 
 namespace WatneyAstrometry.WebApi.Models.Rest
 {
@@ -88,7 +89,6 @@ namespace WatneyAstrometry.WebApi.Models.Rest
             return errors;
 
         }
-
 
     }
 }

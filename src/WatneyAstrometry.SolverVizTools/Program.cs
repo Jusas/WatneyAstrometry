@@ -36,14 +36,17 @@ namespace WatneyAstrometry.SolverVizTools
 
         // Avalonia configuration, don't remove; also used by visual designer.
         public static AppBuilder BuildAvaloniaApp()
-            => AppBuilder.Configure<App>()
+        {
+            IconProvider.Current
+                .Register<FontAwesomeIconProvider>()
+                .Register<MaterialDesignIconProvider>();
+
+            return AppBuilder.Configure<App>()
                 .UsePlatformDetect()
+                .WithInterFont()
                 .LogToTrace()
-                .UseReactiveUI()
-                .WithIcons(container => container
-                    .Register<MaterialDesignIconProvider>()
-                    .Register<FontAwesomeIconProvider>()
-                );
+                .UseReactiveUI();
+        }
 
         public static void RegisterDependencies(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver)
         {
