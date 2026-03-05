@@ -205,7 +205,7 @@ namespace WatneyAstrometry.Core
             OnSolveProgress?.Invoke(SolverStep.ImageReadStarted);
 
             var reader = _imageReaderFactories[filenameExtension].factory.Invoke();
-            var image = reader.FromFile(filename);
+            using var image = reader.FromFile(filename);
 
             if(image.Metadata?.ViewSize != null)
                 _logger.WriteInfo($"Image field radius: {0.5 * image.Metadata.ViewSize.DiameterDeg}");

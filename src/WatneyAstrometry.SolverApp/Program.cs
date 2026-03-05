@@ -205,7 +205,7 @@ namespace WatneyAstrometry.SolverApp
                     {
                         _verboseLogger.WriteInfo("Solver input is common image format read from stdin");
                         var commonFormatsImageReader = new CommonFormatsImageReader();
-                        var image = commonFormatsImageReader.FromStream(_stdinStream);
+                        using var image = commonFormatsImageReader.FromStream(_stdinStream);
                         return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
                     }
 
@@ -213,7 +213,7 @@ namespace WatneyAstrometry.SolverApp
                     {
                         _verboseLogger.WriteInfo("Solver input is FITS read from stdin");
                         var defaultFitsReader = new DefaultFitsReader();
-                        var image = defaultFitsReader.FromStream(_stdinStream);
+                        using var image = defaultFitsReader.FromStream(_stdinStream);
                         return await solver.SolveFieldAsync(image, strategy, solverOptions, CancellationToken.None);
                     }
 
@@ -728,6 +728,7 @@ namespace WatneyAstrometry.SolverApp
                     strategy = new NearbySearchStrategy(center, strategyOptions);
                     LogStrategyOpts();
                     _verboseLogger.WriteInfo($"Search center: {center}");
+                    fitsImage?.Dispose();
                     return strategy;
                 }
                 catch (Exception e)
