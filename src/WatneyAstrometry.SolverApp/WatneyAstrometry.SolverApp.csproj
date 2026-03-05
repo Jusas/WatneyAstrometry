@@ -11,7 +11,7 @@
     <AssemblyName>watney-solve</AssemblyName>
     <RootNamespace>WatneyAstrometry.SolverApp</RootNamespace>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <!-- <PublishReadyToRunComposite>true</PublishReadyToRunComposite> -->
+    <TieredPGO>false</TieredPGO>
     <PublishSingleFile>true</PublishSingleFile>
     <LangVersion>default</LangVersion>
   </PropertyGroup>
