@@ -94,7 +94,7 @@ jobs:
           tar -czf ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-$a/ && cp ${{ steps.pkgnames.outputs.prefix }}-desktop-$a.tar.gz $PKG_PREFIX-desktop-latest-$a.tar.gz
         done        
 
-    - uses: pyTooling/Actions/releaser/composite@main
+    - uses: pyTooling/Actions/releaser/composite@v6.7.0
       name: Releaser
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
