@@ -89,7 +89,7 @@ namespace WatneyAstrometry.ImageReaders
 
                     if (pngMetadata.BitDepth == PngBitDepth.Bit8)
                     {
-                        bitsPerPixel = 16;
+                        bitsPerPixel = 8;
                         using (var monoImage = image.CloneAs<L8>())
                         using (var tempFileStream = new FileStream(tempFile, FileMode.Truncate, FileAccess.Write))
                             WriteImageBytesToStream(monoImage, tempFileStream);
@@ -213,12 +213,16 @@ namespace WatneyAstrometry.ImageReaders
         /// <returns></returns>
         public static bool IsSupported(Stream stream)
         {
-            var imageFormat = Image.DetectFormat(stream);
-            if (imageFormat == null)
+            try
+            {
+                var imageFormat = Image.DetectFormat(stream);
+                if (imageFormat.FileExtensions.Contains("png") || imageFormat.FileExtensions.Contains("jpg"))
+                    return true;
+            }
+            catch (Exception)
+            {
                 return false;
-
-            if (imageFormat.FileExtensions.Contains("png") || imageFormat.FileExtensions.Contains("jpg"))
-                return true;
+            }
 
             return false;
         }
