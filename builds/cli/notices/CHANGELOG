@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
+## [2.0.1] - 2026-04-12
+
+### Fixed
+
+- Fixes to WatneyAstrometry.ImageReaders: 8-bit monochrome PNG images had
+  mistakenly set the BPP in the image metadata to 16 while it should have been
+  8. This had caused exceptions when being processed by the DefaultStarDetector
+  for example.
+- CommonFormatsImageReader.IsSupported() was throwing exceptions after 2.0.0
+  as ImageSharp API had changed and was throwing NotSupportedException for
+  unsupported formats. This has now been fixed and the method will never
+  throw again, returning false when the format is not supported.
+
+
+
 ## [2.0.0] - 2026-03-05
 
 ### Changed
