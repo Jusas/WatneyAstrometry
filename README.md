@@ -24,7 +24,7 @@ In addition, the multi-platform **Watney Desktop Solver** GUI app is provided fo
 ![image](https://user-images.githubusercontent.com/5293904/185812351-11741c3f-7e99-4739-8451-213467004ce9.png)
 
 
-See Watney in action: **https://watney-astrometry.net** _(Note, currently the website has fallen a bit behind and has some result presentation bugs with Aladin embedding, and runs an outdated version which does not represent actual performance, to be updated when time allows. Apologies!)_
+See Watney in action: **https://watney-astrometry.net**
 
 # Downloads
 
